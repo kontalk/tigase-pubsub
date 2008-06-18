@@ -227,6 +227,9 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 			this.pubsubRepository = new PubSubRepository(userRepository, this.config);
 
+			this.defaultNodeConfig = new NodeConfig();
+			this.defaultNodeConfig.read(userRepository, config, "default-node-config");
+			this.defaultNodeConfig.write(userRepository, config, "default-node-config");
 			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
@@ -236,4 +239,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 		init();
 	}
+
+	private NodeConfig defaultNodeConfig;
+
 }
