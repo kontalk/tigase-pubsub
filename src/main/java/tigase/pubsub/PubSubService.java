@@ -25,22 +25,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.conf.Configurable;
 import tigase.db.RepositoryFactory;
-import tigase.db.TigaseDBException;
-import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
 import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
 import tigase.disco.XMPPService;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.NodeCreateModule;
-import tigase.pubsub.modules.PEPPublisherModule;
 import tigase.pubsub.modules.PublishItemModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
+import tigase.pubsub.repository.PubSubRepository;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.Packet;
 import tigase.util.DNSResolver;
@@ -62,11 +59,9 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	protected NodeCreateModule nodeCreateModule;
 
-	private PEPPublisherModule pepPublishModule;
+	private PublishItemModule publishNodeModule;
 
-	private PublishItemModule publishNodeModule;;
-
-	private UserRepository pubsubRepository;
+	private PubSubRepository pubsubRepository;
 
 	private ServiceEntity serviceEntity;
 
@@ -148,7 +143,6 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 	}
 
 	protected void init() {
-		this.pepPublishModule = registerModule(new PEPPublisherModule(this.config, this.pubsubRepository));
 		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository));
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
 		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository));
@@ -211,19 +205,6 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 	public void setProperties(Map<String, Object> props) {
 		super.setProperties(props);
 
-		try {
-			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
-			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
-
-			pubsubRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
-			pubsubRepository.initRepository(res_uri, null);
-
-			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
-		} catch (Exception e) {
-			log.severe("Can't initialize pubsub repository: " + e);
-			e.printStackTrace();
-			System.exit(1);
-		}
 		String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
 		clearRoutings();
 		for (String host : hostnames) {
@@ -238,16 +219,19 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		this.config.setServiceName(myDomain());
 
 		try {
-			this.pubsubRepository.setData(this.config.getServiceName(), "last-start", String.valueOf(System.currentTimeMillis()));
-		} catch (UserNotFoundException e) {
-			try {
-				this.pubsubRepository.addUser(this.config.getServiceName());
-				this.pubsubRepository.setData(this.config.getServiceName(), "last-start", String.valueOf(System.currentTimeMillis()));
-			} catch (Exception e1) {
-				log.log(Level.SEVERE, "PubSub repository initialization problem", e1);
-			}
-		} catch (TigaseDBException e) {
-			log.log(Level.SEVERE, "PubSub repository initialization problem", e);
+			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
+			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
+
+			UserRepository userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
+			userRepository.initRepository(res_uri, null);
+
+			this.pubsubRepository = new PubSubRepository(userRepository, this.config);
+
+			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
+		} catch (Exception e) {
+			log.severe("Can't initialize pubsub repository: " + e);
+			e.printStackTrace();
+			System.exit(1);
 		}
 
 		init();

@@ -21,32 +21,16 @@
  */
 package tigase.pubsub;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Logger;
-
-import tigase.xml.Element;
-
-public abstract class AbstractModule implements Module {
-
-	public static Element createResultIQ(Element iq) {
-		return new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
-				iq.getAttribute("from"), iq.getAttribute("id") });
-	}
-
-	public static List<Element> createResultIQArray(Element iq) {
-		return makeArray(createResultIQ(iq));
-	}
-
-	public static List<Element> makeArray(Element... elements) {
-		ArrayList<Element> result = new ArrayList<Element>();
-		for (Element element : elements) {
-			result.add(element);
-
-		}
-		return result;
-	}
-
-	protected Logger log = Logger.getLogger(this.getClass().getName());
-
+public enum NodeType {
+	/**
+	 * A node that contains nodes and/or other collections but no published
+	 * items. Collections make it possible to represent hierarchial node
+	 * structures.
+	 */
+	collection,
+	/**
+	 * A node that contains published items only. It is NOT a container for
+	 * other nodes. This is the most common node type.
+	 */
+	leaf,
 }

@@ -21,32 +21,18 @@
  */
 package tigase.pubsub;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Logger;
-
-import tigase.xml.Element;
-
-public abstract class AbstractModule implements Module {
-
-	public static Element createResultIQ(Element iq) {
-		return new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
-				iq.getAttribute("from"), iq.getAttribute("id") });
-	}
-
-	public static List<Element> createResultIQArray(Element iq) {
-		return makeArray(createResultIQ(iq));
-	}
-
-	public static List<Element> makeArray(Element... elements) {
-		ArrayList<Element> result = new ArrayList<Element>();
-		for (Element element : elements) {
-			result.add(element);
-
-		}
-		return result;
-	}
-
-	protected Logger log = Logger.getLogger(this.getClass().getName());
-
+public enum Affiliation {
+	/** */
+	member,
+	/** */
+	none,
+	/** An entity that is disallowed from subscribing or publishing to a node. */
+	outcast,
+	/**
+	 * The manager of a node, of which there may be more than one; often but not
+	 * necessarily the node creator.
+	 */
+	owner,
+	/** An entity that is allowed to publish items to a node. */
+	publisher
 }

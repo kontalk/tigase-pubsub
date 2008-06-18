@@ -43,9 +43,9 @@ public class PubSubException extends Exception {
 
 	private String message;
 
-	private String xmlns = "urn:ietf:params:xml:ns:xmpp-stanzas";
-
 	private PubSubErrorCondition pubSubErrorCondition;
+
+	private String xmlns = "urn:ietf:params:xml:ns:xmpp-stanzas";
 
 	public PubSubException(final Element item, final Authorization errorCondition) {
 		this(item, errorCondition, (String) null);
@@ -107,7 +107,8 @@ public class PubSubException extends Exception {
 		answer.addAttribute("from", item.getAttribute("to"));
 
 		if (this.message != null) {
-			Element text = new Element("text", this.message, new String[] { "xmlns" }, new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
+			Element text = new Element("text", this.message, new String[] { "xmlns" },
+					new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
 			answer.addChild(text);
 		}
 

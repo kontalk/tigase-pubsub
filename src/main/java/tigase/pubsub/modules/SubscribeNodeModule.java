@@ -25,11 +25,11 @@ import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.db.UserRepository;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.PubSubRepository;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -39,11 +39,11 @@ public class SubscribeNodeModule extends AbstractModule {
 	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
 
-	private UserRepository repository;
-
 	private PubSubConfig config;
 
-	public SubscribeNodeModule(PubSubConfig config, UserRepository pubsubRepository) {
+	private PubSubRepository repository;
+
+	public SubscribeNodeModule(PubSubConfig config, PubSubRepository pubsubRepository) {
 		this.repository = pubsubRepository;
 		this.config = config;
 	}
@@ -62,7 +62,7 @@ public class SubscribeNodeModule extends AbstractModule {
 		final String jid = subscribe.getAttribute("jid");
 
 		try {
-			String tmp = repository.getData(config.getServiceName(), nodeName, "owner");
+			String tmp = repository.getOwnerJid(nodeName);
 			if (tmp == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
@@ -70,7 +70,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (!JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(element.getAttribute("from")))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
-			
+
 			// TODO 6.1.3.2 Presence Subscription Required
 			// TODO 6.1.3.3 Not in Roster Group
 			// TODO 6.1.3.4 Not on Whitelist
@@ -80,14 +80,15 @@ public class SubscribeNodeModule extends AbstractModule {
 			// TODO 6.1.3.8 Blocked
 			// TODO 6.1.3.9 Subscriptions Not Supported
 			// TODO 6.1.3.10 Node Has Moved
-			
-			repository.setData(config.getServiceName(), nodeName + "/subscribers", jid, "subscribe");
+
+			repository.addSubscriberJid(nodeName, jid);
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));
 
 			Element result = createResultIQ(element);
-			Element resPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+			Element resPubSub = new Element("pubsub", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub" });
 			result.addChild(resPubSub);
 			Element resSubscription = new Element("subscription");
 			resPubSub.addChild(resSubscription);

@@ -26,34 +26,25 @@ import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.db.UserRepository;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.server.Packet;
-import tigase.util.JIDUtils;
+import tigase.pubsub.repository.PubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
-import tigase.xmpp.PacketErrorTypeException;
 
 public class PublishItemModule extends AbstractModule {
 
-	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(
-			ElementCriteria.name("publish"));
-
-	protected UserRepository repository;
+	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
 	protected PubSubConfig config;
 
-	public PublishItemModule(PubSubConfig config, UserRepository pubsubRepository) {
+	protected PubSubRepository repository;
+
+	public PublishItemModule(PubSubConfig config, PubSubRepository pubsubRepository) {
 		this.repository = pubsubRepository;
 		this.config = config;
-	}
-
-	@Override
-	public Criteria getModuleCriteria() {
-		return CRIT_PUBLISH;
 	}
 
 	protected Element createNotification(final Element publish, final String fromJID, final String toJID) {
@@ -80,6 +71,11 @@ public class PublishItemModule extends AbstractModule {
 	}
 
 	@Override
+	public Criteria getModuleCriteria() {
+		return CRIT_PUBLISH;
+	}
+
+	@Override
 	public List<Element> process(Element element) throws PubSubException {
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element publish = pubSub.getChild("publish");
@@ -87,7 +83,8 @@ public class PublishItemModule extends AbstractModule {
 		final String nodeName = publish.getAttribute("node");
 
 		try {
-			String tmp = repository.getData(config.getServiceName(), nodeName, "owner");
+
+			String tmp = repository.getOwnerJid(nodeName);
 			if (tmp == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
@@ -102,7 +99,7 @@ public class PublishItemModule extends AbstractModule {
 			List<Element> result = new ArrayList<Element>();
 			result.add(createResultIQ(element));
 
-			for (String jid : repository.getKeys(config.getServiceName(), nodeName + "/subscribers")) {
+			for (String jid : repository.getSubscribersJid(nodeName)) {
 				final String jidTO = jid;
 				final String jidFrom = element.getAttribute("to");
 				Element notification = createNotification(publish, jidFrom, jidTO);

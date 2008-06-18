@@ -21,32 +21,26 @@
  */
 package tigase.pubsub;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Logger;
-
-import tigase.xml.Element;
-
-public abstract class AbstractModule implements Module {
-
-	public static Element createResultIQ(Element iq) {
-		return new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
-				iq.getAttribute("from"), iq.getAttribute("id") });
-	}
-
-	public static List<Element> createResultIQArray(Element iq) {
-		return makeArray(createResultIQ(iq));
-	}
-
-	public static List<Element> makeArray(Element... elements) {
-		ArrayList<Element> result = new ArrayList<Element>();
-		for (Element element : elements) {
-			result.add(element);
-
-		}
-		return result;
-	}
-
-	protected Logger log = Logger.getLogger(this.getClass().getName());
-
+public enum Subscription {
+	/** The node MUST NOT send event notifications or payloads to the Entity. */
+	none,
+	/**
+	 * An entity has requested to subscribe to a node and the request has not
+	 * yet been approved by a node owner. The node MUST NOT send event
+	 * notifications or payloads to the entity while it is in this state.
+	 */
+	pending,
+	/**
+	 * An entity is subscribed to a node. The node MUST send all event
+	 * notifications (and, if configured, payloads) to the entity while it is in
+	 * this state (subject to subscriber configuration and content filtering).
+	 */
+	subscribed,
+	/**
+	 * An entity has subscribed but its subscription options have not yet been
+	 * configured. The node MAY send event notifications or payloads to the
+	 * entity while it is in this state. The service MAY timeout unconfigured
+	 * subscriptions.
+	 */
+	unconfigured,
 }

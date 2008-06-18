@@ -90,8 +90,8 @@ public class PubSubPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	}
 
 	@Override
-	public void process(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings)
-			throws XMPPException {
+	public void process(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results,
+			Map<String, Object> settings) throws XMPPException {
 
 		if (packet.getElemTo() == null || packet.getElemTo().equals(session.getDomain())) {
 			final Element element = packet.getElement();
@@ -99,7 +99,8 @@ public class PubSubPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 			final Element publish = pubSub.getChild("publish");
 			final String nodeName = publish.getAttribute("node");
 
-			if ("http://jabber.org/protocol/mood".equals(nodeName) && "iq".equals(packet.getElemName()) && "set".equals(element.getAttribute("type"))) {
+			if ("http://jabber.org/protocol/mood".equals(nodeName) && "iq".equals(packet.getElemName())
+					&& "set".equals(element.getAttribute("type"))) {
 				final String fromJid = session.getJID();
 
 				String[] buddies = Roster.getBuddies(session, SUBSCRITION_TYPES);
@@ -133,14 +134,17 @@ public class PubSubPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 
 	}
 
+	@Override
 	public Element[] supDiscoFeatures(XMPPResourceConnection session) {
 		return DISCO_FEATURES;
 	}
 
+	@Override
 	public String[] supElements() {
 		return ELEMENTS;
 	}
 
+	@Override
 	public String[] supNamespaces() {
 		return XMLNSS;
 	}
