@@ -26,6 +26,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.NodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
@@ -48,9 +49,12 @@ public class NodeCreateModule extends AbstractModule {
 
 	private final PubSubRepository repository;
 
-	public NodeCreateModule(final PubSubConfig config, final PubSubRepository pubsubRepository) {
+	private final NodeConfig defaultNodeConfig;
+
+	public NodeCreateModule(final PubSubConfig config, final PubSubRepository pubsubRepository, final NodeConfig defaultNodeConfig) {
 		this.repository = pubsubRepository;
 		this.config = config;
+		this.defaultNodeConfig = defaultNodeConfig;
 	}
 
 	@Override
@@ -71,7 +75,25 @@ public class NodeCreateModule extends AbstractModule {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
 
-			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")));
+			NodeConfig nodeConfig = defaultNodeConfig.clone();
+			if (configure != null) {
+				Element x = configure.getChild("x", "jabber:x:data");
+				if ("submit".equals(x.getAttribute("type"))) {
+					for (Element field : x.getChildren()) {
+						if ("field".equals(field.getName())) {
+							final String var = field.getAttribute("var");
+							String val = null;
+							Element value = field.getChild("value");
+							if (value != null) {
+								val = value.getCData();
+							}
+							nodeConfig.setValue(var, val);
+						}
+					}
+				}
+			}
+
+			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig);
 			return createResultIQArray(element);
 		} catch (PubSubException e1) {
 			throw e1;

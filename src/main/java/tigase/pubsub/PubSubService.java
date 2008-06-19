@@ -145,7 +145,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 	protected void init() {
 		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository));
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
-		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository));
+		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 	}
 
 	public String myDomain() {

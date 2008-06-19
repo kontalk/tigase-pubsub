@@ -30,6 +30,32 @@ import tigase.db.UserRepository;
 
 public class NodeConfig implements Cloneable {
 
+	private static final String DEFAULT_ACCESS_MODEL = AccessModel.open.name();
+
+	private final static boolean DEFAULT_DELIVER_NOTIFICATIONS = true;
+
+	private final static boolean DEFAULT_DELIVER_PAYLOADS = true;
+
+	private static final int DEFAULT_MAX_ITEMS = 10;
+
+	private static final int DEFAULT_MAX_PAYLOAD_SIZE = 9216;
+
+	private final static boolean DEFAULT_NOTIFY_CONFIG = false;
+
+	private final static boolean DEFAULT_NOTIFY_DELETE = false;
+
+	private final static boolean DEFAULT_NOTIFY_RETRACT = false;
+
+	private final static boolean DEFAULT_PERSIST_ITEMS = false;
+
+	private static final boolean DEFAULT_PRESENCE_BASED_DELIVERY = false;
+
+	private static final String DEFAULT_PUBLISH_MODEL = PublisherModel.publishers.name();
+
+	private static final String DEFAULT_SEND_LAST_PUBLISHED_ITEM = SendLastPublishedItem.never.name();
+
+	private static final boolean DEFAULT_SUBSCRIBE = true;
+
 	private static boolean asBoolean(String data, boolean defValue) {
 		try {
 			return Boolean.parseBoolean(data);
@@ -54,11 +80,11 @@ public class NodeConfig implements Cloneable {
 		}
 	}
 
-	protected static <T extends Enum<?>> String[] convSetToTable(Set<T> set) {
+	protected static String[] convSetToTable(Set<String> set) {
 		String[] result = new String[set.size()];
 		int i = 0;
-		for (T x : set) {
-			result[i++] = x.name();
+		for (String x : set) {
+			result[i++] = x;
 		}
 		return result;
 	}
@@ -76,62 +102,62 @@ public class NodeConfig implements Cloneable {
 	/**
 	 * Deliver payloads with event notifications
 	 */
-	private boolean deliver_payloads = true;
+	private boolean deliver_payloads = DEFAULT_DELIVER_PAYLOADS;
 
 	/**
 	 * Max # of items to persist
 	 */
-	private int max_items = 10;
+	private int max_items = DEFAULT_MAX_ITEMS;
 
 	/**
 	 * Max payload size in bytes
 	 */
-	private int max_payload_size = 9216;
+	private int max_payload_size = DEFAULT_MAX_PAYLOAD_SIZE;
 
 	/**
 	 * Notify subscribers when the node configuration changes
 	 */
-	private boolean notify_config = false;
+	private boolean notify_config = DEFAULT_NOTIFY_CONFIG;
 
 	/**
 	 * Notify subscribers when the node is deleted
 	 */
-	private boolean notify_delete = false;
+	private boolean notify_delete = DEFAULT_NOTIFY_DELETE;
 
 	/**
 	 * Notify subscribers when items are removed from the node
 	 */
-	private boolean notify_retract = false;
+	private boolean notify_retract = DEFAULT_NOTIFY_RETRACT;
 
 	/**
 	 * Persist items to storage
 	 */
-	private boolean persist_items = true;
+	private boolean persist_items = DEFAULT_PERSIST_ITEMS;
 
 	/**
 	 * Deliver notifications only to available users
 	 */
-	private boolean presence_based_delivery = false;
+	private boolean presence_based_delivery = DEFAULT_PRESENCE_BASED_DELIVERY;
 
 	/**
 	 * Specify the publisher model
 	 */
-	private PublisherModel publish_model = PublisherModel.publishers;
+	private PublisherModel publish_model = PublisherModel.valueOf(DEFAULT_PUBLISH_MODEL);
 
 	/**
 	 * Roster groups allowed to subscribe
 	 */
-	private final Set<RosterGroups> roster_groups_allowed = new HashSet<RosterGroups>();
+	private final Set<String> roster_groups_allowed = new HashSet<String>();
 
 	/**
 	 * When to send the last published item
 	 */
-	private SendLastPublishedItem send_last_published_item = SendLastPublishedItem.never;
+	private SendLastPublishedItem send_last_published_item = SendLastPublishedItem.valueOf(DEFAULT_SEND_LAST_PUBLISHED_ITEM);
 
 	/**
 	 * Whether to allow subscriptions
 	 */
-	private boolean subscribe = true;
+	private boolean subscribe = DEFAULT_SUBSCRIBE;
 
 	/**
 	 * A friendly name for the node
@@ -159,7 +185,7 @@ public class NodeConfig implements Cloneable {
 		return publish_model;
 	}
 
-	public Set<RosterGroups> getRoster_groups_allowed() {
+	public Set<String> getRoster_groups_allowed() {
 		return roster_groups_allowed;
 	}
 
@@ -205,31 +231,21 @@ public class NodeConfig implements Cloneable {
 
 	public void read(UserRepository repo, PubSubConfig pubSubConfig, String subnode) throws UserNotFoundException,
 			TigaseDBException {
-		this.title = repo.getData(pubSubConfig.getServiceName(), subnode, "title");
-		this.deliver_notifications = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "deliver_notifications"), true);
-		this.deliver_payloads = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "deliver_payloads"), true);
-		this.notify_config = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "notify_config"), false);
-		this.notify_delete = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "notify_delete"), false);
-		this.notify_retract = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "notify_retract"), false);
-		this.persist_items = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "persist_items"), true);
-		this.max_items = asInteger(repo.getData(pubSubConfig.getServiceName(), subnode, "max_items"), 10);
-		this.subscribe = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "subscribe"), true);
-		this.access_model = AccessModel.valueOf(asString(repo.getData(pubSubConfig.getServiceName(), subnode, "access_model"),
-				AccessModel.open.name()));
-		String[] tmp = repo.getDataList(pubSubConfig.getServiceName(), subnode, "roster_groups_allowed");
-		this.roster_groups_allowed.clear();
-		if (tmp != null)
-			for (String string : tmp) {
-				RosterGroups rg = RosterGroups.valueOf(string);
-				this.roster_groups_allowed.add(rg);
-			}
-		this.publish_model = PublisherModel.valueOf(asString(repo.getData(pubSubConfig.getServiceName(), subnode, "publish_model"),
-				PublisherModel.publishers.name()));
-		this.send_last_published_item = SendLastPublishedItem.valueOf(asString(repo.getData(pubSubConfig.getServiceName(), subnode,
-				"send_last_published_item"), SendLastPublishedItem.never.name()));
-		this.max_payload_size = asInteger(repo.getData(pubSubConfig.getServiceName(), subnode, "max_payload_size"), 9216);
-		this.presence_based_delivery = asBoolean(repo.getData(pubSubConfig.getServiceName(), subnode, "presence_based_delivery"),
-				false);
+		setValue("title", repo.getData(pubSubConfig.getServiceName(), subnode, "title"));
+		setValue("deliver_notifications", repo.getData(pubSubConfig.getServiceName(), subnode, "deliver_notifications"));
+		setValue("deliver_payloads", repo.getData(pubSubConfig.getServiceName(), subnode, "deliver_payloads"));
+		setValue("notify_config", repo.getData(pubSubConfig.getServiceName(), subnode, "notify_config"));
+		setValue("notify_delete", repo.getData(pubSubConfig.getServiceName(), subnode, "notify_delete"));
+		setValue("notify_retract", repo.getData(pubSubConfig.getServiceName(), subnode, "notify_retract"));
+		setValue("persist_items", repo.getData(pubSubConfig.getServiceName(), subnode, "persist_items"));
+		setValue("max_items", repo.getData(pubSubConfig.getServiceName(), subnode, "max_items"));
+		setValue("subscribe", repo.getData(pubSubConfig.getServiceName(), subnode, "subscribe"));
+		setValue("access_model", repo.getData(pubSubConfig.getServiceName(), subnode, "access_model"));
+		setValue("roster_groups_allowed", repo.getDataList(pubSubConfig.getServiceName(), subnode, "roster_groups_allowed"));
+		setValue("publish_model", repo.getData(pubSubConfig.getServiceName(), subnode, "publish_model"));
+		setValue("send_last_published_item", repo.getData(pubSubConfig.getServiceName(), subnode, "send_last_published_item"));
+		setValue("max_payload_size", repo.getData(pubSubConfig.getServiceName(), subnode, "max_payload_size"));
+		setValue("presence_based_delivery", repo.getData(pubSubConfig.getServiceName(), subnode, "presence_based_delivery"));
 	}
 
 	public void setAccess_model(AccessModel access_model) {
@@ -286,6 +302,50 @@ public class NodeConfig implements Cloneable {
 
 	public void setTitle(String title) {
 		this.title = title;
+	}
+
+	public void setValue(final String ekey, final Object value) {
+		String key = ekey;
+		int p;
+		if ((p = key.indexOf('#')) != -1) {
+			key = ekey.substring(p + 1);
+		}
+		if ("title".equals(key)) {
+			this.title = (String) value;
+		} else if ("deliver_notifications".equals(key)) {
+			this.deliver_notifications = asBoolean((String) value, DEFAULT_DELIVER_NOTIFICATIONS);
+		} else if ("deliver_payloads".equals(key)) {
+			this.deliver_payloads = asBoolean((String) value, DEFAULT_DELIVER_PAYLOADS);
+		} else if ("notify_config".equals(key)) {
+			this.notify_config = asBoolean((String) value, DEFAULT_NOTIFY_CONFIG);
+		} else if ("notify_delete".equals(key)) {
+			this.notify_delete = asBoolean((String) value, DEFAULT_NOTIFY_DELETE);
+		} else if ("notify_retract".equals(key)) {
+			this.notify_retract = asBoolean((String) value, DEFAULT_NOTIFY_RETRACT);
+		} else if ("persist_items".equals(key)) {
+			this.persist_items = asBoolean((String) value, DEFAULT_PERSIST_ITEMS);
+		} else if ("max_items".equals(key)) {
+			this.max_items = asInteger((String) value, DEFAULT_MAX_ITEMS);
+		} else if ("subscribe".equals(key)) {
+			this.subscribe = asBoolean((String) value, DEFAULT_SUBSCRIBE);
+		} else if ("access_model".equals(key)) {
+			this.access_model = AccessModel.valueOf(asString((String) value, DEFAULT_ACCESS_MODEL));
+		} else if ("roster_groups_allowed".equals(key)) {
+			String[] tmp = (String[]) value;
+			this.roster_groups_allowed.clear();
+			if (tmp != null)
+				for (String string : tmp) {
+					this.roster_groups_allowed.add(string);
+				}
+		} else if ("publish_model".equals(key)) {
+			this.publish_model = PublisherModel.valueOf(asString((String) value, DEFAULT_PUBLISH_MODEL));
+		} else if ("send_last_published_item".equals(key)) {
+			SendLastPublishedItem.valueOf(asString((String) value, DEFAULT_SEND_LAST_PUBLISHED_ITEM));
+		} else if ("max_payload_size".equals(key)) {
+			this.max_payload_size = asInteger((String) value, DEFAULT_MAX_PAYLOAD_SIZE);
+		} else if ("presence_based_delivery".equals(key)) {
+			this.presence_based_delivery = asBoolean((String) value, DEFAULT_PRESENCE_BASED_DELIVERY);
+		}
 	}
 
 	public void write(UserRepository repo, PubSubConfig pubSubConfig, String subnode) throws UserNotFoundException,
