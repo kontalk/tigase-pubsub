@@ -27,6 +27,8 @@ public class PubSubErrorCondition {
 
 	public static final PubSubErrorCondition INVALID_JID = new PubSubErrorCondition("invalid-jid");
 
+	public static final PubSubErrorCondition NODEID_REQUIRED = new PubSubErrorCondition("nodeid-required");
+
 	protected static final String XMLNS = "http://jabber.org/protocol/pubsub#errors";
 
 	private final String condition;

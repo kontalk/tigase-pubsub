@@ -29,6 +29,8 @@ import tigase.xml.Element;
 
 public interface Module {
 
+	String[] getFeatures();
+
 	Criteria getModuleCriteria();
 
 	List<Element> process(final Element element) throws PubSubException;

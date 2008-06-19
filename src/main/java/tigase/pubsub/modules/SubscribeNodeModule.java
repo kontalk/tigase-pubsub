@@ -49,6 +49,12 @@ public class SubscribeNodeModule extends AbstractModule {
 	}
 
 	@Override
+	public String[] getFeatures() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
 	public Criteria getModuleCriteria() {
 		return CRIT_SUBSCRIBE;
 	}

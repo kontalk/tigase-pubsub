@@ -22,12 +22,14 @@
 package tigase.pubsub.modules;
 
 import java.util.List;
+import java.util.UUID;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.NodeConfig;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
 import tigase.util.JIDUtils;
@@ -47,14 +49,20 @@ public class NodeCreateModule extends AbstractModule {
 
 	private final PubSubConfig config;
 
-	private final PubSubRepository repository;
-
 	private final NodeConfig defaultNodeConfig;
+
+	private final PubSubRepository repository;
 
 	public NodeCreateModule(final PubSubConfig config, final PubSubRepository pubsubRepository, final NodeConfig defaultNodeConfig) {
 		this.repository = pubsubRepository;
 		this.config = config;
 		this.defaultNodeConfig = defaultNodeConfig;
+	}
+
+	@Override
+	public String[] getFeatures() {
+		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure",
+				"http://jabber.org/protocol/pubsub#create-nodes", "http://jabber.org/protocol/pubsub#instant-nodes" };
 	}
 
 	@Override
@@ -68,8 +76,13 @@ public class NodeCreateModule extends AbstractModule {
 		final Element create = pubSub.getChild("create");
 		final Element configure = pubSub.getChild("configure");
 
-		final String nodeName = create.getAttribute("node");
+		String nodeName = create.getAttribute("node");
 		try {
+			boolean instantNode = nodeName == null;
+			if (instantNode) {
+				nodeName = UUID.randomUUID().toString().replaceAll("-", "");
+			}
+
 			String tmp = repository.getOwnerJid(nodeName);
 			if (tmp != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
@@ -78,7 +91,7 @@ public class NodeCreateModule extends AbstractModule {
 			NodeConfig nodeConfig = defaultNodeConfig.clone();
 			if (configure != null) {
 				Element x = configure.getChild("x", "jabber:x:data");
-				if ("submit".equals(x.getAttribute("type"))) {
+				if (x != null && "submit".equals(x.getAttribute("type"))) {
 					for (Element field : x.getChildren()) {
 						if ("field".equals(field.getName())) {
 							final String var = field.getAttribute("var");
@@ -94,7 +107,15 @@ public class NodeCreateModule extends AbstractModule {
 			}
 
 			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig);
-			return createResultIQArray(element);
+
+			Element result = createResultIQ(element);
+			if (instantNode) {
+				Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+				Element cr = new Element("create", new String[] { "node" }, new String[] { nodeName });
+				ps.addChild(cr);
+				result.addChild(ps);
+			}
+			return makeArray(result);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

@@ -85,10 +85,11 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 				// external component and on specialized component like MUC
 				hostnamesPropVal[i] = hostnamesPropVal[i];
 			} else {
-				hostnamesPropVal[i] = "muc." + hostnamesPropVal[i];
+				if (!hostnamesPropVal[i].startsWith("pubsub.")) {
+					hostnamesPropVal[i] = "pubsub." + hostnamesPropVal[i];
+				}
 			}
 		}
-
 		// By default use the same repository as all other components:
 		String repo_class = XML_REPO_CLASS_PROP_VAL;
 		String repo_uri = XML_REPO_URL_PROP_VAL;
@@ -121,24 +122,31 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	@Override
 	public List<Element> getDiscoFeatures() {
+		System.out.println("GET DISCO FEATORUES");
+
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Element getDiscoInfo(String node, String jid) {
+		System.out.println("GET DISCO INFO");
 		if (jid != null && jid.startsWith(getName() + ".")) {
-			return serviceEntity.getDiscoInfo(node);
+			Element result = serviceEntity.getDiscoInfo(node);
+			return result;
 		}
 		return null;
 	}
 
 	@Override
 	public List<Element> getDiscoItems(String node, String jid) {
+		log.finest("GET DISCO ITEMS");
 		if (jid.startsWith(getName() + ".")) {
-			return serviceEntity.getDiscoItems(node, null);
+			List<Element> result = serviceEntity.getDiscoItems(node, null);
+			return result;
 		} else {
-			return Arrays.asList(serviceEntity.getDiscoItem(null, getName() + "." + jid));
+			Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);
+			return Arrays.asList(result);
 		}
 	}
 
@@ -214,7 +222,10 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
 		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
 
-		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub", "");
+		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
+
+		ServiceEntity blogItems = new ServiceEntity(getName(), "blogs", "Blogs items news");
+		serviceEntity.addItems(blogItems);
 
 		this.config.setServiceName(myDomain());
 
@@ -238,6 +249,16 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		}
 
 		init();
+
+		for (Module module : this.modules) {
+			String[] features = module.getFeatures();
+			if (features != null) {
+				for (String f : features) {
+					serviceEntity.addFeatures(f);
+				}
+			}
+		}
+
 	}
 
 	private NodeConfig defaultNodeConfig;
