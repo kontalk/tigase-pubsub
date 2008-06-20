@@ -38,6 +38,7 @@ import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.PublishItemModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.RepositoryException;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.Packet;
 import tigase.util.DNSResolver;
@@ -142,7 +143,18 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 	public List<Element> getDiscoItems(String node, String jid) {
 		log.finest("GET DISCO ITEMS");
 		if (jid.startsWith(getName() + ".")) {
-			List<Element> result = serviceEntity.getDiscoItems(node, null);
+			List<Element> result = new ArrayList<Element>();
+			if (node == null) {
+				try {
+					for (String nodeName : pubsubRepository.getNodesList()) {
+						Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] { jid, nodeName,
+								nodeName });
+						result.add(item);
+					}
+				} catch (RepositoryException e) {
+					new RuntimeException("Disco", e);
+				}
+			}
 			return result;
 		} else {
 			Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);

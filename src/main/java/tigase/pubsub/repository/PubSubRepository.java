@@ -76,4 +76,13 @@ public class PubSubRepository {
 		}
 	}
 
+	public String[] getNodesList() throws RepositoryException {
+		try {
+			String[] nodes = repository.getSubnodes(config.getServiceName(), NODES_KEY);
+			return nodes;
+		} catch (Exception e) {
+			throw new RepositoryException("Nodes list getting error", e);
+		}
+	}
+
 }
