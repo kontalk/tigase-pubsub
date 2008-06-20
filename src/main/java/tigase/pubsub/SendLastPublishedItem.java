@@ -23,11 +23,27 @@ package tigase.pubsub;
 
 public enum SendLastPublishedItem {
 	/** Never */
-	never, /** When a new subscription is processed */
-	on_sub,
+	never("Never"),
+	/** When a new subscription is processed */
+	on_sub("When a new subscription is processed"),
 	/**
 	 * When a new subscription is processed and whenever a subscriber comes
 	 * online
 	 */
-	on_sub_and_presence
+	on_sub_and_presence("When a new subscription is processed and whenever a subscriber comes online");
+
+	private final String description;
+
+	private SendLastPublishedItem(String description) {
+		this.description = description;
+	}
+
+	public static String[] descriptions() {
+		String[] result = new String[values().length];
+		int i = 0;
+		for (SendLastPublishedItem item : values()) {
+			result[i++] = item.description;
+		}
+		return result;
+	}
 }

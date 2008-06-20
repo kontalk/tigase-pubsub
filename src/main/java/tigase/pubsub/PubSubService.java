@@ -34,6 +34,8 @@ import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
 import tigase.disco.XMPPService;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.DefaultConfigModule;
+import tigase.pubsub.modules.NodeConfigModule;
 import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
 import tigase.pubsub.modules.PublishItemModule;
@@ -55,6 +57,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	protected final PubSubConfig config = new PubSubConfig();
 
+	private DefaultConfigModule defaultConfigModule;
+
 	private NodeConfig defaultNodeConfig;
 
 	private Logger log = Logger.getLogger(this.getClass().getName());
@@ -72,6 +76,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 	private ServiceEntity serviceEntity;
 
 	protected SubscribeNodeModule subscribeNodeModule;
+
+	private NodeConfigModule nodeConfigModule;
 
 	public PubSubService() {
 	}
@@ -172,6 +178,9 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
 		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository));
+		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository,
+				this.defaultNodeConfig));
+		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository));
 	}
 
 	public String myDomain() {

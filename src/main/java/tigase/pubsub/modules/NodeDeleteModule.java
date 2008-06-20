@@ -27,6 +27,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
+import tigase.pubsub.NodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
@@ -55,7 +56,8 @@ public class NodeDeleteModule extends AbstractModule {
 		return CRIT_DELETE;
 	}
 
-	private Affiliation getUserAffiliation(final String nodeName, final String jid) throws RepositoryException {
+	public static Affiliation getUserAffiliation(final PubSubRepository repository, final String nodeName, final String jid)
+			throws RepositoryException {
 		Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, jid);
 		if (senderAffiliation == null) {
 			senderAffiliation = repository.getSubscriberAffiliation(nodeName, JIDUtils.getNodeID(jid));
@@ -78,15 +80,34 @@ public class NodeDeleteModule extends AbstractModule {
 			}
 
 			String jid = element.getAttribute("from");
-			Affiliation senderAffiliation = getUserAffiliation(nodeName, jid);
+			Affiliation senderAffiliation = getUserAffiliation(this.repository, nodeName, jid);
 			if (senderAffiliation != Affiliation.owner) {
 				throw new PubSubException(element, Authorization.FORBIDDEN);
 			}
-			
+
+			List<Element> resultArray = makeArray(createResultIQ(element));
+			NodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			if (nodeConfig.isNotify_config()) {
+				String pssJid = element.getAttribute("to");
+				String[] jids = repository.getSubscribersJid(nodeName);
+				for (String sjid : jids) {
+					Affiliation affiliation = NodeDeleteModule.getUserAffiliation(this.repository, nodeName, sjid);
+					if (affiliation == null || affiliation == Affiliation.none || affiliation == Affiliation.outcast)
+						continue;
+					Element message = new Element("message", new String[] { "from", "to" }, new String[] { pssJid, sjid });
+					Element event = new Element("event", new String[] { "xmlns" },
+							new String[] { "http://jabber.org/protocol/pubsub#event" });
+					Element configuration = new Element("delete", new String[] { "node" }, new String[] { nodeName });
+					event.addChild(configuration);
+					message.addChild(event);
+
+					resultArray.add(message);
+				}
+			}
+
 			log.fine("Delete node [" + nodeName + "]");
 			repository.deleteNode(nodeName);
-			Element result = createResultIQ(element);
-			return makeArray(result);
+			return resultArray;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

@@ -33,14 +33,23 @@ public class PubSubErrorCondition {
 
 	private final String condition;
 
+	private final String feature;
+
 	protected PubSubErrorCondition(String condition) {
+		this(condition, null);
+	}
+
+	public PubSubErrorCondition(String condition, String feature) {
 		this.condition = condition;
+		this.feature = feature;
 	}
 
 	public Element getElement() {
 		Element result = new Element(condition);
 		result.addAttribute("xmlns", XMLNS);
-
+		if (this.feature != null) {
+			result.addAttribute("feature", feature);
+		}
 		return result;
 	}
 

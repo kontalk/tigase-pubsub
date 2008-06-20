@@ -114,4 +114,23 @@ public class PubSubRepository {
 		}
 	}
 
+	public NodeConfig getNodeConfig(String nodeName) throws RepositoryException {
+		try {
+			NodeConfig result = new NodeConfig();
+			result.read(repository, config, NODES_KEY + nodeName + "/configuration");
+			return result;
+		} catch (Exception e) {
+			throw new RepositoryException("Node configuration reading error", e);
+		}
+	}
+
+	public void update(final String nodeName, final NodeConfig nodeConfig) throws RepositoryException {
+		try {
+			nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
+		} catch (Exception e) {
+			throw new RepositoryException("Node configuration writing error", e);
+		}
+
+	}
+
 }
