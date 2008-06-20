@@ -26,6 +26,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.Affiliation;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -68,7 +69,7 @@ public class SubscribeNodeModule extends AbstractModule {
 		final String jid = subscribe.getAttribute("jid");
 
 		try {
-			String tmp = repository.getOwnerJid(nodeName);
+			String tmp = repository.getCreationDate(nodeName);
 			if (tmp == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
@@ -87,7 +88,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			// TODO 6.1.3.9 Subscriptions Not Supported
 			// TODO 6.1.3.10 Node Has Moved
 
-			repository.addSubscriberJid(nodeName, jid);
+			repository.addSubscriberJid(nodeName, jid, Affiliation.none);
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));

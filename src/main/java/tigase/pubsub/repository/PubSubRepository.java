@@ -6,10 +6,13 @@ import java.util.logging.Logger;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
+import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeConfig;
 import tigase.pubsub.PubSubConfig;
 
 public class PubSubRepository {
+
+	private static final String SUBSCRIBES_KEY = "subscribers";
 
 	private final PubSubConfig config;
 
@@ -38,19 +41,23 @@ public class PubSubRepository {
 
 	}
 
-	public void addSubscriberJid(String nodeName, String jid) throws RepositoryException {
+	public void addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation) throws RepositoryException {
 		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/subscribers", jid, "subscribe");
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY, jid, affiliation.name());
 		} catch (Exception e) {
 			throw new RepositoryException("Subscriber adding error", e);
 		}
 
 	}
 
+	public final static String CREATION_DATE_KEY = "creation-date";
+
 	public void createNode(String nodeName, String ownerJid, NodeConfig nodeConfig) throws RepositoryException {
 		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "owner", ownerJid);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY,
+					String.valueOf(System.currentTimeMillis()));
 			nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
+			addSubscriberJid(nodeName, ownerJid, Affiliation.owner);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RepositoryException("Node creation error", e);
@@ -58,9 +65,23 @@ public class PubSubRepository {
 
 	}
 
-	public String getOwnerJid(String nodeName) throws RepositoryException {
+	public Affiliation getSubscriberAffiliation(final String nodeName, final String jid) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName, "owner");
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY, jid);
+			if (tmp != null) {
+				return Affiliation.valueOf(tmp);
+			} else {
+				return null;
+			}
+		} catch (Exception e) {
+			throw new RepositoryException("Affiliation getting error", e);
+		}
+
+	}
+
+	public String getCreationDate(String nodeName) throws RepositoryException {
+		try {
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY);
 		} catch (Exception e) {
 			throw new RepositoryException("Owner getting error", e);
 		}
@@ -70,7 +91,7 @@ public class PubSubRepository {
 
 	public String[] getSubscribersJid(String nodeName) throws RepositoryException {
 		try {
-			return repository.getKeys(config.getServiceName(), NODES_KEY + nodeName + "/subscribers");
+			return repository.getKeys(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY);
 		} catch (Exception e) {
 			throw new RepositoryException("Subscribers getting  error", e);
 		}
@@ -82,6 +103,14 @@ public class PubSubRepository {
 			return nodes;
 		} catch (Exception e) {
 			throw new RepositoryException("Nodes list getting error", e);
+		}
+	}
+
+	public void deleteNode(String nodeName) throws RepositoryException {
+		try {
+			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName);
+		} catch (Exception e) {
+			throw new RepositoryException("Node deleting error", e);
 		}
 	}
 

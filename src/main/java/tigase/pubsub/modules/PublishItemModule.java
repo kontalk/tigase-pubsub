@@ -90,7 +90,7 @@ public class PublishItemModule extends AbstractModule {
 
 		try {
 
-			String tmp = repository.getOwnerJid(nodeName);
+			String tmp = repository.getCreationDate(nodeName);
 			if (tmp == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}

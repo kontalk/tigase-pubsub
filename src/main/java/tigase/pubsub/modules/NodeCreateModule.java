@@ -83,7 +83,7 @@ public class NodeCreateModule extends AbstractModule {
 				nodeName = UUID.randomUUID().toString().replaceAll("-", "");
 			}
 
-			String tmp = repository.getOwnerJid(nodeName);
+			String tmp = repository.getCreationDate(nodeName);
 			if (tmp != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
