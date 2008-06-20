@@ -77,7 +77,6 @@ public class NodeDeleteModule extends AbstractModule {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			String[] subscribers = repository.getSubscribersJid(nodeName);
 			String jid = element.getAttribute("from");
 			Affiliation senderAffiliation = getUserAffiliation(nodeName, jid);
 			if (senderAffiliation != Affiliation.owner) {
