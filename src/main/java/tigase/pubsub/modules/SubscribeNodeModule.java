@@ -27,6 +27,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
+import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -37,8 +38,7 @@ import tigase.xmpp.Authorization;
 
 public class SubscribeNodeModule extends AbstractModule {
 
-	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
+	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
 
 	private PubSubConfig config;
 
@@ -69,8 +69,8 @@ public class SubscribeNodeModule extends AbstractModule {
 		final String jid = subscribe.getAttribute("jid");
 
 		try {
-			String tmp = repository.getCreationDate(nodeName);
-			if (tmp == null) {
+			NodeType nodeType = repository.getNodeType(nodeName);
+			if (nodeType == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
@@ -88,14 +88,14 @@ public class SubscribeNodeModule extends AbstractModule {
 			// TODO 6.1.3.9 Subscriptions Not Supported
 			// TODO 6.1.3.10 Node Has Moved
 
-			repository.addSubscriberJid(nodeName, jid, Affiliation.none);
+			
+			//repository.addSubscriberJid(nodeName, jid, Affiliation.none);
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));
 
 			Element result = createResultIQ(element);
-			Element resPubSub = new Element("pubsub", new String[] { "xmlns" },
-					new String[] { "http://jabber.org/protocol/pubsub" });
+			Element resPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
 			result.addChild(resPubSub);
 			Element resSubscription = new Element("subscription");
 			resPubSub.addChild(resSubscription);

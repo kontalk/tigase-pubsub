@@ -47,8 +47,16 @@ public class PubSubException extends Exception {
 
 	private String xmlns = "urn:ietf:params:xml:ns:xmpp-stanzas";
 
+	public PubSubException(final Authorization errorCondition) {
+		this(null, errorCondition, (String) null);
+	}
+
 	public PubSubException(final Element item, final Authorization errorCondition) {
 		this(item, errorCondition, (String) null);
+	}
+
+	public PubSubException(final Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions) {
+		this((Element) null, errorCondition, pubSubErrorConditions);
 	}
 
 	public PubSubException(final Element item, final Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions) {
@@ -99,6 +107,11 @@ public class PubSubException extends Exception {
 		return makeElement(true);
 	}
 
+	public Element makeElement(Element sourceElement) {
+		this.item = sourceElement;
+		return makeElement(true);
+	}
+
 	public Element makeElement(boolean insertOriginal) {
 		Element answer = insertOriginal ? item.clone() : new Element(item.getName());
 		answer.addAttribute("id", item.getAttribute("id"));
@@ -107,8 +120,7 @@ public class PubSubException extends Exception {
 		answer.addAttribute("from", item.getAttribute("to"));
 
 		if (this.message != null) {
-			Element text = new Element("text", this.message, new String[] { "xmlns" },
-					new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
+			Element text = new Element("text", this.message, new String[] { "xmlns" }, new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
 			answer.addChild(text);
 		}
 

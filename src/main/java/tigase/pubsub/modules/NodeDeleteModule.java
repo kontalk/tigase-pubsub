@@ -28,6 +28,7 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeConfig;
+import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
@@ -38,8 +39,7 @@ import tigase.xmpp.Authorization;
 
 public class NodeDeleteModule extends AbstractModule {
 
-	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
+	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
 	private final PubSubRepository repository;
 
 	public NodeDeleteModule(PubSubConfig config, PubSubRepository pubsubRepository) {
@@ -74,8 +74,8 @@ public class NodeDeleteModule extends AbstractModule {
 			if (nodeName == null) {
 				throw new PubSubException(element, Authorization.NOT_ALLOWED);
 			}
-			String tmp = repository.getCreationDate(nodeName);
-			if (tmp == null) {
+			NodeType nodeType = repository.getNodeType(nodeName);
+			if (nodeType == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
@@ -95,8 +95,7 @@ public class NodeDeleteModule extends AbstractModule {
 					if (affiliation == null || affiliation == Affiliation.none || affiliation == Affiliation.outcast)
 						continue;
 					Element message = new Element("message", new String[] { "from", "to" }, new String[] { pssJid, sjid });
-					Element event = new Element("event", new String[] { "xmlns" },
-							new String[] { "http://jabber.org/protocol/pubsub#event" });
+					Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
 					Element configuration = new Element("delete", new String[] { "node" }, new String[] { nodeName });
 					event.addChild(configuration);
 					message.addChild(event);

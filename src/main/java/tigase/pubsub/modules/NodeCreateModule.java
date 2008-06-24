@@ -28,6 +28,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.NodeConfig;
+import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -42,22 +43,13 @@ import tigase.xmpp.Authorization;
  * @author bmalkow
  * 
  */
-public class NodeCreateModule extends AbstractModule {
+public class NodeCreateModule extends AbstractConfigCreateNode {
 
-	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
-
-	private final PubSubConfig config;
-
-	private final NodeConfig defaultNodeConfig;
-
-	private final PubSubRepository repository;
-
-	public NodeCreateModule(final PubSubConfig config, final PubSubRepository pubsubRepository, final NodeConfig defaultNodeConfig) {
-		this.repository = pubsubRepository;
-		this.config = config;
-		this.defaultNodeConfig = defaultNodeConfig;
+	public NodeCreateModule(PubSubConfig config, PubSubRepository pubsubRepository, NodeConfig defaultNodeConfig) {
+		super(config, pubsubRepository, defaultNodeConfig);
 	}
+
+	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
 	@Override
 	public String[] getFeatures() {
@@ -83,11 +75,13 @@ public class NodeCreateModule extends AbstractModule {
 				nodeName = UUID.randomUUID().toString().replaceAll("-", "");
 			}
 
-			String tmp = repository.getCreationDate(nodeName);
-			if (tmp != null) {
+			NodeType nodeType = repository.getNodeType(nodeName);
+			if (nodeType != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
 
+			nodeType = NodeType.leaf;
+			String collection = null;
 			NodeConfig nodeConfig = defaultNodeConfig.clone();
 			if (configure != null) {
 				Element x = configure.getChild("x", "jabber:x:data");
@@ -100,13 +94,28 @@ public class NodeCreateModule extends AbstractModule {
 							if (value != null) {
 								val = value.getCData();
 							}
-							nodeConfig.setValue(var, val);
+							if ("pubsub#node_type".equals(var)) {
+								nodeType = NodeType.valueOf(val);
+							} else if ("pubsub#collection".equals(var)) {
+								collection = val;
+							} else
+								nodeConfig.setValue(var, val);
 						}
 					}
 				}
 			}
 
-			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig);
+			if (collection != null) {
+				NodeType colNodeType = repository.getNodeType(collection);
+				if (colNodeType == null) {
+					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+				} else if (colNodeType == NodeType.leaf) {
+					throw new PubSubException(element, Authorization.NOT_ALLOWED);
+				}
+			}
+
+			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType, collection == null ? ""
+					: collection);
 
 			Element result = createResultIQ(element);
 			if (instantNode) {

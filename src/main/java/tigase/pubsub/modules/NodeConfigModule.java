@@ -25,9 +25,9 @@ import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeConfig;
+import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -35,16 +35,13 @@ import tigase.pubsub.repository.PubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
-public class NodeConfigModule extends AbstractModule {
+public class NodeConfigModule extends AbstractConfigCreateNode {
 
-	private static final Criteria CRIT_CONFIG = ElementCriteria.name("iq").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("configure"));
-
-	private final PubSubRepository repository;
-
-	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository) {
-		this.repository = pubsubRepository;
+	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, NodeConfig defaultNodeConfig) {
+		super(config, pubsubRepository, defaultNodeConfig);
 	}
+
+	private static final Criteria CRIT_CONFIG = ElementCriteria.name("iq").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("configure"));
 
 	@Override
 	public String[] getFeatures() {
@@ -54,6 +51,40 @@ public class NodeConfigModule extends AbstractModule {
 	@Override
 	public Criteria getModuleCriteria() {
 		return CRIT_CONFIG;
+	}
+
+	protected void parseConf(final IntConf conf, final String nodeName, final Element configure) throws PubSubException {
+		Element x = configure.getChild("x", "jabber:x:data");
+		if (x != null && "submit".equals(x.getAttribute("type"))) {
+			for (Element field : x.getChildren()) {
+				if ("field".equals(field.getName())) {
+					final String var = field.getAttribute("var");
+					String val = null;
+					Element value = field.getChild("value");
+					if (value != null) {
+						val = value.getCData();
+					}
+					if ("pubsub#node_type".equals(var)) {
+						conf.nodeType = NodeType.valueOf(val);
+					} else if ("pubsub#children".equals(var)) {
+						List<Element> values = field.getChildren();
+						if (values != null) {
+							conf.children = new String[values.size()];
+							for (int i = 0; i < values.size(); i++) {
+								conf.children[i] = values.get(i).getCData();
+							}
+						}
+					} else if ("pubsub#collection".equals(var)) {
+						List<Element> values = field.getChildren();
+						if (values == null || values.size() != 1) {
+							throw new PubSubException(Authorization.BAD_REQUEST);
+						}
+						conf.collection = val == null ? "" : val;
+					} else
+						conf.nodeConfig.setValue(var, val);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -68,8 +99,8 @@ public class NodeConfigModule extends AbstractModule {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
 			}
 
-			String tmp = repository.getCreationDate(nodeName);
-			if (tmp == null) {
+			NodeType nodeType = repository.getNodeType(nodeName);
+			if (nodeType == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
@@ -84,28 +115,50 @@ public class NodeConfigModule extends AbstractModule {
 			List<Element> resultArray = makeArray(result);
 			if ("get".equals(type)) {
 				NodeConfig nodeConfig = repository.getNodeConfig(nodeName);
-				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
-						new String[] { "http://jabber.org/protocol/pubsub#owner" });
+				Element rPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
 				Element rConfigure = new Element("configure", new String[] { "node" }, new String[] { nodeName });
 				rConfigure.addChild(nodeConfig.getJabberForm());
 				rPubSub.addChild(rConfigure);
 				result.addChild(rPubSub);
 			} else if ("set".equals(type)) {
 				NodeConfig nodeConfig = repository.getNodeConfig(nodeName);
-				Element x = configure.getChild("x", "jabber:x:data");
-				if (x != null && "submit".equals(x.getAttribute("type"))) {
-					for (Element field : x.getChildren()) {
-						if ("field".equals(field.getName())) {
-							final String var = field.getAttribute("var");
-							String val = null;
-							Element value = field.getChild("value");
-							if (value != null) {
-								val = value.getCData();
+				String collectionCurrent = repository.getCollectionOf(nodeName);
+				IntConf conf = new IntConf();
+				conf.nodeConfig = nodeConfig;
+
+				parseConf(conf, nodeName, configure);
+
+				if (conf.collection != null && !conf.collection.equals(collectionCurrent)) {
+					NodeType colNodeType = "".equals(conf.collection) ? NodeType.collection
+							: repository.getNodeType(conf.collection);
+					if (colNodeType == null) {
+						throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+					} else if (colNodeType == NodeType.leaf) {
+						throw new PubSubException(element, Authorization.NOT_ALLOWED);
+					}
+					repository.setNewNodeCollection(nodeName, conf.collection);
+
+				}
+
+				if (nodeType == NodeType.collection && conf.children != null) {
+					// XXX sprawdzić usuwanie itp.
+					String[] nodes = repository.getNodesList();
+					if (isIn("", conf.children)) {
+						throw new PubSubException(Authorization.BAD_REQUEST);
+					}
+					for (String node : nodes) {
+						if (isIn(node, conf.children)) {
+							NodeType colNodeType = repository.getNodeType(node);
+							if (colNodeType == null) {
+								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+							} else if (colNodeType == NodeType.leaf) {
+								throw new PubSubException(element, Authorization.NOT_ALLOWED);
 							}
-							nodeConfig.setValue(var, val);
+							repository.setNewNodeCollection(node, nodeName);
 						}
 					}
 				}
+
 				repository.update(nodeName, nodeConfig);
 
 				if (nodeConfig.isNotify_config()) {
@@ -116,8 +169,7 @@ public class NodeConfigModule extends AbstractModule {
 						if (affiliation == null || affiliation == Affiliation.none || affiliation == Affiliation.outcast)
 							continue;
 						Element message = new Element("message", new String[] { "from", "to" }, new String[] { pssJid, sjid });
-						Element event = new Element("event", new String[] { "xmlns" },
-								new String[] { "http://jabber.org/protocol/pubsub#event" });
+						Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
 						Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
 						if (nodeConfig.isDeliver_payloads()) {
 							configuration.addChild(nodeConfig.getJabberForm());
@@ -143,4 +195,11 @@ public class NodeConfigModule extends AbstractModule {
 
 	}
 
+	protected boolean isIn(String node, String[] children) {
+		for (String x : children) {
+			if (x.equals(node))
+				return true;
+		}
+		return false;
+	}
 }

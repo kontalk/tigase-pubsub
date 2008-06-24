@@ -27,6 +27,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
@@ -35,8 +36,7 @@ import tigase.xmpp.Authorization;
 
 public class PublishItemModule extends AbstractModule {
 
-	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
+	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
 	protected PubSubConfig config;
 
@@ -90,8 +90,8 @@ public class PublishItemModule extends AbstractModule {
 
 		try {
 
-			String tmp = repository.getCreationDate(nodeName);
-			if (tmp == null) {
+			NodeType nodeType = repository.getNodeType(nodeName);
+			if (nodeType == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 

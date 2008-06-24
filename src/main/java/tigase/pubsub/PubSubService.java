@@ -142,8 +142,20 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	@Override
 	public Element getDiscoInfo(String node, String jid) {
-		System.out.println("GET DISCO INFO");
-		if (jid != null && jid.startsWith(getName() + ".")) {
+		System.out.println("GET DISCO INFO " + node);
+		if (node != null && jid != null && jid.startsWith(getName() + ".")) {
+			try {
+				NodeType type = pubsubRepository.getNodeType(node);
+				Element query = new Element("query", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/disco#info" });
+				Element identyity = new Element("identity", new String[] { "category", "type" }, new String[] { "pubsub",
+						type.name() });
+				query.addChild(identyity);
+
+				return query;
+			} catch (RepositoryException e) {
+				e.printStackTrace();
+			}
+		} else if (jid != null && jid.startsWith(getName() + ".")) {
 			Element result = serviceEntity.getDiscoInfo(node);
 			return result;
 		}
@@ -153,20 +165,23 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 	@Override
 	public List<Element> getDiscoItems(String node, String jid) {
 		log.finest("GET DISCO ITEMS");
+		final String tmpNode = node == null ? "" : node;
 		if (jid.startsWith(getName() + ".")) {
-			List<Element> result = new ArrayList<Element>();
-			if (node == null) {
-				try {
-					for (String nodeName : pubsubRepository.getNodesList()) {
+			try {
+				List<Element> result = new ArrayList<Element>();
+				for (String nodeName : pubsubRepository.getNodesList()) {
+					final NodeType type = pubsubRepository.getNodeType(nodeName);
+					final String collection = pubsubRepository.getCollectionOf(nodeName);
+					if (tmpNode.equals(collection)) {
 						Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] { jid, nodeName,
 								nodeName });
 						result.add(item);
 					}
-				} catch (RepositoryException e) {
-					new RuntimeException("Disco", e);
 				}
+				return result;
+			} catch (RepositoryException e) {
+				throw new RuntimeException("Disco", e);
 			}
-			return result;
 		} else {
 			Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);
 			return Arrays.asList(result);
@@ -178,9 +193,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
 		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository));
-		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository,
-				this.defaultNodeConfig));
-		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository));
+		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
+		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 	}
 
 	public String myDomain() {
@@ -197,7 +211,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 				addOutPacket(Authorization.FEATURE_NOT_IMPLEMENTED.getResponseMessage(packet, "Stanza is not processed", true));
 			}
 		} catch (PubSubException e) {
-			Element result = e.makeElement();
+			Element result = e.makeElement(packet.getElement());
 			addOutPacket(new Packet(result));
 		} catch (Exception e) {
 			log.throwing("PubSUb Service", "processPacket", e);
