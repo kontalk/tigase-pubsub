@@ -159,7 +159,7 @@ public class PubSubRepository {
 
 	public String getCollectionOf(String nodeName) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/" + ASSOCIATE_COLLECTION_KEY);
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", ASSOCIATE_COLLECTION_KEY);
 		} catch (Exception e) {
 			throw new RepositoryException("Node collection getting error", e);
 		}
@@ -167,7 +167,7 @@ public class PubSubRepository {
 
 	public void setNewNodeCollection(String nodeName, String collectionNew) throws RepositoryException {
 		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/" + ASSOCIATE_COLLECTION_KEY, collectionNew);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", ASSOCIATE_COLLECTION_KEY, collectionNew);
 		} catch (Exception e) {
 			throw new RepositoryException("Node collection writing error", e);
 		}
