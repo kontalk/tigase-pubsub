@@ -98,8 +98,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 								nodeType = NodeType.valueOf(val);
 							} else if ("pubsub#collection".equals(var)) {
 								collection = val;
-							} else
-								nodeConfig.setValue(var, val);
+							}
+							nodeConfig.setValue(var, val);
 						}
 					}
 				}

@@ -21,10 +21,12 @@
  */
 package tigase.pubsub.modules;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
+import tigase.form.Field;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
@@ -32,6 +34,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.RepositoryException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -76,15 +79,27 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						}
 					} else if ("pubsub#collection".equals(var)) {
 						List<Element> values = field.getChildren();
-						if (values == null || values.size() != 1) {
+						if (values != null && values.size() != 1) {
 							throw new PubSubException(Authorization.BAD_REQUEST);
 						}
 						conf.collection = val == null ? "" : val;
-					} else
-						conf.nodeConfig.setValue(var, val);
+					}
+					conf.nodeConfig.setValue(var, val);
 				}
 			}
 		}
+	}
+
+	protected List<String> getNodeChildren(final String node) throws RepositoryException {
+		List<String> result = new ArrayList<String>();
+		final String tmpNode = node == null ? "" : node;
+		for (String name : repository.getNodesList()) {
+			final String collection = repository.getCollectionOf(name);
+			if (tmpNode.equals(collection)) {
+				result.add(name);
+			}
+		}
+		return result;
 	}
 
 	@Override
@@ -115,10 +130,13 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			List<Element> resultArray = makeArray(result);
 			if ("get".equals(type)) {
 				LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+				nodeConfig.addTransientNodeChildren(getNodeChildren(nodeName));
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
 				Element rConfigure = new Element("configure", new String[] { "node" }, new String[] { nodeName });
 				rConfigure.addChild(nodeConfig.getJabberForm());
 				rPubSub.addChild(rConfigure);
+
+
 				result.addChild(rPubSub);
 			} else if ("set".equals(type)) {
 				LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
@@ -151,9 +169,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							NodeType colNodeType = repository.getNodeType(node);
 							if (colNodeType == null) {
 								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
-							} else if (colNodeType == NodeType.leaf) {
-								throw new PubSubException(element, Authorization.NOT_ALLOWED);
-							}
+							} 
 							repository.setNewNodeCollection(node, nodeName);
 						}
 					}

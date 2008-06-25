@@ -74,10 +74,10 @@ public class PubSubRepository {
 		try {
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY, String.valueOf(System.currentTimeMillis()));
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, NODE_TYPE_KEY, nodeType.name());
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, ASSOCIATE_COLLECTION_KEY, collection);
 			if (nodeConfig != null)
 				nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
 			addSubscriberJid(nodeName, ownerJid, Affiliation.owner, Subscription.none);
+			setNewNodeCollection(nodeName, collection);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RepositoryException("Node creation error", e);
@@ -159,7 +159,7 @@ public class PubSubRepository {
 
 	public String getCollectionOf(String nodeName) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName, ASSOCIATE_COLLECTION_KEY);
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/" + ASSOCIATE_COLLECTION_KEY);
 		} catch (Exception e) {
 			throw new RepositoryException("Node collection getting error", e);
 		}
@@ -167,7 +167,7 @@ public class PubSubRepository {
 
 	public void setNewNodeCollection(String nodeName, String collectionNew) throws RepositoryException {
 		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, ASSOCIATE_COLLECTION_KEY, collectionNew);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/" + ASSOCIATE_COLLECTION_KEY, collectionNew);
 		} catch (Exception e) {
 			throw new RepositoryException("Node collection writing error", e);
 		}

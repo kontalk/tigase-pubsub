@@ -174,6 +174,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 				List<Element> result = new ArrayList<Element>();
 				for (String nodeName : pubsubRepository.getNodesList()) {
 					final NodeType type = pubsubRepository.getNodeType(nodeName);
+					if (type == null)
+						continue;
 					final String collection = pubsubRepository.getCollectionOf(nodeName);
 					if (tmpNode.equals(collection)) {
 						Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] { jid, nodeName,

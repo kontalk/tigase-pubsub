@@ -22,6 +22,7 @@
 package tigase.pubsub;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import tigase.db.TigaseDBException;
@@ -34,6 +35,17 @@ import tigase.xml.Element;
 public class AbstractNodeConfig implements Cloneable {
 
 	private static final String DEFAULT_ACCESS_MODEL = AccessModel.open.name();
+
+	private List<String> children = null;
+
+	public void addTransientNodeChildren(List<String> nodeChildren) {
+		if (nodeChildren != null && nodeChildren.size() > 0) {
+			this.children = nodeChildren;
+		} else
+			this.children = null;
+	}
+
+	private final static String DEFAULT_COLLECTION = "";
 
 	private final static boolean DEFAULT_DELIVER_NOTIFICATIONS = true;
 
@@ -96,6 +108,11 @@ public class AbstractNodeConfig implements Cloneable {
 	 * Specify the subscriber model
 	 */
 	private AccessModel access_model = AccessModel.open;
+
+	/**
+	 * The collection with which a node is affiliated
+	 */
+	private String collection = DEFAULT_COLLECTION;
 
 	/**
 	 *Deliver event notifications
@@ -167,6 +184,15 @@ public class AbstractNodeConfig implements Cloneable {
 	 */
 	private String title = "";
 
+	private String[] asStrinTable(Enum<?>[] values) {
+		String[] result = new String[values.length];
+		int i = 0;
+		for (Enum<?> v : values) {
+			result[i++] = v.name();
+		}
+		return result;
+	}
+
 	@Override
 	public LeafNodeConfig clone() throws CloneNotSupportedException {
 		return (LeafNodeConfig) super.clone();
@@ -174,6 +200,41 @@ public class AbstractNodeConfig implements Cloneable {
 
 	public AccessModel getAccess_model() {
 		return access_model;
+	}
+
+	public String getCollection() {
+		return collection;
+	}
+
+	public Element getJabberForm() {
+		Form form = new Form("form", null, null);
+		form.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#node_config"));
+		form.addField(Field.fieldTextSingle("pubsub#title", this.title, "A friendly name for the node"));
+		form.addField(Field.fieldTextSingle("pubsub#collection", this.collection, "The collection with which a node is affiliated"));
+		form.addField(Field.fieldBoolean("pubsub#deliver_notifications", this.deliver_notifications, "Deliver event notifications"));
+		form.addField(Field.fieldBoolean("pubsub#notify_config", this.notify_config, "Notify subscribers when the node configuration changes"));
+		form.addField(Field.fieldBoolean("pubsub#notify_delete", this.notify_delete, "Notify subscribers when the node is deleted"));
+		form.addField(Field.fieldBoolean("pubsub#notify_retract", this.notify_retract, "Notify subscribers when items are removed from the node"));
+		form.addField(Field.fieldBoolean("pubsub#persist_items", this.persist_items, "Persist items to storage"));
+		form.addField(Field.fieldTextSingle("pubsub#max_items", String.valueOf(this.max_items), "Max # of items to persist"));
+		form.addField(Field.fieldBoolean("pubsub#subscribe", this.subscribe, "Whether to allow subscriptions"));
+		form.addField(Field.fieldListSingle("pubsub#access_model", this.access_model.name(), "Specify the subscriber model", null, asStrinTable(AccessModel.values())));
+		form.addField(Field.fieldListMulti("pubsub#roster_groups_allowed", this.roster_groups_allowed.toArray(new String[] {}), "Roster groups allowed to subscribe", null, new String[] {}));
+		form.addField(Field.fieldListSingle("pubsub#publish_model", this.publish_model.name(), "Specify the publisher model", null, asStrinTable(PublisherModel.values())));
+		form.addField(Field.fieldTextSingle("pubsub#max_payload_size", String.valueOf(this.max_payload_size), "Max payload size in bytes"));
+		form.addField(Field.fieldListSingle("pubsub#send_last_published_item", this.send_last_published_item.name(), "When to send the last published item", SendLastPublishedItem.descriptions(), asStrinTable(SendLastPublishedItem.values())));
+
+		if (this.children != null) {
+			Element f = new Element("field", new String[]{"var"}, new String[]{"pubsub#children"});
+			for (String x : this.children) {
+				f.addChild(new Element("value", x));
+			}
+			Field field = new Field(f);
+			//Field field = Field.fieldListSingle("pubsub#children", null, "The child nodes (leaf or collection) associated with a collection", null, this.children.toArray(new String[] {}));
+			form.addField(field);
+		}
+
+		return form.getElement();
 	}
 
 	public int getMax_items() {
@@ -235,6 +296,7 @@ public class AbstractNodeConfig implements Cloneable {
 	public void read(UserRepository repo, PubSubConfig pubSubConfig, String subnode) throws UserNotFoundException,
 			TigaseDBException {
 		setValue("title", repo.getData(pubSubConfig.getServiceName(), subnode, "title"));
+		setValue("collection", repo.getData(pubSubConfig.getServiceName(), subnode, "collection"));
 		setValue("deliver_notifications", repo.getData(pubSubConfig.getServiceName(), subnode, "deliver_notifications"));
 		setValue("deliver_payloads", repo.getData(pubSubConfig.getServiceName(), subnode, "deliver_payloads"));
 		setValue("notify_config", repo.getData(pubSubConfig.getServiceName(), subnode, "notify_config"));
@@ -253,6 +315,10 @@ public class AbstractNodeConfig implements Cloneable {
 
 	public void setAccess_model(AccessModel access_model) {
 		this.access_model = access_model;
+	}
+
+	public void setCollection(String collection) {
+		this.collection = collection;
 	}
 
 	public void setDeliver_notifications(boolean deliver_notifications) {
@@ -308,12 +374,16 @@ public class AbstractNodeConfig implements Cloneable {
 	}
 
 	public void setValue(final String ekey, final Object value) {
+		if (value == null)
+			return;
 		String key = ekey;
 		int p;
 		if ((p = key.indexOf('#')) != -1) {
 			key = ekey.substring(p + 1);
 		}
-		if ("title".equals(key)) {
+		if ("collection".equals(key)) {
+			this.collection = (String) value;
+		} else if ("title".equals(key)) {
 			this.title = (String) value;
 		} else if ("deliver_notifications".equals(key)) {
 			this.deliver_notifications = asBoolean((String) value, DEFAULT_DELIVER_NOTIFICATIONS);
@@ -368,42 +438,6 @@ public class AbstractNodeConfig implements Cloneable {
 		repo.setData(pubSubConfig.getServiceName(), subnode, "max_payload_size", String.valueOf(max_payload_size));
 		repo.setData(pubSubConfig.getServiceName(), subnode, "send_last_published_item", send_last_published_item.name());
 		repo.setData(pubSubConfig.getServiceName(), subnode, "presence_based_delivery", String.valueOf(presence_based_delivery));
-	}
-
-	public Element getJabberForm() {
-		Form form = new Form("form", null, null);
-		form.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#node_config"));
-		form.addField(Field.fieldTextSingle("pubsub#title", this.title, "A friendly name for the node"));
-		form.addField(Field.fieldBoolean("pubsub#deliver_notifications", this.deliver_notifications, "Deliver event notifications"));
-		form.addField(Field.fieldBoolean("pubsub#notify_config", this.notify_config,
-				"Notify subscribers when the node configuration changes"));
-		form.addField(Field.fieldBoolean("pubsub#notify_delete", this.notify_delete, "Notify subscribers when the node is deleted"));
-		form.addField(Field.fieldBoolean("pubsub#notify_retract", this.notify_retract,
-				"Notify subscribers when items are removed from the node"));
-		form.addField(Field.fieldBoolean("pubsub#persist_items", this.persist_items, "Persist items to storage"));
-		form.addField(Field.fieldTextSingle("pubsub#max_items", String.valueOf(this.max_items), "Max # of items to persist"));
-		form.addField(Field.fieldBoolean("pubsub#subscribe", this.subscribe, "Whether to allow subscriptions"));
-		form.addField(Field.fieldListSingle("pubsub#access_model", this.access_model.name(), "Specify the subscriber model", null,
-				asStrinTable(AccessModel.values())));
-		form.addField(Field.fieldListMulti("pubsub#roster_groups_allowed", this.roster_groups_allowed.toArray(new String[] {}),
-				"Roster groups allowed to subscribe", null, new String[] {}));
-		form.addField(Field.fieldListSingle("pubsub#publish_model", this.publish_model.name(), "Specify the publisher model", null,
-				asStrinTable(PublisherModel.values())));
-		form.addField(Field.fieldTextSingle("pubsub#max_payload_size", String.valueOf(this.max_payload_size),
-				"Max payload size in bytes"));
-		form.addField(Field.fieldListSingle("pubsub#send_last_published_item", this.send_last_published_item.name(),
-				"When to send the last published item", SendLastPublishedItem.descriptions(),
-				asStrinTable(SendLastPublishedItem.values())));
-
-		return form.getElement();
-	}
-
-	private String[] asStrinTable(Enum<?>[] values) {
-		String[] result = new String[values.length];
-		int i = 0;
-		for (Enum<?> v : values) {
-			result[i++] = v.name();
-		}
-		return result;
+		repo.setData(pubSubConfig.getServiceName(), subnode, "collection", this.collection);
 	}
 }

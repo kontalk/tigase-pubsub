@@ -21,5 +21,9 @@
  */
 package tigase.pubsub;
 
+import java.util.List;
 
-public class LeafNodeConfig extends AbstractNodeConfig {}
+public class LeafNodeConfig extends AbstractNodeConfig {
+
+
+}
