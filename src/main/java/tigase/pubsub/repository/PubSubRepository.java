@@ -218,4 +218,12 @@ public class PubSubRepository {
 		}
 	}
 
+	public void removeSubscriber(final String nodeName, final String jid) throws RepositoryException {
+		try {
+			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid);
+		} catch (Exception e) {
+			throw new RepositoryException("Subscriber removing error", e);
+		}
+	}
+
 }

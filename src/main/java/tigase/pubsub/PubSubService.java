@@ -40,6 +40,7 @@ import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
 import tigase.pubsub.modules.PublishItemModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
+import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.repository.PubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.server.AbstractMessageReceiver;
@@ -65,6 +66,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	private final ArrayList<Module> modules = new ArrayList<Module>();
 
+	private NodeConfigModule nodeConfigModule;
+
 	protected NodeCreateModule nodeCreateModule;
 
 	private NodeDeleteModule nodeDeleteModule;
@@ -77,7 +80,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	protected SubscribeNodeModule subscribeNodeModule;
 
-	private NodeConfigModule nodeConfigModule;
+	private UnsubscribeNodeModule unsubscribeNodeModule;
 
 	public PubSubService() {
 	}
@@ -195,6 +198,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository));
 		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
+		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
 	}
 
 	public String myDomain() {

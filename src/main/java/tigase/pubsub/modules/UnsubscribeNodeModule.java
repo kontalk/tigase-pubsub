@@ -37,17 +37,14 @@ import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
-public class SubscribeNodeModule extends AbstractModule {
+public class UnsubscribeNodeModule extends AbstractModule {
 
-	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
+	private static final Criteria CRIT_UNSUBSCRIBE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("unsubscribe"));
 
-	private PubSubConfig config;
+	private final PubSubRepository repository;
 
-	private PubSubRepository repository;
-
-	public SubscribeNodeModule(PubSubConfig config, PubSubRepository pubsubRepository) {
+	public UnsubscribeNodeModule(PubSubConfig config, PubSubRepository pubsubRepository) {
 		this.repository = pubsubRepository;
-		this.config = config;
 	}
 
 	@Override
@@ -58,80 +55,61 @@ public class SubscribeNodeModule extends AbstractModule {
 
 	@Override
 	public Criteria getModuleCriteria() {
-		return CRIT_SUBSCRIBE;
+		return CRIT_UNSUBSCRIBE;
 	}
 
 	@Override
 	public List<Element> process(Element element) throws PubSubException {
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
-		final Element subscribe = pubSub.getChild("subscribe");
+		final Element unsubscribe = pubSub.getChild("unsubscribe");
 
-		final String nodeName = subscribe.getAttribute("node");
-		final String jid = subscribe.getAttribute("jid");
+		final String nodeName = unsubscribe.getAttribute("node");
+		final String jid = unsubscribe.getAttribute("jid");
+		final String subid = unsubscribe.getAttribute("subid");
 
 		try {
+
 			NodeType nodeType = repository.getNodeType(nodeName);
 			if (nodeType == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
 			Affiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
-
 			if (affiliation != Affiliation.owner
 					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(element.getAttribute("from")))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
-
-			// TODO 6.1.3.2 Presence Subscription Required
-			// TODO 6.1.3.3 Not in Roster Group
-			// TODO 6.1.3.4 Not on Whitelist
-			// TODO 6.1.3.5 Payment Required
-			// TODO 6.1.3.6 Anonymous Subscriptions Not Allowed
-			// TODO 6.1.3.9 Subscriptions Not Supported
-			// TODO 6.1.3.10 Node Has Moved
-
-			Subscription subscription = repository.getSubscription(nodeName, jid);
-
 			if (affiliation != null) {
 				if (affiliation == Affiliation.outcast)
 					throw new PubSubException(Authorization.FORBIDDEN);
 			}
-			if (subscription != null) {
-				if (subscription == Subscription.pending) {
-					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION);
+
+			if (subid != null) {
+				String s = repository.getSubscriptionId(nodeName, jid);
+				if (!subid.equals(s)) {
+					throw new PubSubException(element, Authorization.NOT_ACCEPTABLE, PubSubErrorCondition.INVALID_SUBID);
 				}
 			}
 
-			subscription = Subscription.subscribed;
+			Subscription subscription = repository.getSubscription(nodeName, jid);
 
-			String subid = repository.getSubscriptionId(nodeName, jid);
-			if (affiliation == null) {
-				subid = repository.addSubscriberJid(nodeName, jid, Affiliation.member, subscription);
-			} else {
-				repository.changeSubscription(nodeName, jid, subscription);
+			if (subscription == null) {
+				throw new PubSubException(Authorization.UNEXPECTED_REQUEST, PubSubErrorCondition.NOT_SUBSCRIBED);
 			}
 
-			// repository.setData(config.getServiceName(), nodeName, "owner",
-			// JIDUtils.getNodeID(element.getAttribute("from")));
+			if (affiliation == Affiliation.none) {
+				repository.removeSubscriber(nodeName, jid);
+			} else {
+				repository.changeSubscription(nodeName, jid, Subscription.none);
+			}
 
-			Element result = createResultIQ(element);
-			Element resPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
-			result.addChild(resPubSub);
-			Element resSubscription = new Element("subscription");
-			resPubSub.addChild(resSubscription);
-			resSubscription.setAttribute("node", nodeName);
-			resSubscription.setAttribute("jid", jid);
-			resSubscription.setAttribute("subscription", subscription.name());
-			resSubscription.setAttribute("subid", subid);
-
-			return makeArray(result);
+			return makeArray(createResultIQ(element));
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-
 	}
 
 }
