@@ -27,7 +27,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
@@ -86,7 +86,7 @@ public class NodeDeleteModule extends AbstractModule {
 			}
 
 			List<Element> resultArray = makeArray(createResultIQ(element));
-			NodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 			if (nodeConfig.isNotify_config()) {
 				String pssJid = element.getAttribute("to");
 				String[] jids = repository.getSubscribersJid(nodeName);

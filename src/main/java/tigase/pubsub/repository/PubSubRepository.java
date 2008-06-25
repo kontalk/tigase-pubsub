@@ -7,7 +7,7 @@ import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 
@@ -59,7 +59,7 @@ public class PubSubRepository {
 
 	}
 
-	public void createNode(String nodeName, String ownerJid, NodeConfig nodeConfig, NodeType nodeType, String collection)
+	public void createNode(String nodeName, String ownerJid, LeafNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		try {
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY, String.valueOf(System.currentTimeMillis()));
@@ -83,9 +83,9 @@ public class PubSubRepository {
 		}
 	}
 
-	public NodeConfig getNodeConfig(String nodeName) throws RepositoryException {
+	public LeafNodeConfig getNodeConfig(String nodeName) throws RepositoryException {
 		try {
-			NodeConfig result = new NodeConfig();
+			LeafNodeConfig result = new LeafNodeConfig();
 			result.read(repository, config, NODES_KEY + nodeName + "/configuration");
 			return result;
 		} catch (Exception e) {
@@ -137,7 +137,7 @@ public class PubSubRepository {
 		}
 	}
 
-	public void update(final String nodeName, final NodeConfig nodeConfig) throws RepositoryException {
+	public void update(final String nodeName, final LeafNodeConfig nodeConfig) throws RepositoryException {
 		try {
 			nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
 		} catch (Exception e) {

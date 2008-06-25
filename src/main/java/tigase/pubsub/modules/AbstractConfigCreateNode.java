@@ -22,7 +22,7 @@
 package tigase.pubsub.modules;
 
 import tigase.pubsub.AbstractModule;
-import tigase.pubsub.NodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.PubSubRepository;
@@ -30,7 +30,7 @@ import tigase.pubsub.repository.PubSubRepository;
 public abstract class AbstractConfigCreateNode extends AbstractModule {
 
 	static class IntConf {
-		NodeConfig nodeConfig;
+		LeafNodeConfig nodeConfig;
 
 		String[] children = null;
 
@@ -42,12 +42,12 @@ public abstract class AbstractConfigCreateNode extends AbstractModule {
 
 	protected final PubSubConfig config;
 
-	protected final NodeConfig defaultNodeConfig;
+	protected final LeafNodeConfig defaultNodeConfig;
 
 	protected final PubSubRepository repository;
 
 	public AbstractConfigCreateNode(final PubSubConfig config, final PubSubRepository pubsubRepository,
-			final NodeConfig defaultNodeConfig) {
+			final LeafNodeConfig defaultNodeConfig) {
 		this.repository = pubsubRepository;
 		this.config = config;
 		this.defaultNodeConfig = defaultNodeConfig;

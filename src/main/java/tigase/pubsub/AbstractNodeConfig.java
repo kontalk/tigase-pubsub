@@ -31,7 +31,7 @@ import tigase.form.Field;
 import tigase.form.Form;
 import tigase.xml.Element;
 
-public class NodeConfig implements Cloneable {
+public class AbstractNodeConfig implements Cloneable {
 
 	private static final String DEFAULT_ACCESS_MODEL = AccessModel.open.name();
 
@@ -168,8 +168,8 @@ public class NodeConfig implements Cloneable {
 	private String title = "";
 
 	@Override
-	public NodeConfig clone() throws CloneNotSupportedException {
-		return (NodeConfig) super.clone();
+	public LeafNodeConfig clone() throws CloneNotSupportedException {
+		return (LeafNodeConfig) super.clone();
 	}
 
 	public AccessModel getAccess_model() {

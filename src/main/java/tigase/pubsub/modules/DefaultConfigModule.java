@@ -26,7 +26,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
-import tigase.pubsub.NodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -39,9 +39,9 @@ public class DefaultConfigModule extends AbstractModule {
 	private static final Criteria CRIT_DEFAULT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("default"));
 
-	private final NodeConfig defaultNodeConfig;
+	private final LeafNodeConfig defaultNodeConfig;
 
-	public DefaultConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, NodeConfig nodeConfig) {
+	public DefaultConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig nodeConfig) {
 		this.defaultNodeConfig = nodeConfig;
 	}
 

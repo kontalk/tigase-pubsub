@@ -27,7 +27,7 @@ import java.util.UUID;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
-import tigase.pubsub.NodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -45,7 +45,7 @@ import tigase.xmpp.Authorization;
  */
 public class NodeCreateModule extends AbstractConfigCreateNode {
 
-	public NodeCreateModule(PubSubConfig config, PubSubRepository pubsubRepository, NodeConfig defaultNodeConfig) {
+	public NodeCreateModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
 		super(config, pubsubRepository, defaultNodeConfig);
 	}
 
@@ -82,7 +82,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			nodeType = NodeType.leaf;
 			String collection = null;
-			NodeConfig nodeConfig = defaultNodeConfig.clone();
+			LeafNodeConfig nodeConfig = defaultNodeConfig.clone();
 			if (configure != null) {
 				Element x = configure.getChild("x", "jabber:x:data");
 				if (x != null && "submit".equals(x.getAttribute("type"))) {

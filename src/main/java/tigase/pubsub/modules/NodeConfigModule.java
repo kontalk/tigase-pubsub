@@ -26,7 +26,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -37,7 +37,7 @@ import tigase.xmpp.Authorization;
 
 public class NodeConfigModule extends AbstractConfigCreateNode {
 
-	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, NodeConfig defaultNodeConfig) {
+	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
 		super(config, pubsubRepository, defaultNodeConfig);
 	}
 
@@ -114,14 +114,14 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			Element result = createResultIQ(element);
 			List<Element> resultArray = makeArray(result);
 			if ("get".equals(type)) {
-				NodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+				LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
 				Element rConfigure = new Element("configure", new String[] { "node" }, new String[] { nodeName });
 				rConfigure.addChild(nodeConfig.getJabberForm());
 				rPubSub.addChild(rConfigure);
 				result.addChild(rPubSub);
 			} else if ("set".equals(type)) {
-				NodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+				LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 				String collectionCurrent = repository.getCollectionOf(nodeName);
 				IntConf conf = new IntConf();
 				conf.nodeConfig = nodeConfig;
