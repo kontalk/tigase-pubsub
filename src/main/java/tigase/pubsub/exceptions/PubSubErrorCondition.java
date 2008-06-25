@@ -29,6 +29,8 @@ public class PubSubErrorCondition {
 
 	public static final PubSubErrorCondition NODEID_REQUIRED = new PubSubErrorCondition("nodeid-required");
 
+	public static final PubSubErrorCondition PENDING_SUBSCRIPTION = new PubSubErrorCondition("pending-subscription");
+
 	protected static final String XMLNS = "http://jabber.org/protocol/pubsub#errors";
 
 	private final String condition;

@@ -29,6 +29,7 @@ import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
@@ -83,13 +84,30 @@ public class SubscribeNodeModule extends AbstractModule {
 			// TODO 6.1.3.4 Not on Whitelist
 			// TODO 6.1.3.5 Payment Required
 			// TODO 6.1.3.6 Anonymous Subscriptions Not Allowed
-			// TODO 6.1.3.7 Subscription Pending
-			// TODO 6.1.3.8 Blocked
 			// TODO 6.1.3.9 Subscriptions Not Supported
 			// TODO 6.1.3.10 Node Has Moved
 
-			
-			//repository.addSubscriberJid(nodeName, jid, Affiliation.none);
+			Affiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
+			Subscription subscription = repository.getSubscription(nodeName, jid);
+
+			if (affiliation != null) {
+				if (affiliation == Affiliation.outcast)
+					throw new PubSubException(Authorization.FORBIDDEN);
+			}
+			if (subscription != null) {
+				if (subscription == Subscription.pending) {
+					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION);
+				}
+			}
+
+			subscription = Subscription.subscribed;
+
+			String subid = repository.getSubscriptionId(nodeName, jid);
+			if (affiliation == null) {
+				subid = repository.addSubscriberJid(nodeName, jid, Affiliation.member, subscription);
+			} else {
+				repository.changeSubscription(nodeName, jid, subscription);
+			}
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));
@@ -101,7 +119,8 @@ public class SubscribeNodeModule extends AbstractModule {
 			resPubSub.addChild(resSubscription);
 			resSubscription.setAttribute("node", nodeName);
 			resSubscription.setAttribute("jid", jid);
-			resSubscription.setAttribute("subscription", "subscribed");
+			resSubscription.setAttribute("subscription", subscription.name());
+			resSubscription.setAttribute("subid", subid);
 
 			return makeArray(result);
 		} catch (PubSubException e1) {

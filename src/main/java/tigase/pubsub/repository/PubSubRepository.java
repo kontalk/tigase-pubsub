@@ -1,5 +1,7 @@
 package tigase.pubsub.repository;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -10,10 +12,13 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
 
 public class PubSubRepository {
 
 	private static final String SUBSCRIBES_KEY = "subscribers";
+
+	private static SecureRandom numberGenerator;
 
 	private final PubSubConfig config;
 
@@ -50,9 +55,14 @@ public class PubSubRepository {
 
 	}
 
-	public void addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation) throws RepositoryException {
+	public String addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation,
+			final Subscription subscription) throws RepositoryException {
 		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY, jid, affiliation.name());
+			String subid = createUID();
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "affiliation", affiliation.name());
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subscription", subscription.name());
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subid", subid);
+			return subid;
 		} catch (Exception e) {
 			throw new RepositoryException("Subscriber adding error", e);
 		}
@@ -67,7 +77,7 @@ public class PubSubRepository {
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, ASSOCIATE_COLLECTION_KEY, collection);
 			if (nodeConfig != null)
 				nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
-			addSubscriberJid(nodeName, ownerJid, Affiliation.owner);
+			addSubscriberJid(nodeName, ownerJid, Affiliation.owner, Subscription.none);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RepositoryException("Node creation error", e);
@@ -117,7 +127,8 @@ public class PubSubRepository {
 
 	public Affiliation getSubscriberAffiliation(final String nodeName, final String jid) throws RepositoryException {
 		try {
-			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY, jid);
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "affiliation");
+			// NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY, jid);
 			if (tmp != null) {
 				return Affiliation.valueOf(tmp);
 			} else {
@@ -159,6 +170,51 @@ public class PubSubRepository {
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, ASSOCIATE_COLLECTION_KEY, collectionNew);
 		} catch (Exception e) {
 			throw new RepositoryException("Node collection writing error", e);
+		}
+	}
+
+	public void changeSubscription(final String nodeName, final String jid, final Subscription subscription)
+			throws RepositoryException {
+		try {
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subscription", subscription.name());
+		} catch (Exception e) {
+			throw new RepositoryException("Subscription writing error", e);
+		}
+
+	}
+
+	public String getSubscriptionId(String nodeName, String jid) throws RepositoryException {
+		try {
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subid");
+		} catch (Exception e) {
+			throw new RepositoryException("SubID reading error", e);
+		}
+	}
+
+	public static synchronized String createUID() {
+		SecureRandom ng = numberGenerator;
+		if (ng == null) {
+			numberGenerator = ng = new SecureRandom();
+		}
+		byte[] rnd = new byte[20];
+		ng.nextBytes(rnd);
+		byte[] tmp = new byte[rnd.length + 1];
+		System.arraycopy(rnd, 0, tmp, 1, rnd.length);
+		tmp[0] = 0x00;
+		BigInteger bi = new BigInteger(tmp);
+		return bi.toString(36);
+	}
+
+	public Subscription getSubscription(String nodeName, String jid) throws RepositoryException {
+		try {
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subscription");
+			if (tmp != null) {
+				return Subscription.valueOf(tmp);
+			} else {
+				return null;
+			}
+		} catch (Exception e) {
+			throw new RepositoryException("Subscription getting error", e);
 		}
 	}
 
