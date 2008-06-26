@@ -55,7 +55,7 @@ public class JabberVersionModule implements Module {
 		query.addChild(new Element("version", "0.0.0-0"));
 		query.addChild(new Element("os", System.getProperty("os.name") + "-" + System.getProperty("os.arch") + "-"
 				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-"
-				+ System.getProperty("java.vm.version") + "-" + System.getProperty("java.vm.vendor")));
+				+ System.getProperty("java.version") + " " + System.getProperty("java.vm.vendor")));
 
 		iq.addChild(query);
 		result.add(iq);
