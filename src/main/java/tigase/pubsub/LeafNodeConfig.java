@@ -23,7 +23,6 @@ package tigase.pubsub;
 
 import tigase.form.Field;
 
-
 public class LeafNodeConfig extends AbstractNodeConfig {
 
 	public LeafNodeConfig() {
@@ -39,9 +38,9 @@ public class LeafNodeConfig extends AbstractNodeConfig {
 		super.init();
 	}
 
+	public boolean isPersistItem() {
+		Boolean x = form.getAsBoolean("pubsub#persist_items");
+		return x == null ? false : x;
+	}
 
-
-
-	
-	
 }

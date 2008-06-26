@@ -16,6 +16,7 @@ import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
+import tigase.xml.Element;
 
 public class PubSubRepository {
 
@@ -36,6 +37,8 @@ public class PubSubRepository {
 	private static final String NODES_KEY = "nodes/";
 
 	private static final String ASSOCIATE_COLLECTION_KEY = "pubsub#collection";
+
+	private static final String ITEMS_KEY = "items";
 
 	public PubSubRepository(UserRepository repository, PubSubConfig pubSubConfig) throws RepositoryException {
 		this.repository = repository;
@@ -118,6 +121,18 @@ public class PubSubRepository {
 			Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
 			result.add(f);
 			return result;
+		} catch (Exception e) {
+			throw new RepositoryException("Node configuration reading error", e);
+		}
+	}
+
+	public void readNodeConfig(LeafNodeConfig nodeConfig, String nodeName, boolean readChildren) throws RepositoryException {
+		try {
+			nodeConfig.read(repository, config, NODES_KEY + nodeName + "/configuration");
+			if (readChildren) {
+				Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
+				nodeConfig.add(f);
+			}
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
 		}
@@ -254,4 +269,34 @@ public class PubSubRepository {
 		return repository;
 	}
 
+	public void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
+			throws RepositoryException {
+		try {
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "data", item.toString());
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date",
+					String.valueOf(timeInMilis));
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date",
+					String.valueOf(timeInMilis));
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher", publisher);
+		} catch (Exception e) {
+			throw new RepositoryException("Item writing error", e);
+		}
+	}
+
+	public String getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
+		try {
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date");
+		} catch (Exception e) {
+			throw new RepositoryException("Items creation-date reading error", e);
+		}
+	}
+
+	public void deleteItem(String nodeName, String id) throws RepositoryException {
+		try {
+			repository.removeSubnode(config.getServiceName(), nodeName + "/" + config.getServiceName() + "/" + NODES_KEY + nodeName
+					+ "/" + ITEMS_KEY + "/" + id);
+		} catch (Exception e) {
+			throw new RepositoryException("Item removing error", e);
+		}
+	}
 }

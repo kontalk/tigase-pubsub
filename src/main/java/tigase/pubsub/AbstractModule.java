@@ -25,9 +25,43 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.RepositoryException;
+import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
 public abstract class AbstractModule implements Module {
+
+	protected String findBestJid(final String[] allSubscribers, final String jid) {
+		final String bareJid = JIDUtils.getNodeID(jid);
+		String best = null;
+		for (String j : allSubscribers) {
+			if (j.equals(jid)) {
+				return j;
+			} else if (bareJid.equals(j)) {
+				best = j;
+			}
+		}
+		return best;
+	}
+
+	public String[] getActiveSubscribers(final PubSubRepository repository, final String[] jids, final String nodeName)
+			throws RepositoryException {
+		List<String> result = new ArrayList<String>();
+		if (jids != null) {
+			for (String jid : jids) {
+				Affiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
+				if (affiliation != Affiliation.outcast && affiliation != Affiliation.none) {
+					Subscription subscription = repository.getSubscription(nodeName, jid);
+					if (subscription == Subscription.subscribed) {
+						result.add(jid);
+					}
+				}
+
+			}
+		}
+		return result.toArray(new String[] {});
+	}
 
 	public static Element createResultIQ(Element iq) {
 		return new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),

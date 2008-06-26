@@ -37,6 +37,10 @@ public class PubSubErrorCondition {
 
 	protected static final String XMLNS = "http://jabber.org/protocol/pubsub#errors";
 
+	public static final PubSubErrorCondition ITEM_REQUIRED = new PubSubErrorCondition("item-required");
+
+	public static final PubSubErrorCondition NODE_REQUIRED = new PubSubErrorCondition("node-required");
+
 	private final String condition;
 
 	private final String feature;

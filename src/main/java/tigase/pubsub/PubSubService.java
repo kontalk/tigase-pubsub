@@ -39,6 +39,7 @@ import tigase.pubsub.modules.NodeConfigModule;
 import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
 import tigase.pubsub.modules.PublishItemModule;
+import tigase.pubsub.modules.RetractItemModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.repository.PubSubRepository;
@@ -82,6 +83,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 	protected SubscribeNodeModule subscribeNodeModule;
 
 	private UnsubscribeNodeModule unsubscribeNodeModule;
+
+	private RetractItemModule retractItemModule;
 
 	public PubSubService() {
 	}
@@ -201,6 +204,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	protected void init() {
 		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository));
+		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository));
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
 		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository));
@@ -208,6 +212,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 				this.defaultNodeConfig));
 		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
+
 		registerModule(new ResetModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 	}
 
