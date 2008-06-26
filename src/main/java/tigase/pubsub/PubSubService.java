@@ -35,6 +35,7 @@ import tigase.disco.ServiceIdentity;
 import tigase.disco.XMPPService;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.DefaultConfigModule;
+import tigase.pubsub.modules.JabberVersionModule;
 import tigase.pubsub.modules.NodeConfigModule;
 import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
@@ -213,6 +214,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
 
+		registerModule(new JabberVersionModule());
 		registerModule(new ResetModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 	}
 
