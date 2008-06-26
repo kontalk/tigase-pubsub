@@ -31,12 +31,9 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
-import tigase.pubsub.repository.RepositoryException;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 

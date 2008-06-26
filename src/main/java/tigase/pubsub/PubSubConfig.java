@@ -23,23 +23,15 @@ package tigase.pubsub;
 
 public class PubSubConfig {
 
-	private String serviceName;
 	private String[] admins;
-
-	public String getServiceName() {
-		return serviceName;
-	}
-
-	void setServiceName(String serviceName) {
-		this.serviceName = serviceName;
-	}
-
-	public void setAdmins(String[] strings) {
-		this.admins = strings;
-	}
+	private String serviceName;
 
 	public String[] getAdmins() {
 		return admins;
+	}
+
+	public String getServiceName() {
+		return serviceName;
 	}
 
 	public boolean isAdmin(final String jid) {
@@ -50,6 +42,14 @@ public class PubSubConfig {
 				return true;
 		}
 		return false;
+	}
+
+	public void setAdmins(String[] strings) {
+		this.admins = strings;
+	}
+
+	void setServiceName(String serviceName) {
+		this.serviceName = serviceName;
 	}
 
 }

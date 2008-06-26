@@ -35,22 +35,29 @@ import tigase.xml.Element;
 
 public class AbstractNodeConfig {
 
+	public static final String PUBSUB = "pubsub#";
+
+	public static void main(String[] args) {
+		AbstractNodeConfig c = new AbstractNodeConfig();
+
+		c.setValue("pubsub#title", "xxxx");
+		System.out.println(c.getFormElement());
+
+		LeafNodeConfig l = new LeafNodeConfig();
+		l.copyFrom(c);
+		System.out.println(l.getFormElement());
+	}
+
 	/**
 	 * List with do-not-write elements
 	 */
 	protected final Set<String> blacklist = new HashSet<String>();
 
+	protected final Form form = new Form("form", null, null);
+
 	public AbstractNodeConfig() {
 		init();
 		blacklist.add("pubsub#children");
-	}
-
-	public void add(Field f) {
-		form.addField(f);
-	}
-
-	public String[] getChildren() {
-		return form.getAsStrings("pubsub#children");
 	}
 
 	public AbstractNodeConfig(final AbstractNodeConfig config) {
@@ -58,17 +65,9 @@ public class AbstractNodeConfig {
 		copyFrom(config);
 	}
 
-	public void copyFrom(AbstractNodeConfig c) {
-		form.copyValuesFrom(c.form);
+	public void add(Field f) {
+		form.addField(f);
 	}
-
-	public String getCollection() {
-		return form.getAsString("pubsub#collection");
-	}
-
-	public static final String PUBSUB = "pubsub#";
-
-	protected final Form form = new Form("form", null, null);
 
 	protected String[] asStrinTable(Enum<?>[] values) {
 		String[] result = new String[values.length];
@@ -79,42 +78,20 @@ public class AbstractNodeConfig {
 		return result;
 	}
 
-	public boolean isNotify_config() {
-		return form.getAsBoolean("pubsub#notify_config");
+	public void copyFrom(AbstractNodeConfig c) {
+		form.copyValuesFrom(c.form);
 	}
 
-	public boolean isDeliver_payloads() {
-		return form.getAsBoolean("pubsub#deliver_payloads");
+	public String[] getChildren() {
+		return form.getAsStrings("pubsub#children");
 	}
 
-	public void reset() {
-		form.clear();
-		init();
+	public String getCollection() {
+		return form.getAsString("pubsub#collection");
 	}
 
-	public void read(final UserRepository repository, final PubSubConfig config, final String subnode)
-			throws UserNotFoundException, TigaseDBException {
-		String[] keys = repository.getKeys(config.getServiceName(), subnode);
-		if (keys != null)
-			for (String key : keys) {
-				String value = repository.getData(config.getServiceName(), subnode, key);
-				setValue(key, value);
-			}
-	}
-
-	public void write(final UserRepository repo, final PubSubConfig config, final String subnode) throws UserNotFoundException,
-			TigaseDBException {
-		List<Field> fields = form.getAllFields();
-		for (Field field : fields) {
-			if (field.getVar() != null && !this.blacklist.contains(field.getVar())) {
-				String value = field.getValue();
-				if (value == null) {
-					repo.removeData(config.getServiceName(), subnode, field.getVar());
-				} else {
-					repo.setData(config.getServiceName(), subnode, field.getVar(), value);
-				}
-			}
-		}
+	public Element getFormElement() {
+		return form.getElement();
 	}
 
 	protected void init() {
@@ -137,15 +114,27 @@ public class AbstractNodeConfig {
 
 	}
 
-	public static void main(String[] args) {
-		AbstractNodeConfig c = new AbstractNodeConfig();
+	public boolean isDeliver_payloads() {
+		return form.getAsBoolean("pubsub#deliver_payloads");
+	}
 
-		c.setValue("pubsub#title", "xxxx");
-		System.out.println(c.getFormElement());
+	public boolean isNotify_config() {
+		return form.getAsBoolean("pubsub#notify_config");
+	}
 
-		LeafNodeConfig l = new LeafNodeConfig();
-		l.copyFrom(c);
-		System.out.println(l.getFormElement());
+	public void read(final UserRepository repository, final PubSubConfig config, final String subnode)
+			throws UserNotFoundException, TigaseDBException {
+		String[] keys = repository.getKeys(config.getServiceName(), subnode);
+		if (keys != null)
+			for (String key : keys) {
+				String value = repository.getData(config.getServiceName(), subnode, key);
+				setValue(key, value);
+			}
+	}
+
+	public void reset() {
+		form.clear();
+		init();
 	}
 
 	public void setValue(String var, boolean data) {
@@ -177,8 +166,19 @@ public class AbstractNodeConfig {
 
 	}
 
-	public Element getFormElement() {
-		return form.getElement();
+	public void write(final UserRepository repo, final PubSubConfig config, final String subnode) throws UserNotFoundException,
+			TigaseDBException {
+		List<Field> fields = form.getAllFields();
+		for (Field field : fields) {
+			if (field.getVar() != null && !this.blacklist.contains(field.getVar())) {
+				String value = field.getValue();
+				if (value == null) {
+					repo.removeData(config.getServiceName(), subnode, field.getVar());
+				} else {
+					repo.setData(config.getServiceName(), subnode, field.getVar(), value);
+				}
+			}
+		}
 	}
 
 }

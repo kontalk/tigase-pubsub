@@ -39,7 +39,18 @@ import tigase.xmpp.Authorization;
 
 public class NodeDeleteModule extends AbstractModule {
 
-	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
+	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
+
+	public static Affiliation getUserAffiliation(final PubSubRepository repository, final String nodeName, final String jid)
+			throws RepositoryException {
+		Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, jid);
+		if (senderAffiliation == null) {
+			senderAffiliation = repository.getSubscriberAffiliation(nodeName, JIDUtils.getNodeID(jid));
+		}
+		return senderAffiliation;
+	}
+
 	private final PubSubRepository repository;
 
 	public NodeDeleteModule(PubSubConfig config, PubSubRepository pubsubRepository) {
@@ -54,15 +65,6 @@ public class NodeDeleteModule extends AbstractModule {
 	@Override
 	public Criteria getModuleCriteria() {
 		return CRIT_DELETE;
-	}
-
-	public static Affiliation getUserAffiliation(final PubSubRepository repository, final String nodeName, final String jid)
-			throws RepositoryException {
-		Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, jid);
-		if (senderAffiliation == null) {
-			senderAffiliation = repository.getSubscriberAffiliation(nodeName, JIDUtils.getNodeID(jid));
-		}
-		return senderAffiliation;
 	};
 
 	@Override
@@ -95,7 +97,8 @@ public class NodeDeleteModule extends AbstractModule {
 					if (affiliation == null || affiliation == Affiliation.none || affiliation == Affiliation.outcast)
 						continue;
 					Element message = new Element("message", new String[] { "from", "to" }, new String[] { pssJid, sjid });
-					Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
+					Element event = new Element("event", new String[] { "xmlns" },
+							new String[] { "http://jabber.org/protocol/pubsub#event" });
 					Element configuration = new Element("delete", new String[] { "node" }, new String[] { nodeName });
 					event.addChild(configuration);
 					message.addChild(event);

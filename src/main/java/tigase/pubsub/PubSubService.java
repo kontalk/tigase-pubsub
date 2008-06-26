@@ -79,13 +79,13 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	private PubSubRepository pubsubRepository;
 
+	private RetractItemModule retractItemModule;
+
 	private ServiceEntity serviceEntity;
 
 	protected SubscribeNodeModule subscribeNodeModule;
 
 	private UnsubscribeNodeModule unsubscribeNodeModule;
-
-	private RetractItemModule retractItemModule;
 
 	public PubSubService() {
 	}

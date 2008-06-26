@@ -39,7 +39,8 @@ import tigase.xmpp.Authorization;
 
 public class SubscribeNodeModule extends AbstractModule {
 
-	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
+	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
 
 	private PubSubConfig config;
 
@@ -115,7 +116,8 @@ public class SubscribeNodeModule extends AbstractModule {
 			// JIDUtils.getNodeID(element.getAttribute("from")));
 
 			Element result = createResultIQ(element);
-			Element resPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+			Element resPubSub = new Element("pubsub", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub" });
 			result.addChild(resPubSub);
 			Element resSubscription = new Element("subscription");
 			resPubSub.addChild(resSubscription);

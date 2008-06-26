@@ -27,14 +27,11 @@ import java.util.UUID;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
-import tigase.pubsub.repository.RepositoryException;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -47,12 +44,12 @@ import tigase.xmpp.Authorization;
  */
 public class NodeCreateModule extends AbstractConfigCreateNode {
 
+	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
+
 	public NodeCreateModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
 		super(config, pubsubRepository, defaultNodeConfig);
 	}
-
-	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
 	@Override
 	public String[] getFeatures() {

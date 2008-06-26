@@ -26,6 +26,25 @@ public class RetractItemModule extends AbstractModule {
 		this.repository = pubsubRepository;
 	}
 
+	private Element createNotification(final LeafNodeConfig config, final List<String> itemsToSend, final String nodeName,
+			final String fromJID, final String toJID) {
+		Element message = new Element("message");
+		message.setAttribute("from", fromJID);
+		message.setAttribute("to", toJID);
+
+		Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
+		message.addChild(event);
+
+		Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
+		event.addChild(items);
+
+		for (String id : itemsToSend) {
+			items.addChild(new Element("retract", new String[] { "id" }, new String[] { id }));
+		}
+
+		return message;
+	}
+
 	@Override
 	public String[] getFeatures() {
 		return null;
@@ -110,25 +129,6 @@ public class RetractItemModule extends AbstractModule {
 			throw new RuntimeException(e);
 		}
 
-	}
-
-	private Element createNotification(final LeafNodeConfig config, final List<String> itemsToSend, final String nodeName,
-			final String fromJID, final String toJID) {
-		Element message = new Element("message");
-		message.setAttribute("from", fromJID);
-		message.setAttribute("to", toJID);
-
-		Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
-		message.addChild(event);
-
-		Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
-		event.addChild(items);
-
-		for (String id : itemsToSend) {
-			items.addChild(new Element("retract", new String[] { "id" }, new String[] { id }));
-		}
-
-		return message;
 	}
 
 }

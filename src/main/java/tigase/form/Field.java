@@ -21,10 +21,8 @@
  */
 package tigase.form;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import tigase.xml.Element;
 
@@ -38,6 +36,29 @@ import tigase.xml.Element;
  * @version $Rev:43 $
  */
 public class Field {
+	public static enum FieldType {
+		bool("boolean"), fixed("fixed"), hidden("hidden"), list_multi("list-multi"), list_single("list-single"), text_multi(
+				"text-multi"), text_private("text-private"), text_single("text-single");
+		public static FieldType getFieldTypeByName(String name) {
+			if ("boolean".equals(name)) {
+				return bool;
+			} else {
+				return FieldType.valueOf(name.replace("-", "_"));
+			}
+		}
+
+		private String desc;
+
+		private FieldType(String desc) {
+			this.desc = desc;
+		}
+
+		@Override
+		public String toString() {
+			return desc;
+		}
+	}
+
 	public static Field fieldBoolean(String var, Boolean value, String label) {
 		Field field = new Field(FieldType.bool);
 		field.label = label;
@@ -87,17 +108,17 @@ public class Field {
 		return field;
 	}
 
-	public static Field fieldTextMulti(String var, String[] values, String label) {
-		Field field = new Field(FieldType.text_multi, var);
-		field.label = label;
-		field.values = values;
-		return field;
-	}
-
 	public static Field fieldTextMulti(String var, String value, String label) {
 		Field field = new Field(FieldType.text_multi, var);
 		field.label = label;
 		field.values = new String[] { value };
+		return field;
+	}
+
+	public static Field fieldTextMulti(String var, String[] values, String label) {
+		Field field = new Field(FieldType.text_multi, var);
+		field.label = label;
+		field.values = values;
 		return field;
 	}
 
@@ -161,29 +182,6 @@ public class Field {
 
 	private Field(FieldType type) {
 		this.type = type;
-	}
-
-	public static enum FieldType {
-		text_multi("text-multi"), list_single("list-single"), hidden("hidden"), text_private("text-private"), text_single(
-				"text-single"), bool("boolean"), fixed("fixed"), list_multi("list-multi");
-		private String desc;
-
-		public static FieldType getFieldTypeByName(String name) {
-			if ("boolean".equals(name)) {
-				return bool;
-			} else {
-				return FieldType.valueOf(name.replace("-", "_"));
-			}
-		}
-
-		@Override
-		public String toString() {
-			return desc;
-		}
-
-		private FieldType(String desc) {
-			this.desc = desc;
-		}
 	}
 
 	private Field(FieldType type, String var) {

@@ -20,11 +20,11 @@ public class ResetModule extends AbstractModule {
 	private static final Criteria CRIT_RESET = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#admin")).add(ElementCriteria.name("reset"));
 
-	private PubSubRepository repository;
-
 	private PubSubConfig config;
 
 	private LeafNodeConfig defaultNodeConfig;
+
+	private PubSubRepository repository;
 
 	public ResetModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
 		this.repository = pubsubRepository;

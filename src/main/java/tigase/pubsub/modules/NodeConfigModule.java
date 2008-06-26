@@ -21,14 +21,12 @@
  */
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.form.Field;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
@@ -37,28 +35,13 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
-import tigase.pubsub.repository.RepositoryException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
 public class NodeConfigModule extends AbstractConfigCreateNode {
 
-	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
-		super(config, pubsubRepository, defaultNodeConfig);
-	}
-
 	private static final Criteria CRIT_CONFIG = ElementCriteria.name("iq").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("configure"));
-
-	@Override
-	public String[] getFeatures() {
-		return null;
-	}
-
-	@Override
-	public Criteria getModuleCriteria() {
-		return CRIT_CONFIG;
-	}
 
 	protected static String[] diff(String[] a, String[] b) {
 		HashSet<String> r = new HashSet<String>();
@@ -86,6 +69,28 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			System.out.println(string);
 		}
 		System.out.println(".");
+	}
+
+	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
+		super(config, pubsubRepository, defaultNodeConfig);
+	}
+
+	@Override
+	public String[] getFeatures() {
+		return null;
+	}
+
+	@Override
+	public Criteria getModuleCriteria() {
+		return CRIT_CONFIG;
+	}
+
+	protected boolean isIn(String node, String[] children) {
+		for (String x : children) {
+			if (x.equals(node))
+				return true;
+		}
+		return false;
 	}
 
 	protected void parseConf(final AbstractNodeConfig conf, final String nodeName, final Element configure) throws PubSubException {
@@ -232,13 +237,5 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			throw new RuntimeException(e);
 		}
 
-	}
-
-	protected boolean isIn(String node, String[] children) {
-		for (String x : children) {
-			if (x.equals(node))
-				return true;
-		}
-		return false;
 	}
 }

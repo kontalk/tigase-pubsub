@@ -23,7 +23,6 @@ package tigase.form;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -41,17 +40,27 @@ import tigase.xml.Element;
  */
 public class Form {
 
+	public static void main(String[] args) {
+		Form f = new Form("form", null, null);
+		f.addField(Field.fieldBoolean("dupa#a", true, "AAA"));
+		f.addField(Field.fieldFixed("XXX"));
+		f.addField(Field.fieldFixed("YYY"));
+		f.addField(Field.fieldTextSingle("dupa#a", "BBB", "A to super fajna etykieta"));
+
+		System.out.println(f.getElement());
+	}
+
 	private List<Field> fields = new ArrayList<Field>();
 
 	private Map<String, Field> fieldsByVar = new HashMap<String, Field>();
 
 	private String instruction;
 
+	private Logger log = Logger.getLogger(this.getClass().getName());
+
 	private String title;
 
 	private String type;
-
-	private Logger log = Logger.getLogger(this.getClass().getName());
 
 	public Form(Element form) {
 		this.type = form.getAttribute("type");
@@ -81,13 +90,6 @@ public class Form {
 		this.instruction = instruction;
 	}
 
-	public void removeField(final String var) {
-		Field cf = this.fieldsByVar.remove(var);
-		if (cf != null) {
-			this.fields.remove(cf);
-		}
-	}
-
 	public void addField(final Field field) {
 		Field cf = field.getVar() != null ? this.fieldsByVar.get(field.getVar()) : null;
 		if (cf != null) {
@@ -102,14 +104,9 @@ public class Form {
 		}
 	}
 
-	public static void main(String[] args) {
-		Form f = new Form("form", null, null);
-		f.addField(Field.fieldBoolean("dupa#a", true, "AAA"));
-		f.addField(Field.fieldFixed("XXX"));
-		f.addField(Field.fieldFixed("YYY"));
-		f.addField(Field.fieldTextSingle("dupa#a", "BBB", "A to super fajna etykieta"));
-
-		System.out.println(f.getElement());
+	public void clear() {
+		this.fields.clear();
+		this.fieldsByVar.clear();
 	}
 
 	public void copyValuesFrom(Element form) {
@@ -144,6 +141,10 @@ public class Form {
 
 	public Field get(String var) {
 		return this.fieldsByVar.get(var);
+	}
+
+	public List<Field> getAllFields() {
+		return this.fields;
 	}
 
 	public Boolean getAsBoolean(String var) {
@@ -234,6 +235,13 @@ public class Form {
 		return this.fieldsByVar.containsKey(var);
 	}
 
+	public void removeField(final String var) {
+		Field cf = this.fieldsByVar.remove(var);
+		if (cf != null) {
+			this.fields.remove(cf);
+		}
+	}
+
 	/**
 	 * @param instruction
 	 *            The instruction to set.
@@ -256,14 +264,5 @@ public class Form {
 	 */
 	public void setType(String type) {
 		this.type = type;
-	}
-
-	public List<Field> getAllFields() {
-		return this.fields;
-	}
-
-	public void clear() {
-		this.fields.clear();
-		this.fieldsByVar.clear();
 	}
 }

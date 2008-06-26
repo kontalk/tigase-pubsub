@@ -22,5 +22,5 @@
 package tigase.pubsub;
 
 public enum PublisherModel {
-	publishers, subscribers, open
+	open, publishers, subscribers
 }

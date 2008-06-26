@@ -21,8 +21,6 @@
  */
 package tigase.pubsub;
 
-import tigase.form.Field;
-
 public class LeafNodeConfig extends AbstractNodeConfig {
 
 	public LeafNodeConfig() {
