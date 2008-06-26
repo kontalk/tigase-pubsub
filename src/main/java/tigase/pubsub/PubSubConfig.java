@@ -24,6 +24,7 @@ package tigase.pubsub;
 public class PubSubConfig {
 
 	private String serviceName;
+	private String[] admins;
 
 	public String getServiceName() {
 		return serviceName;
@@ -31,6 +32,24 @@ public class PubSubConfig {
 
 	void setServiceName(String serviceName) {
 		this.serviceName = serviceName;
+	}
+
+	public void setAdmins(String[] strings) {
+		this.admins = strings;
+	}
+
+	public String[] getAdmins() {
+		return admins;
+	}
+
+	public boolean isAdmin(final String jid) {
+		if (jid == null || this.admins == null)
+			return false;
+		for (String adj : this.admins) {
+			if (jid.equals(adj))
+				return true;
+		}
+		return false;
 	}
 
 }

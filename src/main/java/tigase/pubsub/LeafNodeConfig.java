@@ -21,9 +21,27 @@
  */
 package tigase.pubsub;
 
-import java.util.List;
+import tigase.form.Field;
+
 
 public class LeafNodeConfig extends AbstractNodeConfig {
 
+	public LeafNodeConfig() {
+		super();
+	}
 
+	public LeafNodeConfig(AbstractNodeConfig config) {
+		super(config);
+	}
+
+	@Override
+	protected void init() {
+		super.init();
+	}
+
+
+
+
+	
+	
 }

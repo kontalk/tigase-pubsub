@@ -61,7 +61,7 @@ public class DefaultConfigModule extends AbstractModule {
 			Element pubsub = new Element("pubsub", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/pubsub#owner" });
 			Element def = new Element("default");
-			Element x = defaultNodeConfig.getJabberForm();
+			Element x = defaultNodeConfig.getFormElement();
 			if (x == null) {
 				throw new PubSubException(element, Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
 						"config-node"));

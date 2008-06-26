@@ -21,6 +21,7 @@
  */
 package tigase.pubsub.modules;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +34,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.RepositoryException;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -49,7 +51,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 		super(config, pubsubRepository, defaultNodeConfig);
 	}
 
-	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
+	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
 	@Override
 	public String[] getFeatures() {
@@ -82,7 +85,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			nodeType = NodeType.leaf;
 			String collection = null;
-			LeafNodeConfig nodeConfig = defaultNodeConfig.clone();
+			LeafNodeConfig nodeConfig = new LeafNodeConfig(defaultNodeConfig);
 			if (configure != null) {
 				Element x = configure.getChild("x", "jabber:x:data");
 				if (x != null && "submit".equals(x.getAttribute("type"))) {
@@ -114,17 +117,24 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				}
 			}
 
-			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType, collection == null ? ""
-					: collection);
+			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
+					collection == null ? "" : collection);
 
+			ArrayList<Element> notifications = new ArrayList<Element>();
 			Element result = createResultIQ(element);
+			notifications.add(result);
+
+			if (collection != null) {
+				notifications.addAll(notifyCollectionChange(element.getAttribute("to"), collection, nodeName, "associate"));
+			}
+
 			if (instantNode) {
 				Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
 				Element cr = new Element("create", new String[] { "node" }, new String[] { nodeName });
 				ps.addChild(cr);
 				result.addChild(ps);
 			}
-			return makeArray(result);
+			return notifications;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

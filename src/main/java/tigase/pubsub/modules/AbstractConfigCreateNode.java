@@ -21,24 +21,17 @@
  */
 package tigase.pubsub.modules;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.RepositoryException;
+import tigase.xml.Element;
 
 public abstract class AbstractConfigCreateNode extends AbstractModule {
-
-	static class IntConf {
-		LeafNodeConfig nodeConfig;
-
-		String[] children = null;
-
-		String collection = null;
-
-		NodeType nodeType = null;
-
-	}
 
 	protected final PubSubConfig config;
 
@@ -53,4 +46,22 @@ public abstract class AbstractConfigCreateNode extends AbstractModule {
 		this.defaultNodeConfig = defaultNodeConfig;
 	}
 
+	protected List<Element> notifyCollectionChange(final String fromJID, final String baseNodeName, final String newNodeName,
+			final String eventKind) throws RepositoryException {
+		ArrayList<Element> result = new ArrayList<Element>();
+
+		Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
+		Element collection = new Element("collection", new String[] { "node" }, new String[] { baseNodeName });
+		collection.addChild(new Element(eventKind, new String[] { "node" }, new String[] { newNodeName }));
+		event.addChild(collection);
+
+		String[] subscribers = repository.getSubscribersJid(baseNodeName);
+		if (subscribers != null)
+			for (String toJid : subscribers) {
+				Element message = new Element("message", new String[] { "from", "to" }, new String[] { fromJID, toJid });
+				message.addChild(event.clone());
+				result.add(message);
+			}
+		return result;
+	}
 }

@@ -43,6 +43,7 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.repository.PubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.ResetModule;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.Packet;
 import tigase.util.DNSResolver;
@@ -131,6 +132,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
 
+		props.put("admin", new String[] { "admin@localhost" });
+
 		props.put(HOSTNAMES_PROP_KEY, hostnamesPropVal);
 		return props;
 	}
@@ -149,7 +152,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		if (node != null && jid != null && jid.startsWith(getName() + ".")) {
 			try {
 				NodeType type = pubsubRepository.getNodeType(node);
-				Element query = new Element("query", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/disco#info" });
+				Element query = new Element("query", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/disco#info" });
 				Element identyity = new Element("identity", new String[] { "category", "type" }, new String[] { "pubsub",
 						type.name() });
 				query.addChild(identyity);
@@ -200,9 +204,11 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
 		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository));
-		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
+		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository,
+				this.defaultNodeConfig));
 		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
+		registerModule(new ResetModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 	}
 
 	public String myDomain() {
@@ -275,6 +281,8 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 		ServiceEntity blogItems = new ServiceEntity(getName(), "blogs", "Blogs items news");
 		serviceEntity.addItems(blogItems);
+
+		this.config.setAdmins((String[]) props.get("admin"));
 
 		this.config.setServiceName(myDomain());
 

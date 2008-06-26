@@ -21,8 +21,10 @@
  */
 package tigase.form;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import tigase.xml.Element;
 
@@ -37,7 +39,7 @@ import tigase.xml.Element;
  */
 public class Field {
 	public static Field fieldBoolean(String var, Boolean value, String label) {
-		Field field = new Field("boolean");
+		Field field = new Field(FieldType.bool);
 		field.label = label;
 		field.var = var;
 
@@ -50,22 +52,22 @@ public class Field {
 	}
 
 	public static Field fieldFixed(String value) {
-		Field field = new Field("fixed");
+		Field field = new Field(FieldType.fixed);
 		field.values = new String[] { value };
 		return field;
 	}
 
 	public static Field fieldHidden(String var, String value) {
-		Field field = new Field("hidden", var);
+		Field field = new Field(FieldType.hidden, var);
 		field.values = new String[] { value };
 		return field;
 	}
 
 	public static Field fieldListMulti(String var, String[] values, String label, String[] optionsLabel, String[] optionsValue) {
-		if (optionsLabel!=null && optionsLabel.length != optionsValue.length) {
+		if (optionsLabel != null && optionsLabel.length != optionsValue.length) {
 			throw new RuntimeException("Invalid optionsLabel and optinsValue length");
 		}
-		Field field = new Field("list-single", var);
+		Field field = new Field(FieldType.list_multi, var);
 		field.label = label;
 		field.values = values;
 		field.optionLabels = optionsLabel;
@@ -74,10 +76,10 @@ public class Field {
 	}
 
 	public static Field fieldListSingle(String var, String value, String label, String[] optionsLabel, String[] optionsValue) {
-		if (optionsLabel!=null && optionsLabel.length != optionsValue.length) {
+		if (optionsLabel != null && optionsLabel.length != optionsValue.length) {
 			throw new RuntimeException("Invalid optionsLabel and optinsValue length");
 		}
-		Field field = new Field("list-single", var);
+		Field field = new Field(FieldType.list_single, var);
 		field.label = label;
 		field.values = new String[] { value };
 		field.optionLabels = optionsLabel;
@@ -85,22 +87,29 @@ public class Field {
 		return field;
 	}
 
+	public static Field fieldTextMulti(String var, String[] values, String label) {
+		Field field = new Field(FieldType.text_multi, var);
+		field.label = label;
+		field.values = values;
+		return field;
+	}
+
 	public static Field fieldTextMulti(String var, String value, String label) {
-		Field field = new Field("text-multi", var);
+		Field field = new Field(FieldType.text_multi, var);
 		field.label = label;
 		field.values = new String[] { value };
 		return field;
 	}
 
 	public static Field fieldTextPrivate(String var, String value, String label) {
-		Field field = new Field("text-private", var);
+		Field field = new Field(FieldType.text_private, var);
 		field.label = label;
 		field.values = new String[] { value };
 		return field;
 	}
 
 	public static Field fieldTextSingle(String var, String value, String label) {
-		Field field = new Field("text-single", var);
+		Field field = new Field(FieldType.text_single, var);
 		field.label = label;
 		field.values = new String[] { value };
 		return field;
@@ -116,7 +125,7 @@ public class Field {
 
 	private boolean required;
 
-	private String type;
+	private FieldType type;
 
 	private String[] values;
 
@@ -124,7 +133,7 @@ public class Field {
 
 	public Field(Element fieldElement) {
 		this.var = fieldElement.getAttribute("var");
-		this.type = fieldElement.getAttribute("type");
+		this.type = FieldType.getFieldTypeByName(fieldElement.getAttribute("type"));
 		this.label = fieldElement.getAttribute("label");
 		Element d = fieldElement.getChild("desc");
 		if (d != null) {
@@ -150,11 +159,34 @@ public class Field {
 		this.optionValues = optionsValueList.toArray(new String[] {});
 	}
 
-	private Field(String type) {
+	private Field(FieldType type) {
 		this.type = type;
 	}
 
-	private Field(String type, String var) {
+	public static enum FieldType {
+		text_multi("text-multi"), list_single("list-single"), hidden("hidden"), text_private("text-private"), text_single(
+				"text-single"), bool("boolean"), fixed("fixed"), list_multi("list-multi");
+		private String desc;
+
+		public static FieldType getFieldTypeByName(String name) {
+			if ("boolean".equals(name)) {
+				return bool;
+			} else {
+				return FieldType.valueOf(name.replace("-", "_"));
+			}
+		}
+
+		@Override
+		public String toString() {
+			return desc;
+		}
+
+		private FieldType(String desc) {
+			this.desc = desc;
+		}
+	}
+
+	private Field(FieldType type, String var) {
 		this.type = type;
 		this.var = var;
 	}
@@ -172,7 +204,7 @@ public class Field {
 			field.setAttribute("var", var);
 		}
 		if (this.type != null) {
-			field.setAttribute("type", this.type);
+			field.setAttribute("type", this.type.toString());
 		}
 		if (this.label != null) {
 			field.setAttribute("label", this.label);
@@ -231,7 +263,7 @@ public class Field {
 	/**
 	 * @return Returns the type.
 	 */
-	public String getType() {
+	public FieldType getType() {
 		return type;
 	}
 
@@ -307,7 +339,7 @@ public class Field {
 	 * @param type
 	 *            The type to set.
 	 */
-	public void setType(String type) {
+	public void setType(FieldType type) {
 		this.type = type;
 	}
 
@@ -326,4 +358,5 @@ public class Field {
 	public void setVar(String var) {
 		this.var = var;
 	}
+
 }

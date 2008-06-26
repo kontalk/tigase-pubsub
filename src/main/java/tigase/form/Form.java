@@ -21,6 +21,7 @@
  */
 package tigase.form;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,51 +41,78 @@ import tigase.xml.Element;
  */
 public class Form {
 
-    private List<Field> fields = new LinkedList<Field>();
+	private List<Field> fields = new ArrayList<Field>();
 
-    private Map<String, Field> fieldsByVar = new HashMap<String, Field>();
+	private Map<String, Field> fieldsByVar = new HashMap<String, Field>();
 
-    private String instruction;
+	private String instruction;
 
-    private String title;
+	private String title;
 
-    private String type;
+	private String type;
 
-    private Logger log = Logger.getLogger(this.getClass().getName());
+	private Logger log = Logger.getLogger(this.getClass().getName());
 
-    public Form(Element form) {
-        this.type = form.getAttribute("type");
-        log.finest("Retriving Data Form type " + this.type);
-        List<Element> children = form.getChildren();
-        if (children != null) {
-            for (Element sub : children) {
-                if ("title".equals(sub.getName())) {
-                    this.title = sub.getCData();
-                    log.finest("read Data Form title [" + this.title + "]");
-                } else if ("instructions".equals(sub.getName())) {
-                    this.instruction = sub.getCData();
-                    log.finest("read Data Form instruction [" + this.instruction + "]");
-                } else if ("field".equals(sub.getName())) {
-                    Field field = new Field(sub);
-                    log.finest("read Data Form field [" + field.getVar() + "]");
-                    this.fields.add(field);
-                    this.fieldsByVar.put(field.getVar(), field);
-                }
-            }
-        }
-    }
+	public Form(Element form) {
+		this.type = form.getAttribute("type");
+		log.finest("Retriving Data Form type " + this.type);
+		List<Element> children = form.getChildren();
+		if (children != null) {
+			for (Element sub : children) {
+				if ("title".equals(sub.getName())) {
+					this.title = sub.getCData();
+					log.finest("read Data Form title [" + this.title + "]");
+				} else if ("instructions".equals(sub.getName())) {
+					this.instruction = sub.getCData();
+					log.finest("read Data Form instruction [" + this.instruction + "]");
+				} else if ("field".equals(sub.getName())) {
+					Field field = new Field(sub);
+					log.finest("read Data Form field [" + field.getVar() + "]");
+					this.fields.add(field);
+					this.fieldsByVar.put(field.getVar(), field);
+				}
+			}
+		}
+	}
 
-    public Form(String type, String title, String instruction) {
-        this.type = type;
-        this.title = title;
-        this.instruction = instruction;
-    }
+	public Form(String type, String title, String instruction) {
+		this.type = type;
+		this.title = title;
+		this.instruction = instruction;
+	}
 
-    public void addField(Field field) {
-        this.fields.add(field);
-    }
+	public void removeField(final String var) {
+		Field cf = this.fieldsByVar.remove(var);
+		if (cf != null) {
+			this.fields.remove(cf);
+		}
+	}
 
-    public void copyValuesFrom(Element form) {
+	public void addField(final Field field) {
+		Field cf = field.getVar() != null ? this.fieldsByVar.get(field.getVar()) : null;
+		if (cf != null) {
+			int p = this.fields.indexOf(cf);
+			this.fields.remove(cf);
+			this.fields.add(p, field);
+		} else {
+			this.fields.add(field);
+		}
+		if (field.getVar() != null) {
+			this.fieldsByVar.put(field.getVar(), field);
+		}
+	}
+
+	public static void main(String[] args) {
+		Form f = new Form("form", null, null);
+		f.addField(Field.fieldBoolean("dupa#a", true, "AAA"));
+		f.addField(Field.fieldFixed("XXX"));
+		f.addField(Field.fieldFixed("YYY"));
+		f.addField(Field.fieldTextSingle("dupa#a", "BBB", "A to super fajna etykieta"));
+
+		System.out.println(f.getElement());
+	}
+
+	public void copyValuesFrom(Element form) {
 		log.finest("Copying values from form ");
 		List<Element> children = form.getChildren();
 		if (children != null) {
@@ -103,7 +131,7 @@ public class Form {
 		}
 	}
 
-    public void copyValuesFrom(Form form) {
+	public void copyValuesFrom(Form form) {
 		for (Field field : form.fields) {
 			Field f = fieldsByVar.get(field.getVar());
 			if (f != null) {
@@ -112,121 +140,130 @@ public class Form {
 				log.warning("Field " + field.getVar() + " is not declared in form '" + title + "'!");
 			}
 		}
-	}    
+	}
 
-    public Field get(String var) {
-        return this.fieldsByVar.get(var);
-    }
+	public Field get(String var) {
+		return this.fieldsByVar.get(var);
+	}
 
-    public Boolean getAsBoolean(String var) {
-        Field f = get(var);
-        if (f != null) {
-            String v = f.getValue();
-            if (v == null) {
-                return null;
-            } else if ("1".equals(v)) {
-                return Boolean.TRUE;
-            } else {
-                return Boolean.FALSE;
-            }
-        } else
-            return null;
-    }
+	public Boolean getAsBoolean(String var) {
+		Field f = get(var);
+		if (f != null) {
+			String v = f.getValue();
+			if (v == null) {
+				return null;
+			} else if ("1".equals(v)) {
+				return Boolean.TRUE;
+			} else {
+				return Boolean.FALSE;
+			}
+		} else
+			return null;
+	}
 
-    /**
-     * @param var
-     * @return
-     */
-    public Integer getAsInteger(String var) {
-        Field f = get(var);
-        if (f != null) {
-            String v = f.getValue();
-            return Integer.parseInt(v);
-        } else
-            return null;
-    }
+	/**
+	 * @param var
+	 * @return
+	 */
+	public Integer getAsInteger(String var) {
+		Field f = get(var);
+		if (f != null) {
+			String v = f.getValue();
+			return Integer.parseInt(v);
+		} else
+			return null;
+	}
 
-    public String getAsString(String var) {
-        Field f = get(var);
-        if (f != null) {
-            String v = f.getValue();
-            return v;
-        } else
-            return null;
-    }
+	public String getAsString(String var) {
+		Field f = get(var);
+		if (f != null) {
+			String v = f.getValue();
+			return v;
+		} else
+			return null;
+	}
 
-    public String[] getAsStrings(String var) {
-        Field f = get(var);
-        if (f != null) {
-            String[] v = f.getValues();
-            return v;
-        } else
-            return null;
-    }
+	public String[] getAsStrings(String var) {
+		Field f = get(var);
+		if (f != null) {
+			String[] v = f.getValues();
+			return v;
+		} else
+			return null;
+	}
 
-    public Element getElement() {
-        Element form = new Element("x");
-        form.setAttribute("xmlns", "jabber:x:data");
-        form.setAttribute("type", type);
+	public Element getElement() {
+		Element form = new Element("x");
+		form.setAttribute("xmlns", "jabber:x:data");
+		form.setAttribute("type", type);
 
-        if (this.title != null) {
-            form.addChild(new Element("title", this.title));
-        }
-        if (this.instruction != null) {
-            form.addChild(new Element("instructions", this.instruction));
-        }
-        for (Field field : this.fields) {
-            form.addChild(field.getElement());
-        }
-        return form;
-    }
+		if (this.title != null) {
+			form.addChild(new Element("title", this.title));
+		}
+		if (this.instruction != null) {
+			form.addChild(new Element("instructions", this.instruction));
+		}
+		for (Field field : this.fields) {
+			form.addChild(field.getElement());
+		}
+		return form;
+	}
 
-    /**
-     * @return Returns the instruction.
-     */
-    public String getInstruction() {
-        return instruction;
-    }
+	/**
+	 * @return Returns the instruction.
+	 */
+	public String getInstruction() {
+		return instruction;
+	}
 
-    /**
-     * @return Returns the title.
-     */
-    public String getTitle() {
-        return title;
-    }
+	/**
+	 * @return Returns the title.
+	 */
+	public String getTitle() {
+		return title;
+	}
 
-    /**
-     * @return Returns the type.
-     */
-    public String getType() {
-        return type;
-    }
+	/**
+	 * @return Returns the type.
+	 */
+	public String getType() {
+		return type;
+	}
 
-    public boolean is(String var) {
-        return this.fieldsByVar.containsKey(var);
-    }
+	public boolean is(String var) {
+		return this.fieldsByVar.containsKey(var);
+	}
 
-    /**
-     * @param instruction
-     *            The instruction to set.
-     */
-    public void setInstruction(String instruction) {
-        this.instruction = instruction;
-    }
+	/**
+	 * @param instruction
+	 *            The instruction to set.
+	 */
+	public void setInstruction(String instruction) {
+		this.instruction = instruction;
+	}
 
-    /**
-     * @param title
-     *            The title to set.
-     */
-    public void setTitle(String title) {
-        this.title = title;
-    }
+	/**
+	 * @param title
+	 *            The title to set.
+	 */
+	public void setTitle(String title) {
+		this.title = title;
+	}
 
-    /**
-     * @param type
-     *            The type to set.
-     */
-    public void setType(String type) {
-        this.type = type;
-    }
+	/**
+	 * @param type
+	 *            The type to set.
+	 */
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public List<Field> getAllFields() {
+		return this.fields;
+	}
+
+	public void clear() {
+		this.fields.clear();
+		this.fieldsByVar.clear();
+	}
 }
