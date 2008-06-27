@@ -26,7 +26,7 @@ public class PubSubRepository {
 
 	private static final String ITEMS_KEY = "items";
 
-	private static final String NODE_TYPE_KEY = "pubsub#node-type";
+	private static final String NODE_TYPE_KEY = "pubsub#node_type";
 
 	private static final String NODES_KEY = "nodes/";
 
@@ -107,9 +107,10 @@ public class PubSubRepository {
 		try {
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY,
 					String.valueOf(System.currentTimeMillis()));
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, NODE_TYPE_KEY, nodeType.name());
 			if (nodeConfig != null)
 				nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", NODE_TYPE_KEY, nodeType.name());
+
 			addSubscriberJid(nodeName, ownerJid, Affiliation.owner, Subscription.subscribed);
 			setNewNodeCollection(nodeName, collection);
 		} catch (Exception e) {
@@ -164,12 +165,15 @@ public class PubSubRepository {
 		return result.toArray(new String[] {});
 	}
 
+	@Deprecated
 	public LeafNodeConfig getNodeConfig(String nodeName) throws RepositoryException {
 		try {
 			LeafNodeConfig result = new LeafNodeConfig();
 			result.read(repository, config, NODES_KEY + nodeName + "/configuration");
-			Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
-			result.add(f);
+			if (result.getNodeType() == NodeType.collection) {
+				Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
+				result.add(f);
+			}
 			return result;
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
@@ -187,7 +191,10 @@ public class PubSubRepository {
 
 	public NodeType getNodeType(String nodeName) throws RepositoryException {
 		try {
-			String name = repository.getData(config.getServiceName(), NODES_KEY + nodeName, NODE_TYPE_KEY);
+			// name = repository.getData(config.getServiceName(),
+			// NODES_KEY + nodeName, NODE_TYPE_KEY);
+			String name = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", NODE_TYPE_KEY);
+
 			if (name != null) {
 				return NodeType.valueOf(name);
 			} else {
@@ -252,8 +259,10 @@ public class PubSubRepository {
 		try {
 			nodeConfig.read(repository, config, NODES_KEY + nodeName + "/configuration");
 			if (readChildren) {
-				Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
-				nodeConfig.add(f);
+				//if (nodeConfig.getNodeType() == NodeType.collection) {
+					Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
+					nodeConfig.add(f);
+				//}
 			}
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);

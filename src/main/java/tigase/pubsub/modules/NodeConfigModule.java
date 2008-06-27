@@ -57,20 +57,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		return r.toArray(new String[] {});
 	}
 
-	public static void main(String[] args) {
-		System.out.println(". ubyło: ");
-		String[] a = { "aaa", "bbb", "ccc", "ddd" };
-		String[] b = { "aaa", "bbb", "ddd", "xxx" };
-		for (String string : diff(a, b)) {
-			System.out.println(string);
-		}
-		System.out.println(". dodało: ");
-		for (String string : diff(b, a)) {
-			System.out.println(string);
-		}
-		System.out.println(".");
-	}
-
 	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
 		super(config, pubsubRepository, defaultNodeConfig);
 	}
@@ -86,6 +72,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	}
 
 	protected boolean isIn(String node, String[] children) {
+		if (node == null | children == null)
+			return false;
 		for (String x : children) {
 			if (x.equals(node))
 				return true;
@@ -154,18 +142,21 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 				parseConf(nodeConfig, nodeName, configure);
 
-				if (nodeConfig.getCollection() != null && !nodeConfig.getCollection().equals(collectionCurrent)) {
-					NodeType colNodeType = "".equals(nodeConfig.getCollection()) ? NodeType.collection
-							: repository.getNodeType(nodeConfig.getCollection());
+				// && (nodeConfig.getCollection()==null ^
+				// collectionCurrent==null) &&
+				// !nodeConfig.getCollection().equals(collectionCurrent)
+
+				if (nodeConfig.isCollectionSet()) {
+					String collectionName = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
+					NodeType colNodeType = "".equals(collectionName) ? NodeType.collection : repository.getNodeType(collectionName);
 					if (colNodeType == null) {
 						throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 					} else if (colNodeType == NodeType.leaf) {
 						throw new PubSubException(element, Authorization.NOT_ALLOWED);
 					}
-					repository.setNewNodeCollection(nodeName, nodeConfig.getCollection());
-					if (!"".equals(nodeConfig.getCollection())) {
-						resultArray.addAll(notifyCollectionChange(element.getAttribute("to"), nodeConfig.getCollection(), nodeName,
-								"associate"));
+					repository.setNewNodeCollection(nodeName, collectionName);
+					if (!"".equals(collectionName)) {
+						resultArray.addAll(notifyCollectionChange(element.getAttribute("to"), collectionName, nodeName, "associate"));
 					}
 					if (collectionCurrent != null && !"".equals(collectionCurrent)) {
 						resultArray.addAll(notifyCollectionChange(element.getAttribute("to"), collectionCurrent, nodeName,

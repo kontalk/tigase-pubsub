@@ -95,7 +95,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 								val = value.getCData();
 							}
 							if ("pubsub#node_type".equals(var)) {
-								nodeType = NodeType.valueOf(val);
+								nodeType = val == null ? NodeType.leaf : NodeType.valueOf(val);
 							} else if ("pubsub#collection".equals(var)) {
 								collection = val;
 							}

@@ -37,6 +37,10 @@ public class AbstractNodeConfig {
 
 	public static final String PUBSUB = "pubsub#";
 
+	public boolean isCollectionSet() {
+		return form.get(PUBSUB + "collection") != null;
+	}
+
 	public static void main(String[] args) {
 		AbstractNodeConfig c = new AbstractNodeConfig();
 
@@ -48,6 +52,15 @@ public class AbstractNodeConfig {
 		System.out.println(l.getFormElement());
 	}
 
+	public NodeType getNodeType() {
+		String tmp = form.getAsString("pubsub#node_type");
+		if (tmp == null) {
+			return null;
+		} else {
+			return NodeType.valueOf(tmp);
+		}
+	}
+
 	/**
 	 * List with do-not-write elements
 	 */
@@ -57,7 +70,6 @@ public class AbstractNodeConfig {
 
 	public AbstractNodeConfig() {
 		init();
-		blacklist.add("pubsub#children");
 	}
 
 	public AbstractNodeConfig(final AbstractNodeConfig config) {
@@ -95,6 +107,10 @@ public class AbstractNodeConfig {
 	}
 
 	protected void init() {
+		blacklist.add("pubsub#children");
+		blacklist.add("pubsub#node_type");
+
+		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, asStrinTable(NodeType.values())));
 		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));
 		form.addField(Field.fieldBoolean(PUBSUB + "deliver_payloads", true, "Whether to deliver payloads with event notifications"));
 		form.addField(Field.fieldBoolean(PUBSUB + "notify_config", false, "Notify subscribers when the node configuration changes"));
