@@ -27,6 +27,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.Module;
+import tigase.pubsub.PubSubVersion;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.xml.Element;
 
@@ -52,7 +53,7 @@ public class JabberVersionModule implements Module {
 				element.getAttribute("to"), element.getAttribute("id"), "result" });
 		Element query = new Element("query", new String[] { "xmlns" }, new String[] { "jabber:iq:version" });
 		query.addChild(new Element("name", "Tigase PubSub"));
-		query.addChild(new Element("version", "0.0.0-0"));
+		query.addChild(new Element("version", PubSubVersion.getVersion()));
 		query.addChild(new Element("os", System.getProperty("os.name") + "-" + System.getProperty("os.arch") + "-"
 				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-"
 				+ System.getProperty("java.version") + " " + System.getProperty("java.vm.vendor")));
