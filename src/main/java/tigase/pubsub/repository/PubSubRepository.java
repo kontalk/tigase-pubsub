@@ -11,6 +11,7 @@ import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
 import tigase.form.Field;
+import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
@@ -33,6 +34,8 @@ public class PubSubRepository {
 	private static SecureRandom numberGenerator;
 
 	private static final String SUBSCRIBES_KEY = "subscribers";
+
+	private static final String ACCESS_MODEL_KEY = "pubsub#access_model";
 
 	public static synchronized String createUID() {
 		SecureRandom ng = numberGenerator;
@@ -259,10 +262,10 @@ public class PubSubRepository {
 		try {
 			nodeConfig.read(repository, config, NODES_KEY + nodeName + "/configuration");
 			if (readChildren) {
-				//if (nodeConfig.getNodeType() == NodeType.collection) {
-					Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
-					nodeConfig.add(f);
-				//}
+				// if (nodeConfig.getNodeType() == NodeType.collection) {
+				Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
+				nodeConfig.add(f);
+				// }
 			}
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
@@ -306,6 +309,22 @@ public class PubSubRepository {
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher", publisher);
 		} catch (Exception e) {
 			throw new RepositoryException("Item writing error", e);
+		}
+	}
+
+	public AccessModel getNodeAccessModel(String nodeName) throws RepositoryException {
+		try {
+			// name = repository.getData(config.getServiceName(),
+			// NODES_KEY + nodeName, NODE_TYPE_KEY);
+			String name = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", ACCESS_MODEL_KEY);
+
+			if (name != null) {
+				return AccessModel.valueOf(name);
+			} else {
+				return null;
+			}
+		} catch (Exception e) {
+			throw new RepositoryException("AccessModel getting error", e);
 		}
 	}
 }

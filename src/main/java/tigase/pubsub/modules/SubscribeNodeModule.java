@@ -26,6 +26,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
@@ -92,6 +93,13 @@ public class SubscribeNodeModule extends AbstractModule {
 				if (affiliation == Affiliation.outcast)
 					throw new PubSubException(Authorization.FORBIDDEN);
 			}
+
+			AccessModel accessModel = repository.getNodeAccessModel(nodeName);
+			if (accessModel != AccessModel.open) {
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
+						"Only open AccessModel is implemented, but this node has " + accessModel);
+			}
+
 			if (subscription != null) {
 				if (subscription == Subscription.pending) {
 					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION);
