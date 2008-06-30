@@ -22,7 +22,10 @@
 package tigase.pubsub.modules;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
@@ -43,30 +46,10 @@ public class PublishItemModule extends AbstractModule {
 	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
+	private long idCounter = 0;
+
 	public PublishItemModule(PubSubConfig config, PubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
-	}
-
-	protected Element createNotification(final List<Element> itemsToSend, final String nodeName, final String fromJID,
-			final String toJID) {
-		Element message = new Element("message");
-		message.setAttribute("from", fromJID);
-		message.setAttribute("to", toJID);
-
-		Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
-		message.addChild(event);
-
-		Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
-		event.addChild(items);
-
-		for (Element si : itemsToSend) {
-			if (!"item".equals(si.getName())) {
-				continue;
-			}
-			items.addChild(si);
-		}
-
-		return message;
 	}
 
 	@Override
@@ -102,26 +85,52 @@ public class PublishItemModule extends AbstractModule {
 		return items;
 	}
 
+	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName)
+			throws RepositoryException {
+		ArrayList<Element> x = new ArrayList<Element>();
+		x.add(itemToSend);
+		return prepareNotification(x, jidFrom, publisherNodeName, null);
+	}
+
+	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName,
+			final Map<String, String> headers) throws RepositoryException {
+		ArrayList<Element> x = new ArrayList<Element>();
+		x.add(itemToSend);
+		return prepareNotification(x, jidFrom, publisherNodeName, headers);
+	}
+
 	public List<Element> prepareNotification(final List<Element> itemsToSend, final String jidFrom, final String publisherNodeName,
-			final String senderNodeName) throws RepositoryException {
-		return prepareNotification(getActiveSubscribers(null, senderNodeName), itemsToSend, jidFrom, publisherNodeName,
-				senderNodeName);
+			final Map<String, String> headers) throws RepositoryException {
+		String[] subscribers = getActiveSubscribers(publisherNodeName);
+		return prepareNotification(subscribers, itemsToSend, jidFrom, publisherNodeName, headers);
 	}
 
 	public List<Element> prepareNotification(final String[] subscribers, final List<Element> itemsToSend, final String jidFrom,
-			final String publisherNodeName, final String senderNodeName) {
+			final String publisherNodeName, final Map<String, String> headers) {
 		ArrayList<Element> result = new ArrayList<Element>();
 		for (String jid : subscribers) {
-			final String jidTO = jid;
-			Element notification = createNotification(itemsToSend, publisherNodeName, jidFrom, jidTO);
-			if (senderNodeName != null && !senderNodeName.equals(publisherNodeName)) {
-				Element headers = new Element("headers", new String[] { "xmlns" },
-						new String[] { "http://jabber.org/protocol/shim" });
-				Element h = new Element("header", publisherNodeName, new String[] { "name" }, new String[] { "Collection" });
-				headers.addChild(h);
+			Element message = new Element("message", new String[] { "from", "to", "id" }, new String[] { jidFrom, jid,
+					String.valueOf(++this.idCounter) });
+			Element event = new Element("event", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub#event" });
+
+			for (Element item : itemsToSend) {
+				event.addChild(item);
 			}
-			result.add(notification);
+			message.addChild(event);
+
+			if (headers != null && headers.size() > 0) {
+				Element headElem = new Element("headers", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/shim" });
+				for (Entry<String, String> entry : headers.entrySet()) {
+					Element h = new Element("header", entry.getValue(), new String[] { "name" }, new String[] { entry.getKey() });
+					headElem.addChild(h);
+				}
+				message.addChild(headElem);
+			}
+			result.add(message);
 		}
+
 		return result;
 	}
 
@@ -174,12 +183,19 @@ public class PublishItemModule extends AbstractModule {
 			List<Element> result = new ArrayList<Element>();
 			result.add(createResultIQ(element));
 
-			result.addAll(prepareNotification(allSubscribers, itemsToSend, element.getAttribute("to"), nodeName, null));
-			for (String collection : getParents(nodeName)) {
-				result.addAll(prepareNotification(allSubscribers, itemsToSend, element.getAttribute("to"), nodeName, collection));
+			final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
+			items.addChildren(itemsToSend);
+
+			result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, null));
+			List<String> parents = getParents(nodeName);
+			if (parents != null && parents.size() > 0) {
+				for (String collection : parents) {
+					Map<String, String> headers = new HashMap<String, String>();
+					headers.put("Collection", collection);
+					result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, headers));
+				}
 			}
 
-			// XXX saving items
 			if (nodeConfig.isPersistItem()) {
 				for (Element item : itemsToSend) {
 					final String id = item.getAttribute("id");

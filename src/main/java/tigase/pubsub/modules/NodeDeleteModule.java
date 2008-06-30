@@ -51,8 +51,11 @@ public class NodeDeleteModule extends AbstractModule {
 		return senderAffiliation;
 	}
 
-	public NodeDeleteModule(PubSubConfig config, PubSubRepository pubsubRepository) {
+	private final PublishItemModule publishModule;
+
+	public NodeDeleteModule(PubSubConfig config, PubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
+		this.publishModule = publishItemModule;
 	}
 
 	@Override
@@ -91,20 +94,8 @@ public class NodeDeleteModule extends AbstractModule {
 			repository.readNodeConfig(nodeConfig, nodeName, true);
 			if (nodeConfig.isNotify_config()) {
 				String pssJid = element.getAttribute("to");
-				String[] jids = repository.getSubscribersJid(nodeName);
-				for (String sjid : jids) {
-					Affiliation affiliation = NodeDeleteModule.getUserAffiliation(this.repository, nodeName, sjid);
-					if (affiliation == null || affiliation == Affiliation.none || affiliation == Affiliation.outcast)
-						continue;
-					Element message = new Element("message", new String[] { "from", "to" }, new String[] { pssJid, sjid });
-					Element event = new Element("event", new String[] { "xmlns" },
-							new String[] { "http://jabber.org/protocol/pubsub#event" });
-					Element configuration = new Element("delete", new String[] { "node" }, new String[] { nodeName });
-					event.addChild(configuration);
-					message.addChild(event);
-
-					resultArray.add(message);
-				}
+				Element del = new Element("delete", new String[] { "node" }, new String[] { nodeName });
+				resultArray.addAll(this.publishModule.prepareNotification(del, pssJid, nodeName));
 			}
 
 			log.fine("Delete node [" + nodeName + "]");

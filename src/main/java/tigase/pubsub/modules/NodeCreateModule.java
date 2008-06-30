@@ -47,8 +47,12 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
-	public NodeCreateModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
+	private final PublishItemModule publishModule;
+
+	public NodeCreateModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+			PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
+		this.publishModule = publishItemModule;
 	}
 
 	@Override
@@ -122,7 +126,11 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			notifications.add(result);
 
 			if (collection != null) {
-				notifications.addAll(notifyCollectionChange(element.getAttribute("to"), collection, nodeName, "associate"));
+
+				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
+				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
+				notifications.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collection));
+
 			}
 
 			if (instantNode) {

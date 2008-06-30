@@ -20,27 +20,20 @@ public class RetractItemModule extends AbstractModule {
 	private static final Criteria CRIT_RETRACT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("retract"));
 
-	public RetractItemModule(final PubSubConfig config, final PubSubRepository pubsubRepository) {
+	private final PublishItemModule publishModule;
+
+	public RetractItemModule(final PubSubConfig config, final PubSubRepository pubsubRepository,
+			final PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
+		this.publishModule = publishItemModule;
 	}
 
-	private Element createNotification(final LeafNodeConfig config, final List<String> itemsToSend, final String nodeName,
-			final String fromJID, final String toJID) {
-		Element message = new Element("message");
-		message.setAttribute("from", fromJID);
-		message.setAttribute("to", toJID);
-
-		Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
-		message.addChild(event);
-
+	private Element createNotification(final LeafNodeConfig config, final List<String> itemsToSend, final String nodeName) {
 		Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
-		event.addChild(items);
-
 		for (String id : itemsToSend) {
 			items.addChild(new Element("retract", new String[] { "id" }, new String[] { id }));
 		}
-
-		return message;
+		return items;
 	}
 
 	@Override
@@ -107,15 +100,9 @@ public class RetractItemModule extends AbstractModule {
 			for (String id : itemsToDelete) {
 				String date = repository.getItemCreationDate(nodeName, id);
 				if (date != null) {
+					Element notification = createNotification(nodeConfig, itemsToDelete, nodeName);
+					result.addAll(publishModule.prepareNotification(notification, element.getAttribute("to"), nodeName));
 					repository.deleteItem(nodeName, id);
-
-					for (String jid : getActiveSubscribers(allSubscribers, nodeName)) {
-						final String jidTO = jid;
-						final String jidFrom = element.getAttribute("to");
-						Element notification = createNotification(nodeConfig, itemsToDelete, nodeName, jidFrom, jidTO);
-						result.add(notification);
-					}
-
 				}
 			}
 

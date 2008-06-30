@@ -205,13 +205,15 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	protected void init() {
 		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository));
-		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository));
+		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository, this.publishNodeModule));
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
-		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
-		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository));
+		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
+				this.publishNodeModule));
+		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository, this.publishNodeModule));
 		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository,
 				this.defaultNodeConfig));
-		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
+		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
+				this.publishNodeModule));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
 
 		registerModule(new JabberVersionModule());

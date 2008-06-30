@@ -57,8 +57,12 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		return r.toArray(new String[] {});
 	}
 
-	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig) {
+	private final PublishItemModule publishModule;
+
+	public NodeConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+			PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
+		this.publishModule = publishItemModule;
 	}
 
 	@Override
@@ -159,11 +163,14 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 					}
 					repository.setNewNodeCollection(nodeName, collectionName);
 					if (!"".equals(collectionName)) {
-						resultArray.addAll(notifyCollectionChange(element.getAttribute("to"), collectionName, nodeName, "associate"));
+						Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionName });
+						colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
+						resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collectionName));
 					}
 					if (collectionCurrent != null && !"".equals(collectionCurrent)) {
-						resultArray.addAll(notifyCollectionChange(element.getAttribute("to"), collectionCurrent, nodeName,
-								"disassociate"));
+						Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionCurrent });
+						colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { nodeName }));
+						resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collectionCurrent));
 					}
 				}
 
@@ -182,7 +189,10 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 						}
 						repository.setNewNodeCollection(node, nodeName);
-						resultArray.addAll(notifyCollectionChange(element.getAttribute("to"), nodeName, node, "associate"));
+
+						Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
+						colE.addChild(new Element("associate", new String[] { "node" }, new String[] { node }));
+						resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
 					}
 					if (removedNodes != null && removedNodes.length > 0) {
 						for (String node : removedNodes) {
@@ -191,7 +201,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 							}
 							repository.setNewNodeCollection(node, "");
-							resultArray.addAll(notifyCollectionChange(element.getAttribute("to"), nodeName, node, "disassociate"));
+							Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
+							colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { node }));
+							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
 						}
 					}
 				}
@@ -200,23 +212,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 				if (nodeConfig.isNotify_config()) {
 					String pssJid = element.getAttribute("to");
-					String[] jids = repository.getSubscribersJid(nodeName);
-					for (String sjid : jids) {
-						Affiliation affiliation = NodeDeleteModule.getUserAffiliation(this.repository, nodeName, sjid);
-						if (affiliation == null || affiliation == Affiliation.none || affiliation == Affiliation.outcast)
-							continue;
-						Element message = new Element("message", new String[] { "from", "to" }, new String[] { pssJid, sjid });
-						Element event = new Element("event", new String[] { "xmlns" },
-								new String[] { "http://jabber.org/protocol/pubsub#event" });
-						Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
-						if (nodeConfig.isDeliver_payloads()) {
-							configuration.addChild(nodeConfig.getFormElement());
-						}
-						event.addChild(configuration);
-						message.addChild(event);
-
-						resultArray.add(message);
-					}
+					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
+					resultArray.addAll(this.publishModule.prepareNotification(configuration, pssJid, nodeName));
 				}
 
 			} else {
