@@ -32,6 +32,15 @@ import tigase.xml.Element;
 
 public abstract class AbstractModule implements Module {
 
+	public AbstractModule(final PubSubConfig config, final PubSubRepository pubsubRepository) {
+		this.config = config;
+		this.repository = pubsubRepository;
+	}
+
+	protected final PubSubConfig config;
+
+	protected final PubSubRepository repository;
+
 	public static Element createResultIQ(Element iq) {
 		return new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
 				iq.getAttribute("from"), iq.getAttribute("id") });
@@ -65,12 +74,11 @@ public abstract class AbstractModule implements Module {
 		return best;
 	}
 
-	public String[] getActiveSubscribers(final PubSubRepository repository, final String nodeName) throws RepositoryException {
-		return getActiveSubscribers(repository, repository.getSubscribersJid(nodeName), nodeName);
+	public String[] getActiveSubscribers(final String nodeName) throws RepositoryException {
+		return getActiveSubscribers(repository.getSubscribersJid(nodeName), nodeName);
 	}
 
-	public String[] getActiveSubscribers(final PubSubRepository repository, final String[] jids, final String nodeName)
-			throws RepositoryException {
+	public String[] getActiveSubscribers(final String[] jids, final String nodeName) throws RepositoryException {
 		List<String> result = new ArrayList<String>();
 		if (jids != null) {
 			for (String jid : jids) {

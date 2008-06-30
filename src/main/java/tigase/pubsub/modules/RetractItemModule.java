@@ -20,10 +20,8 @@ public class RetractItemModule extends AbstractModule {
 	private static final Criteria CRIT_RETRACT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("retract"));
 
-	private final PubSubRepository repository;
-
 	public RetractItemModule(final PubSubConfig config, final PubSubRepository pubsubRepository) {
-		this.repository = pubsubRepository;
+		super(config, pubsubRepository);
 	}
 
 	private Element createNotification(final LeafNodeConfig config, final List<String> itemsToSend, final String nodeName,
@@ -111,7 +109,7 @@ public class RetractItemModule extends AbstractModule {
 				if (date != null) {
 					repository.deleteItem(nodeName, id);
 
-					for (String jid : getActiveSubscribers(repository, allSubscribers, nodeName)) {
+					for (String jid : getActiveSubscribers(allSubscribers, nodeName)) {
 						final String jidTO = jid;
 						final String jidFrom = element.getAttribute("to");
 						Element notification = createNotification(nodeConfig, itemsToDelete, nodeName, jidFrom, jidTO);

@@ -42,6 +42,7 @@ public class DefaultConfigModule extends AbstractModule {
 	private final LeafNodeConfig defaultNodeConfig;
 
 	public DefaultConfigModule(PubSubConfig config, PubSubRepository pubsubRepository, LeafNodeConfig nodeConfig) {
+		super(config, pubsubRepository);
 		this.defaultNodeConfig = nodeConfig;
 	}
 

@@ -51,10 +51,8 @@ public class NodeDeleteModule extends AbstractModule {
 		return senderAffiliation;
 	}
 
-	private final PubSubRepository repository;
-
 	public NodeDeleteModule(PubSubConfig config, PubSubRepository pubsubRepository) {
-		this.repository = pubsubRepository;
+		super(config, pubsubRepository);
 	}
 
 	@Override

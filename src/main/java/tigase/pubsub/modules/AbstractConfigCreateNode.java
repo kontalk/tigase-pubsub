@@ -33,16 +33,11 @@ import tigase.xml.Element;
 
 public abstract class AbstractConfigCreateNode extends AbstractModule {
 
-	protected final PubSubConfig config;
-
 	protected final LeafNodeConfig defaultNodeConfig;
-
-	protected final PubSubRepository repository;
 
 	public AbstractConfigCreateNode(final PubSubConfig config, final PubSubRepository pubsubRepository,
 			final LeafNodeConfig defaultNodeConfig) {
-		this.repository = pubsubRepository;
-		this.config = config;
+		super(config, pubsubRepository);
 		this.defaultNodeConfig = defaultNodeConfig;
 	}
 

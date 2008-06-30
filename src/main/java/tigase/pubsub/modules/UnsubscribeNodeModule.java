@@ -42,10 +42,8 @@ public class UnsubscribeNodeModule extends AbstractModule {
 	private static final Criteria CRIT_UNSUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("unsubscribe"));
 
-	private final PubSubRepository repository;
-
 	public UnsubscribeNodeModule(PubSubConfig config, PubSubRepository pubsubRepository) {
-		this.repository = pubsubRepository;
+		super(config, pubsubRepository);
 	}
 
 	@Override

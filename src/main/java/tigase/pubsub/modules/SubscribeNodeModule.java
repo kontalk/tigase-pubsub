@@ -42,11 +42,8 @@ public class SubscribeNodeModule extends AbstractModule {
 	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
 
-
-	private PubSubRepository repository;
-
 	public SubscribeNodeModule(PubSubConfig config, PubSubRepository pubsubRepository) {
-		this.repository = pubsubRepository;
+		super(config, pubsubRepository);
 	}
 
 	@Override

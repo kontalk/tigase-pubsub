@@ -43,13 +43,8 @@ public class PublishItemModule extends AbstractModule {
 	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
-	protected PubSubConfig config;
-
-	protected PubSubRepository repository;
-
 	public PublishItemModule(PubSubConfig config, PubSubRepository pubsubRepository) {
-		this.repository = pubsubRepository;
-		this.config = config;
+		super(config, pubsubRepository);
 	}
 
 	protected Element createNotification(final List<Element> itemsToSend, final String nodeName, final String fromJID,
@@ -109,7 +104,7 @@ public class PublishItemModule extends AbstractModule {
 
 	public List<Element> prepareNotification(final List<Element> itemsToSend, final String jidFrom, final String publisherNodeName,
 			final String senderNodeName) throws RepositoryException {
-		return prepareNotification(getActiveSubscribers(repository, null, senderNodeName), itemsToSend, jidFrom, publisherNodeName,
+		return prepareNotification(getActiveSubscribers(null, senderNodeName), itemsToSend, jidFrom, publisherNodeName,
 				senderNodeName);
 	}
 
