@@ -45,8 +45,6 @@ public class ResetModule extends AbstractModule {
 	@Override
 	public List<Element> process(Element element) throws PubSubException {
 		try {
-			final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#admin");
-			final Element reset = pubSub.getChild("reset");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(element.getAttribute("from")))) {
 				throw new PubSubException(element, Authorization.FORBIDDEN);

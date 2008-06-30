@@ -65,6 +65,10 @@ public abstract class AbstractModule implements Module {
 		return best;
 	}
 
+	public String[] getActiveSubscribers(final PubSubRepository repository, final String nodeName) throws RepositoryException {
+		return getActiveSubscribers(repository, repository.getSubscribersJid(nodeName), nodeName);
+	}
+
 	public String[] getActiveSubscribers(final PubSubRepository repository, final String[] jids, final String nodeName)
 			throws RepositoryException {
 		List<String> result = new ArrayList<String>();

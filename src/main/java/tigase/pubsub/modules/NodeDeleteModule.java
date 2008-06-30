@@ -88,7 +88,9 @@ public class NodeDeleteModule extends AbstractModule {
 			}
 
 			List<Element> resultArray = makeArray(createResultIQ(element));
-			LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+
+			LeafNodeConfig nodeConfig = new LeafNodeConfig();
+			repository.readNodeConfig(nodeConfig, nodeName, true);
 			if (nodeConfig.isNotify_config()) {
 				String pssJid = element.getAttribute("to");
 				String[] jids = repository.getSubscribersJid(nodeName);

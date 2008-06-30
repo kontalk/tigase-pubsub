@@ -34,6 +34,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.RepositoryException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -51,8 +52,8 @@ public class PublishItemModule extends AbstractModule {
 		this.config = config;
 	}
 
-	protected Element createNotification(final LeafNodeConfig config, final List<Element> itemsToSend, final String nodeName,
-			final String fromJID, final String toJID) {
+	protected Element createNotification(final List<Element> itemsToSend, final String nodeName, final String fromJID,
+			final String toJID) {
 		Element message = new Element("message");
 		message.setAttribute("from", fromJID);
 		message.setAttribute("to", toJID);
@@ -84,6 +85,17 @@ public class PublishItemModule extends AbstractModule {
 		return CRIT_PUBLISH;
 	}
 
+	protected List<String> getParents(final String nodeName) throws RepositoryException {
+		ArrayList<String> result = new ArrayList<String>();
+		String cn = repository.getCollectionOf(nodeName);
+		while (cn != null && !"".equals(cn)) {
+			result.add(cn);
+			cn = repository.getCollectionOf(cn);
+		}
+		;
+		return result;
+	}
+
 	private List<Element> makeItemsToSend(Element publish) {
 		List<Element> items = new ArrayList<Element>();
 		for (Element si : publish.getChildren()) {
@@ -93,6 +105,29 @@ public class PublishItemModule extends AbstractModule {
 			items.add(si);
 		}
 		return items;
+	}
+
+	public List<Element> prepareNotification(final List<Element> itemsToSend, final String jidFrom, final String publisherNodeName,
+			final String senderNodeName) throws RepositoryException {
+		return prepareNotification(getActiveSubscribers(repository, null, senderNodeName), itemsToSend, jidFrom, publisherNodeName,
+				senderNodeName);
+	}
+
+	public List<Element> prepareNotification(final String[] subscribers, final List<Element> itemsToSend, final String jidFrom,
+			final String publisherNodeName, final String senderNodeName) {
+		ArrayList<Element> result = new ArrayList<Element>();
+		for (String jid : subscribers) {
+			final String jidTO = jid;
+			Element notification = createNotification(itemsToSend, publisherNodeName, jidFrom, jidTO);
+			if (senderNodeName != null && !senderNodeName.equals(publisherNodeName)) {
+				Element headers = new Element("headers", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/shim" });
+				Element h = new Element("header", publisherNodeName, new String[] { "name" }, new String[] { "Collection" });
+				headers.addChild(h);
+			}
+			result.add(notification);
+		}
+		return result;
 	}
 
 	@Override
@@ -144,11 +179,9 @@ public class PublishItemModule extends AbstractModule {
 			List<Element> result = new ArrayList<Element>();
 			result.add(createResultIQ(element));
 
-			for (String jid : getActiveSubscribers(repository, allSubscribers, nodeName)) {
-				final String jidTO = jid;
-				final String jidFrom = element.getAttribute("to");
-				Element notification = createNotification(nodeConfig, itemsToSend, nodeName, jidFrom, jidTO);
-				result.add(notification);
+			result.addAll(prepareNotification(allSubscribers, itemsToSend, element.getAttribute("to"), nodeName, null));
+			for (String collection : getParents(nodeName)) {
+				result.addAll(prepareNotification(allSubscribers, itemsToSend, element.getAttribute("to"), nodeName, collection));
 			}
 
 			// XXX saving items
@@ -168,5 +201,4 @@ public class PublishItemModule extends AbstractModule {
 		}
 
 	}
-
 }

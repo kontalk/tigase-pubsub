@@ -126,7 +126,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			List<Element> resultArray = makeArray(result);
 
 			if ("get".equals(type)) {
-				LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+				LeafNodeConfig nodeConfig = new LeafNodeConfig();
+				repository.readNodeConfig(nodeConfig, nodeName, true);
+
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
 						new String[] { "http://jabber.org/protocol/pubsub#owner" });
 				Element rConfigure = new Element("configure", new String[] { "node" }, new String[] { nodeName });
@@ -135,7 +137,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 				result.addChild(rPubSub);
 			} else if ("set".equals(type)) {
-				LeafNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+				LeafNodeConfig nodeConfig = new LeafNodeConfig();
+				repository.readNodeConfig(nodeConfig, nodeName, true);
 				String[] children = nodeConfig.getChildren() == null ? new String[] {} : Arrays.copyOf(nodeConfig.getChildren(),
 						nodeConfig.getChildren().length);
 				String collectionCurrent = repository.getCollectionOf(nodeName);
