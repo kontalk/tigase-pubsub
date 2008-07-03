@@ -19,26 +19,57 @@
  * Last modified by $Author$
  * $Date$
  */
-package tigase.pubsub.repository;
+package tigase.pubsub.repository.inmemory;
 
-public class RepositoryException extends Exception {
+import java.util.Date;
 
-	private static final long serialVersionUID = 1L;
+public class Item {
 
-	public RepositoryException() {
+	private final String id;
+
+	private String data;
+
+	private final Date creationDate;
+
+	private Date updateDate;
+
+	private final String publisher;
+
+	Item(String id, String data, Date creationDate, Date updateDate, String publisher) {
 		super();
+		this.data = data;
+		this.creationDate = creationDate;
+		this.updateDate = updateDate;
+		this.publisher = publisher;
+		this.id = id;
 	}
 
-	public RepositoryException(String message) {
-		super(message);
+	public Date getCreationDate() {
+		return creationDate;
 	}
 
-	public RepositoryException(String message, Throwable cause) {
-		super(message, cause);
+	public String getData() {
+		return data;
 	}
 
-	public RepositoryException(Throwable cause) {
-		super(cause);
+	public String getId() {
+		return id;
+	}
+
+	public String getPublisher() {
+		return publisher;
+	}
+
+	public Date getUpdateDate() {
+		return updateDate;
+	}
+
+	public void setData(String data) {
+		this.data = data;
+	}
+
+	public void setUpdateDate(Date updateDate) {
+		this.updateDate = updateDate;
 	}
 
 }

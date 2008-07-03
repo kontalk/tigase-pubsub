@@ -37,10 +37,6 @@ public class AbstractNodeConfig {
 
 	public static final String PUBSUB = "pubsub#";
 
-	public boolean isCollectionSet() {
-		return form.get(PUBSUB + "collection") != null;
-	}
-
 	public static void main(String[] args) {
 		AbstractNodeConfig c = new AbstractNodeConfig();
 
@@ -50,15 +46,6 @@ public class AbstractNodeConfig {
 		LeafNodeConfig l = new LeafNodeConfig();
 		l.copyFrom(c);
 		System.out.println(l.getFormElement());
-	}
-
-	public NodeType getNodeType() {
-		String tmp = form.getAsString("pubsub#node_type");
-		if (tmp == null) {
-			return null;
-		} else {
-			return NodeType.valueOf(tmp);
-		}
 	}
 
 	/**
@@ -106,6 +93,24 @@ public class AbstractNodeConfig {
 		return form.getElement();
 	}
 
+	public AccessModel getNodeAccessModel() {
+		String tmp = form.getAsString("pubsub#access_model");
+		if (tmp == null) {
+			return null;
+		} else {
+			return AccessModel.valueOf(tmp);
+		}
+	}
+
+	public NodeType getNodeType() {
+		String tmp = form.getAsString("pubsub#node_type");
+		if (tmp == null) {
+			return null;
+		} else {
+			return NodeType.valueOf(tmp);
+		}
+	}
+
 	protected void init() {
 		blacklist.add("pubsub#children");
 		blacklist.add("pubsub#node_type");
@@ -130,6 +135,10 @@ public class AbstractNodeConfig {
 
 	}
 
+	public boolean isCollectionSet() {
+		return form.get(PUBSUB + "collection") != null;
+	}
+
 	public boolean isDeliver_payloads() {
 		return form.getAsBoolean("pubsub#deliver_payloads");
 	}
@@ -151,6 +160,10 @@ public class AbstractNodeConfig {
 	public void reset() {
 		form.clear();
 		init();
+	}
+
+	public void setCollection(String collectionNew) {
+		setValue("pubsub#collection", collectionNew);
 	}
 
 	public void setValue(String var, boolean data) {

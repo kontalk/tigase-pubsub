@@ -51,12 +51,12 @@ public class PubSubException extends Exception {
 		this(null, errorCondition, (String) null);
 	}
 
-	public PubSubException(final Authorization errorCondition, String message) {
-		this(null, errorCondition, message);
-	}
-
 	public PubSubException(final Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions) {
 		this((Element) null, errorCondition, pubSubErrorConditions);
+	}
+
+	public PubSubException(final Authorization errorCondition, String message) {
+		this(null, errorCondition, message);
 	}
 
 	public PubSubException(final Element item, final Authorization errorCondition) {

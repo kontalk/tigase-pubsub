@@ -1,3 +1,24 @@
+/*
+ * Tigase Jabber/XMPP Publish Subscribe Component
+ * Copyright (C) 2007 "Bartosz M. Małkowski" <bartosz.malkowski@tigase.org>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. Look for COPYING file in the top folder.
+ * If not, see http://www.gnu.org/licenses/.
+ *
+ * $Rev$
+ * Last modified by $Author$
+ * $Date$
+ */
 package tigase.pubsub.modules;
 
 import java.util.ArrayList;
@@ -12,7 +33,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -22,7 +43,7 @@ public class RetractItemModule extends AbstractModule {
 
 	private final PublishItemModule publishModule;
 
-	public RetractItemModule(final PubSubConfig config, final PubSubRepository pubsubRepository,
+	public RetractItemModule(final PubSubConfig config, final IPubSubRepository pubsubRepository,
 			final PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishItemModule;
@@ -72,8 +93,7 @@ public class RetractItemModule extends AbstractModule {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			LeafNodeConfig nodeConfig = new LeafNodeConfig();
-			repository.readNodeConfig(nodeConfig, nodeName, false);
+			LeafNodeConfig nodeConfig = (LeafNodeConfig) repository.getNodeConfig(nodeName);
 
 			if (!nodeConfig.isPersistItem()) {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",

@@ -26,12 +26,12 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -42,7 +42,7 @@ public class NodeDeleteModule extends AbstractModule {
 	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
 
-	public static Affiliation getUserAffiliation(final PubSubRepository repository, final String nodeName, final String jid)
+	public static Affiliation getUserAffiliation(final IPubSubRepository repository, final String nodeName, final String jid)
 			throws RepositoryException {
 		Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, jid);
 		if (senderAffiliation == null) {
@@ -53,7 +53,7 @@ public class NodeDeleteModule extends AbstractModule {
 
 	private final PublishItemModule publishModule;
 
-	public NodeDeleteModule(PubSubConfig config, PubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
+	public NodeDeleteModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishItemModule;
 	}
@@ -90,8 +90,7 @@ public class NodeDeleteModule extends AbstractModule {
 
 			List<Element> resultArray = makeArray(createResultIQ(element));
 
-			LeafNodeConfig nodeConfig = new LeafNodeConfig();
-			repository.readNodeConfig(nodeConfig, nodeName, true);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 			if (nodeConfig.isNotify_config()) {
 				String pssJid = element.getAttribute("to");
 				Element del = new Element("delete", new String[] { "node" }, new String[] { nodeName });

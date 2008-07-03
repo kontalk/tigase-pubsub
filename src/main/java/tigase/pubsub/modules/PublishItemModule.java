@@ -36,7 +36,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -48,7 +48,7 @@ public class PublishItemModule extends AbstractModule {
 
 	private long idCounter = 0;
 
-	public PublishItemModule(PubSubConfig config, PubSubRepository pubsubRepository) {
+	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
@@ -159,8 +159,7 @@ public class PublishItemModule extends AbstractModule {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			LeafNodeConfig nodeConfig = new LeafNodeConfig();
-			repository.readNodeConfig(nodeConfig, nodeName, false);
+			LeafNodeConfig nodeConfig = (LeafNodeConfig) repository.getNodeConfig(nodeName);
 
 			List<Element> itemsToSend = makeItemsToSend(publish);
 

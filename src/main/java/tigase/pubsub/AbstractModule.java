@@ -25,21 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import tigase.pubsub.repository.PubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
 public abstract class AbstractModule implements Module {
-
-	public AbstractModule(final PubSubConfig config, final PubSubRepository pubsubRepository) {
-		this.config = config;
-		this.repository = pubsubRepository;
-	}
-
-	protected final PubSubConfig config;
-
-	protected final PubSubRepository repository;
 
 	public static Element createResultIQ(Element iq) {
 		return new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
@@ -59,7 +50,16 @@ public abstract class AbstractModule implements Module {
 		return result;
 	}
 
+	protected final PubSubConfig config;
+
+	protected final IPubSubRepository repository;
+
 	protected Logger log = Logger.getLogger(this.getClass().getName());
+
+	public AbstractModule(final PubSubConfig config, final IPubSubRepository pubsubRepository) {
+		this.config = config;
+		this.repository = pubsubRepository;
+	}
 
 	protected String findBestJid(final String[] allSubscribers, final String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);

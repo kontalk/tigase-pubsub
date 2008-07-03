@@ -21,6 +21,27 @@
  */
 package tigase.pubsub;
 
-public class CollectionNodeConfig extends AbstractNodeConfig {
+import java.math.BigInteger;
+import java.security.SecureRandom;
 
+public class Utils {
+
+	public static SecureRandom numberGenerator;
+
+	public static synchronized String createUID() {
+		SecureRandom ng = numberGenerator;
+		if (ng == null) {
+			numberGenerator = ng = new SecureRandom();
+		}
+		byte[] rnd = new byte[20];
+		ng.nextBytes(rnd);
+		byte[] tmp = new byte[rnd.length + 1];
+		System.arraycopy(rnd, 0, tmp, 1, rnd.length);
+		tmp[0] = 0x00;
+		BigInteger bi = new BigInteger(tmp);
+		return bi.toString(36);
+	}
+
+	private Utils() {
+	}
 }
