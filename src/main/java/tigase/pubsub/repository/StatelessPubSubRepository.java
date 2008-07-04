@@ -85,6 +85,11 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 
 	}
 
+	@Override
+	public void addListener(PubSubRepositoryListener listener) {
+		throw new RuntimeException("Listeners are unsupported");
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -431,6 +436,11 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
 		}
+	}
+
+	@Override
+	public void removeListener(PubSubRepositoryListener listener) {
+		throw new RuntimeException("Listeners are unsupported");
 	}
 
 	/*

@@ -33,6 +33,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.PubSubRepositoryListener;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.StatelessPubSubRepository;
 import tigase.xml.Element;
@@ -51,9 +52,16 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 
 	private final HashMap<String, Entry> nodes = new HashMap<String, Entry>();
 
+	private final List<PubSubRepositoryListener> listeners = new ArrayList<PubSubRepositoryListener>();
+
 	public InMemoryPubSubRepository(StatelessPubSubRepository pubSubDB, PubSubConfig pubSubConfig) {
 		this.pubSubDB = pubSubDB;
 		this.config = pubSubConfig;
+	}
+
+	@Override
+	public void addListener(PubSubRepositoryListener listener) {
+		this.listeners.add(listener);
 	}
 
 	@Override
@@ -77,7 +85,10 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		this.pubSubDB.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
-		readNodeEntry(nodeName);
+		Entry cnf = readNodeEntry(nodeName);
+		if (!"".equals(cnf.getConfig().getCollection())) {
+			fireNewNodeCollection(nodeName, null, collection);
+		}
 	}
 
 	@Override
@@ -91,6 +102,19 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	public void deleteNode(String nodeName) throws RepositoryException {
 		this.pubSubDB.deleteNode(nodeName);
 		this.nodes.remove(nodeName);
+		fireNodeDelete(nodeName);
+	}
+
+	private void fireNewNodeCollection(String nodeName, String oldCollectionName, String newCollectionName) {
+		for (PubSubRepositoryListener listener : this.listeners) {
+			listener.onChangeCollection(nodeName, oldCollectionName, newCollectionName);
+		}
+	}
+
+	private void fireNodeDelete(String nodeName) {
+		for (PubSubRepositoryListener listener : this.listeners) {
+			listener.onNodeDelete(nodeName);
+		}
 	}
 
 	@Override
@@ -214,6 +238,11 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
+	public void removeListener(PubSubRepositoryListener listener) {
+		this.listeners.remove(listener);
+	}
+
+	@Override
 	public void removeSubscriber(String nodeName, String jid) throws RepositoryException {
 		this.pubSubDB.removeSubscriber(nodeName, jid);
 		Entry entry = readNodeEntry(nodeName);
@@ -222,16 +251,24 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 
 	@Override
 	public void setNewNodeCollection(String nodeName, String collectionNew) throws RepositoryException {
-		this.pubSubDB.setNewNodeCollection(nodeName, collectionNew);
 		Entry entry = readNodeEntry(nodeName);
+		this.pubSubDB.setNewNodeCollection(nodeName, collectionNew);
+		final String oldCollectionName = entry.getConfig().getCollection();
 		entry.getConfig().setCollection(collectionNew);
+		fireNewNodeCollection(nodeName, oldCollectionName, collectionNew);
 	}
 
 	@Override
 	public void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
-		this.pubSubDB.update(nodeName, nodeConfig);
 		Entry entry = readNodeEntry(nodeName);
+		final String oldCollectionName = entry.getConfig().getCollection();
+		this.pubSubDB.update(nodeName, nodeConfig);
 		entry.getConfig().copyFrom(nodeConfig);
+		final String newCollectionName = entry.getConfig().getCollection();
+		if (!oldCollectionName.equals(newCollectionName)) {
+			fireNewNodeCollection(nodeName, oldCollectionName, newCollectionName);
+		}
+
 	}
 
 	@Override

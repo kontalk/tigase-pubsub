@@ -30,6 +30,8 @@ import tigase.xml.Element;
 
 public interface IPubSubRepository {
 
+	void addListener(PubSubRepositoryListener listener);
+
 	public abstract String addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation,
 			final Subscription subscription) throws RepositoryException;
 
@@ -61,12 +63,14 @@ public interface IPubSubRepository {
 
 	public abstract String[] getSubscribersJid(String nodeName) throws RepositoryException;
 
+	public abstract Subscription getSubscription(String nodeName, String jid) throws RepositoryException;
+
 	// public abstract void readNodeConfig(LeafNodeConfig nodeConfig, String
 	// nodeName) throws RepositoryException;
 
-	public abstract Subscription getSubscription(String nodeName, String jid) throws RepositoryException;
-
 	public abstract String getSubscriptionId(String nodeName, String jid) throws RepositoryException;
+
+	void removeListener(PubSubRepositoryListener listener);
 
 	public abstract void removeSubscriber(final String nodeName, final String jid) throws RepositoryException;
 

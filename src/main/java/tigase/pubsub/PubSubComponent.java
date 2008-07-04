@@ -23,14 +23,10 @@ package tigase.pubsub;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Logger;
 
-import tigase.cluster.ClusterElement;
-import tigase.cluster.ClusteredComponent;
 import tigase.conf.Configurable;
 import tigase.db.RepositoryFactory;
 import tigase.db.UserRepository;
@@ -57,50 +53,64 @@ import tigase.util.DNSResolver;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
-import tigase.xmpp.StanzaType;
 
-public class PubSubService extends AbstractMessageReceiver implements XMPPService, ClusteredComponent, Configurable {
+public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable {
 
-	private static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
+	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 
-	private static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
 
 	protected final PubSubConfig config = new PubSubConfig();
 
-	private DefaultConfigModule defaultConfigModule;
+	protected DefaultConfigModule defaultConfigModule;
 
-	private LeafNodeConfig defaultNodeConfig;
+	protected LeafNodeConfig defaultNodeConfig;
 
-	private Logger log = Logger.getLogger(this.getClass().getName());
+	protected Logger log = Logger.getLogger(this.getClass().getName());
 
 	private final ArrayList<Module> modules = new ArrayList<Module>();
 
-	private NodeConfigModule nodeConfigModule;
+	protected NodeConfigModule nodeConfigModule;
 
 	protected NodeCreateModule nodeCreateModule;
 
-	private NodeDeleteModule nodeDeleteModule;
+	protected NodeDeleteModule nodeDeleteModule;
 
-	private PublishItemModule publishNodeModule;
+	protected PublishItemModule publishNodeModule;
 
-	private IPubSubRepository pubsubRepository;
+	protected IPubSubRepository pubsubRepository;
 
-	private RetractItemModule retractItemModule;
+	protected RetractItemModule retractItemModule;
 
-	private ServiceEntity serviceEntity;
+	protected ServiceEntity serviceEntity;
 
 	protected SubscribeNodeModule subscribeNodeModule;
 
-	private UnsubscribeNodeModule unsubscribeNodeModule;
+	protected UnsubscribeNodeModule unsubscribeNodeModule;
 
-	private Set<String> cluster_nodes = new LinkedHashSet<String>();
+	public PubSubComponent() {
+	}
 
-	public PubSubService() {
-		// XXX ! Debug only! REMOVE IT!
-		this.cluster_nodes.add("pubsub.sphere");
-		this.cluster_nodes.add("pubsub1.sphere");
-		this.cluster_nodes.add("pubsub2.sphere");
-		// XXX
+	protected IPubSubRepository createPubSubRepository(StatelessPubSubRepository directRepository) {
+		return new InMemoryPubSubRepository(directRepository, this.config);
+	}
+
+	protected String extractNodeName(Element element) {
+		if (element == null)
+			return null;
+		Element ps = element.getChild("pubsub");
+		if (ps != null) {
+			List<Element> children = ps.getChildren();
+			if (children != null) {
+				for (Element e : children) {
+					String n = e.getAttribute("node");
+					if (n != null) {
+						return n;
+					}
+				}
+			}
+		}
+		return null;
 	}
 
 	@Override
@@ -216,17 +226,6 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		}
 	}
 
-	protected String getFirstClusterNode() {
-		String cluster_node = null;
-		for (String node : cluster_nodes) {
-			if (!node.equals(getComponentId())) {
-				cluster_node = node;
-				break;
-			}
-		}
-		return cluster_node;
-	}
-
 	protected void init() {
 		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository));
 		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository, this.publishNodeModule));
@@ -245,18 +244,6 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 
 	public String myDomain() {
 		return getName() + "." + getDefHostName();
-	}
-
-	public void nodesConnected(Set<String> node_hostnames) {
-		for (String node : node_hostnames) {
-			cluster_nodes.add(DEF_S2S_NAME + "@" + node);
-		}
-	}
-
-	public void nodesDisconnected(Set<String> node_hostnames) {
-		for (String node : node_hostnames) {
-			cluster_nodes.remove(DEF_S2S_NAME + "@" + node);
-		}
 	}
 
 	@Override
@@ -284,21 +271,6 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 		}
 	}
 
-	public void processPacketX(final Packet packet) {
-		System.out.println(getComponentId() + " :: mam " + packet.getElement());
-		if (packet.getElemName() == ClusterElement.CLUSTER_EL_NAME && packet.getElement().getXMLNS() == ClusterElement.XMLNS) {
-			System.out.println(".");
-			final ClusterElement clel = new ClusterElement(packet.getElement());
-			clel.addVisitedNode(getComponentId());
-
-			sentToNextNode(clel);
-		} else {
-
-			sentToNextNode(packet);
-		}
-
-	}
-
 	public <T extends Module> T registerModule(final T module) {
 		this.modules.add(module);
 		return module;
@@ -322,31 +294,7 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 			}
 		}
 		return handled;
-	}
-
-	protected boolean sentToNextNode(ClusterElement clel) {
-		ClusterElement next_clel = ClusterElement.createForNextNode(clel, cluster_nodes, getComponentId());
-		if (next_clel != null) {
-			addOutPacket(new Packet(next_clel.getClusterElement()));
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	protected boolean sentToNextNode(Packet packet) {
-		if (cluster_nodes.size() > 0) {
-			String sess_man_id = getComponentId();
-			String cluster_node = getFirstClusterNode();
-			if (cluster_node != null) {
-				ClusterElement clel = new ClusterElement(sess_man_id, cluster_node, StanzaType.set, packet);
-				clel.addVisitedNode(sess_man_id);
-				addOutPacket(new Packet(clel.getClusterElement()));
-				return true;
-			}
-		}
-		return false;
-	}
+	};
 
 	@Override
 	public void setProperties(Map<String, Object> props) {
@@ -377,10 +325,9 @@ public class PubSubService extends AbstractMessageReceiver implements XMPPServic
 			UserRepository userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 			userRepository.initRepository(res_uri, null);
 
-			final StatelessPubSubRepository statelessPubSubRepository = new StatelessPubSubRepository(userRepository, this.config);
+			StatelessPubSubRepository directPubSubRepository = new StatelessPubSubRepository(userRepository, this.config);
 
-			this.pubsubRepository = new InMemoryPubSubRepository(statelessPubSubRepository, this.config);
-
+			this.pubsubRepository = createPubSubRepository(directPubSubRepository);
 			this.defaultNodeConfig = new LeafNodeConfig();
 			this.defaultNodeConfig.read(userRepository, config, "default-node-config");
 			this.defaultNodeConfig.write(userRepository, config, "default-node-config");
