@@ -89,6 +89,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected UnsubscribeNodeModule unsubscribeNodeModule;
 
 	public PubSubComponent() {
+		setName("pubsub");
 	}
 
 	protected IPubSubRepository createPubSubRepository(StatelessPubSubRepository directRepository) {
@@ -113,26 +114,24 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return null;
 	}
 
+	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
+
 	@Override
 	public Map<String, Object> getDefaults(Map<String, Object> params) {
 		Map<String, Object> props = super.getDefaults(params);
-		String[] hostnamesPropVal = null;
-		if (params.get("--virt-hosts") != null) {
-			hostnamesPropVal = ((String) params.get("--virt-hosts")).split(",");
+
+		if (params.get(GEN_VIRT_HOSTS) != null) {
+			HOSTNAMES_PROP_VAL = ((String) params.get(GEN_VIRT_HOSTS)).split(",");
 		} else {
-			hostnamesPropVal = DNSResolver.getDefHostNames();
+			HOSTNAMES_PROP_VAL = DNSResolver.getDefHostNames();
 		}
-		for (int i = 0; i < hostnamesPropVal.length; i++) {
-			if (((String) params.get("config-type")).equals(GEN_CONFIG_COMP)) {
-				// This is specialized configuration for a single
-				// external component and on specialized component like MUC
-				hostnamesPropVal[i] = hostnamesPropVal[i];
-			} else {
-				if (!hostnamesPropVal[i].startsWith("pubsub.")) {
-					hostnamesPropVal[i] = "pubsub." + hostnamesPropVal[i];
-				}
-			}
+		String[] hostnames = new String[HOSTNAMES_PROP_VAL.length];
+		int i = 0;
+		for (String host : HOSTNAMES_PROP_VAL) {
+			hostnames[i++] = getName() + "." + host;
 		}
+		props.put(HOSTNAMES_PROP_KEY, hostnames);
+
 		// By default use the same repository as all other components:
 		String repo_class = XML_REPO_CLASS_PROP_VAL;
 		String repo_uri = XML_REPO_URL_PROP_VAL;
@@ -161,7 +160,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 		props.put("admin", new String[] { "admin@localhost" });
 
-		props.put(HOSTNAMES_PROP_KEY, hostnamesPropVal);
 		return props;
 	}
 
@@ -301,11 +299,14 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		super.setProperties(props);
 
 		String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
+		if (hostnames == null || hostnames.length == 0) {
+			log.warning("Hostnames definition is empty, setting 'localhost'");
+			hostnames = new String[] { getName() + ".localhost" };
+		}
 		clearRoutings();
 		for (String host : hostnames) {
 			addRouting(host);
 		}
-
 		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
 		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
 

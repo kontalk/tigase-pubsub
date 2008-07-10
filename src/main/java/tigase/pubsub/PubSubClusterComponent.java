@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import tigase.cluster.ClusterElement;
 import tigase.cluster.ClusteredComponent;
@@ -48,6 +49,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	private static final String METHOD_DELETE_NODE = "pubsub_node_delete";
 
 	public PubSubClusterComponent() {
+		super();
+		this.log = Logger.getLogger(this.getClass().getName());
 		this.clusterManager = new ClusterManager(this.cluster_nodes);
 		if (System.getProperty("test", "no").equals("yes")) {
 			final Set<String> n = new HashSet<String>();
@@ -60,6 +63,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			log.config(msh);
 			nodesConnected(n);
 		}
+		log.config("PubSubCluster Component starting");
 	}
 
 	protected String getFirstClusterNode() {
@@ -77,20 +81,23 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	protected void init() {
 		super.init();
 		pubsubRepository.addListener(this);
+		log.config("PubSubCluster component configured.");
 	}
 
 	public void nodesConnected(Set<String> node_hostnames) {
 		for (String node : node_hostnames) {
-			cluster_nodes.add(node);
+			log.finest("Node connected: "+node+" ("+getName() + "@" + node+")");
+			cluster_nodes.add(getName() + "@" + node);
 		}
 		this.clusterManager.nodesConnected(node_hostnames);
 	}
 
 	public void nodesDisconnected(Set<String> node_hostnames) {
 		for (String node : node_hostnames) {
-			cluster_nodes.remove(node);
+			log.finest("Node disconnected: "+node+" ("+getName() + "@" + node+")");
+			cluster_nodes.remove(getName() + "@" + node);
+			this.clusterManager.nodeDisconnected(getName() + "@" + node);
 		}
-		this.clusterManager.nodesDisconnected(node_hostnames);
 	}
 
 	@Override
@@ -136,7 +143,11 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	public void processPacket(final Packet packet) {
-		if (packet.getElemName() == ClusterElement.CLUSTER_EL_NAME && packet.getElement().getXMLNS() == ClusterElement.XMLNS) {
+		log.finest("Received: " + packet.toString());
+
+		if (packet.getElemName() == ClusterElement.CLUSTER_EL_NAME || packet.getElemName() == ClusterElement.CLUSTER_EL_NAME
+				&& packet.getElement().getXMLNS() == ClusterElement.XMLNS) {
+			log.finest("Handling as internal cluster message");
 			final ClusterElement clel = new ClusterElement(packet.getElement());
 			List<Element> elements = clel.getDataPackets();
 			if (clel.getMethodName() != null) {
@@ -164,6 +175,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 						+ clusterNode);
 				sentToNode(packet, clusterNode);
 			} else {
+				log.finest("Cluster node " + getComponentId() + " received stanza without node name");
 				super.processPacket(packet);
 			}
 		}

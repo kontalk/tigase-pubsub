@@ -78,20 +78,18 @@ public class ClusterManager {
 
 	}
 
-	public void nodesDisconnected(Set<String> node_hostnames) {
-		if (node_hostnames != null)
-			for (String hostname : node_hostnames) {
-				String key = null;
-				for (Entry<String, String> e : this.clusterNodes.entrySet()) {
-					if (e.getValue().equals(hostname)) {
-						key = e.getKey();
-						break;
-					}
-				}
-				if (key != null) {
-					this.clusterNodes.remove(key);
-				}
+	public void nodeDisconnected(String hostname) {
+		String key = null;
+		for (Entry<String, String> e : this.clusterNodes.entrySet()) {
+			if (e.getValue().equals(hostname)) {
+				key = e.getKey();
+				break;
 			}
+			if (key != null) {
+				this.clusterNodes.remove(key);
+				log.fine("Cluster node '" + e.getValue() + "' is NO LONGER owner of: " + key);
+			}
+		}
 	}
 
 	public void registerOwner(String clusterNodeName, String... pubSubNodeName) {
