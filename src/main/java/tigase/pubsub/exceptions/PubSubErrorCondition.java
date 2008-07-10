@@ -25,6 +25,8 @@ import tigase.xml.Element;
 
 public class PubSubErrorCondition {
 
+	public static final PubSubErrorCondition CLOSED_NODE = new PubSubErrorCondition("closed-node");
+
 	public static final PubSubErrorCondition INVALID_JID = new PubSubErrorCondition("invalid-jid");
 
 	public static final PubSubErrorCondition INVALID_SUBID = new PubSubErrorCondition("invalid-subid");

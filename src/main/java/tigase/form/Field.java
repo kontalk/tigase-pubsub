@@ -38,7 +38,7 @@ import tigase.xml.Element;
 public class Field {
 	public static enum FieldType {
 		bool("boolean"), fixed("fixed"), hidden("hidden"), list_multi("list-multi"), list_single("list-single"), text_multi(
-				"text-multi"), text_private("text-private"), text_single("text-single");
+				"text-multi"), text_private("text-private"), text_single("text-single"), jid_single("jid-single");
 		public static FieldType getFieldTypeByName(String name) {
 			if ("boolean".equals(name)) {
 				return bool;
@@ -110,6 +110,13 @@ public class Field {
 
 	public static Field fieldTextMulti(String var, String value, String label) {
 		Field field = new Field(FieldType.text_multi, var);
+		field.label = label;
+		field.values = new String[] { value };
+		return field;
+	}
+
+	public static Field fieldJidSingle(String var, String value, String label) {
+		Field field = new Field(FieldType.jid_single, var);
 		field.label = label;
 		field.values = new String[] { value };
 		return field;

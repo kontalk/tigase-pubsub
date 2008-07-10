@@ -36,6 +36,7 @@ import tigase.disco.XMPPService;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.DefaultConfigModule;
 import tigase.pubsub.modules.JabberVersionModule;
+import tigase.pubsub.modules.ManageSubscriptionModule;
 import tigase.pubsub.modules.NodeConfigModule;
 import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
@@ -66,7 +67,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected LeafNodeConfig defaultNodeConfig;
 
+	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
+
 	protected Logger log = Logger.getLogger(this.getClass().getName());
+
+	private ManageSubscriptionModule manageSubscriptionModule;
 
 	private final ArrayList<Module> modules = new ArrayList<Module>();
 
@@ -113,8 +118,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 		return null;
 	}
-
-	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
 
 	@Override
 	public Map<String, Object> getDefaults(Map<String, Object> params) {
@@ -227,7 +230,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected void init() {
 		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository));
 		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository, this.publishNodeModule));
-		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository));
+		this.manageSubscriptionModule = registerModule(new ManageSubscriptionModule(this.config, this.pubsubRepository));
+		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository,
+				this.manageSubscriptionModule));
 		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
 				this.publishNodeModule));
 		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository, this.publishNodeModule));

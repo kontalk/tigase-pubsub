@@ -21,7 +21,10 @@
  */
 package tigase.pubsub.modules;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import com.sun.imageio.plugins.common.SubImageInputStream;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
@@ -43,8 +46,24 @@ public class SubscribeNodeModule extends AbstractModule {
 	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
 
-	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
+	public static Element makeSubscription(String nodeName, String subscriberJid, Subscription newSubscription, String subid) {
+		Element resPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+		Element resSubscription = new Element("subscription");
+		resPubSub.addChild(resSubscription);
+		resSubscription.setAttribute("node", nodeName);
+		resSubscription.setAttribute("jid", subscriberJid);
+		resSubscription.setAttribute("subscription", newSubscription.name());
+		if (subid != null)
+			resSubscription.setAttribute("subid", subid);
+		return resPubSub;
+	}
+
+	private final ManageSubscriptionModule manageSubscriptionModule;
+
+	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository,
+			ManageSubscriptionModule manageSubscriptionModule) {
 		super(config, pubsubRepository);
+		this.manageSubscriptionModule = manageSubscriptionModule;
 	}
 
 	@Override
@@ -95,41 +114,50 @@ public class SubscribeNodeModule extends AbstractModule {
 			}
 
 			AccessModel accessModel = repository.getNodeAccessModel(nodeName);
-			if (accessModel != AccessModel.open) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-						"Only open AccessModel is implemented, but this node has " + accessModel);
-			}
 
 			if (subscription != null) {
 				if (subscription == Subscription.pending) {
 					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION);
 				}
 			}
+			if (accessModel == AccessModel.whitelist && (affiliation == null || affiliation == Affiliation.none)) {
+				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
+			}
 
-			subscription = Subscription.subscribed;
+			List<Element> results = new ArrayList<Element>();
+			Subscription newSubscription;
+
+			if (accessModel == AccessModel.open) {
+				newSubscription = Subscription.subscribed;
+			} else if (accessModel == AccessModel.authorize) {
+				newSubscription = Subscription.pending;
+			} else {
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, "AccessModel '" + accessModel.name()
+						+ "' is not implemented yet");
+			}
 
 			String subid = repository.getSubscriptionId(nodeName, jid);
 			if (affiliation == null) {
-				subid = repository.addSubscriberJid(nodeName, jid, Affiliation.member, subscription);
+				subid = repository.addSubscriberJid(nodeName, jid, Affiliation.member, newSubscription);
+				if (accessModel == AccessModel.authorize) {
+					results.addAll(this.manageSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"),
+							subid, jid));
+				}
+
 			} else {
-				repository.changeSubscription(nodeName, jid, subscription);
+				repository.changeSubscription(nodeName, jid, newSubscription);
 			}
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));
 
 			Element result = createResultIQ(element);
-			Element resPubSub = new Element("pubsub", new String[] { "xmlns" },
-					new String[] { "http://jabber.org/protocol/pubsub" });
-			result.addChild(resPubSub);
-			Element resSubscription = new Element("subscription");
-			resPubSub.addChild(resSubscription);
-			resSubscription.setAttribute("node", nodeName);
-			resSubscription.setAttribute("jid", jid);
-			resSubscription.setAttribute("subscription", subscription.name());
-			resSubscription.setAttribute("subid", subid);
 
-			return makeArray(result);
+			result.addChild(makeSubscription(nodeName, jid, newSubscription, subid));
+
+			results.add(result);
+
+			return results;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -138,5 +166,4 @@ public class SubscribeNodeModule extends AbstractModule {
 		}
 
 	}
-
 }

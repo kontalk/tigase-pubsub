@@ -26,7 +26,7 @@ import java.security.SecureRandom;
 
 public class Utils {
 
-	public static SecureRandom numberGenerator;
+	private static SecureRandom numberGenerator;
 
 	public static synchronized String createUID() {
 		SecureRandom ng = numberGenerator;
