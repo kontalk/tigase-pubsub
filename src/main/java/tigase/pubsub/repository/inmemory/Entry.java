@@ -28,6 +28,7 @@ import java.util.List;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.Subscription;
+import tigase.util.JIDUtils;
 
 class Entry {
 
@@ -115,6 +116,12 @@ class Entry {
 
 	public Subscription getSubscriberSubscription(String jid) {
 		Subscriber subscriber = this.subscribers.get(jid);
+		if (subscriber == null) {
+			subscriber = this.subscribers.get(JIDUtils.getNodeID(jid));
+		}
+		if (subscriber == null) {
+			return Subscription.none;
+		}
 		return subscriber.getSubscription();
 	}
 

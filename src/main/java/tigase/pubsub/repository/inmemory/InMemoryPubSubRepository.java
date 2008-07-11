@@ -185,6 +185,8 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	@Override
 	public Subscription getSubscription(String nodeName, String jid) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
+		if (entry == null)
+			return Subscription.none;
 		return entry.getSubscriberSubscription(jid);
 	}
 
