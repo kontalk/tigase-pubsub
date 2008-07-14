@@ -44,6 +44,8 @@ import tigase.xml.Element;
 
 public class StatelessPubSubRepository implements IPubSubRepository {
 
+	private static final String ACCESS_MODEL_KEY = "pubsub#access_model";
+
 	private static final String ASSOCIATE_COLLECTION_KEY = "pubsub#collection";
 
 	public final static String CREATION_DATE_KEY = "creation-date";
@@ -55,8 +57,6 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	private static final String NODES_KEY = "nodes/";
 
 	private static final String SUBSCRIBES_KEY = "subscribers";
-
-	private static final String ACCESS_MODEL_KEY = "pubsub#access_model";
 
 	private final PubSubConfig config;
 
@@ -114,6 +114,17 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 
 	}
 
+	@Override
+	public void changeAffiliation(final String nodeName, final String jid, final Affiliation affiliation)
+			throws RepositoryException {
+		try {
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "affiliation",
+					affiliation.name());
+		} catch (Exception e) {
+			throw new RepositoryException("Affiliation writing error", e);
+		}
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -129,7 +140,6 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		} catch (Exception e) {
 			throw new RepositoryException("Subscription writing error", e);
 		}
-
 	}
 
 	/*
@@ -509,4 +519,5 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 			throw new RepositoryException("Item writing error", e);
 		}
 	}
+
 }

@@ -24,6 +24,7 @@ package tigase.pubsub.modules;
 import java.util.ArrayList;
 import java.util.List;
 
+import sun.security.util.PendingException;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Field;
@@ -89,18 +90,23 @@ public class ManageSubscriptionModule extends AbstractModule {
 			}
 
 			Subscription subscription = this.repository.getSubscription(node, subscriberJid);
+			if (subscription != Subscription.pending)
+				return null;
+			Affiliation affiliation = this.repository.getSubscriberAffiliation(node, jid);
 			if (allow) {
 				subscription = Subscription.subscribed;
+				affiliation = Affiliation.member;
+				this.repository.changeSubscription(node, subscriberJid, subscription);
+				this.repository.changeAffiliation(node, subscriberJid, affiliation);
 			} else {
 				subscription = Subscription.none;
+				// XXX (to remove or not to remove)
+				// this.repository.removeSubscriber(node, subscriberJid);
 			}
-
-			this.repository.changeSubscription(node, subscriberJid, subscription);
 
 			Element msg = new Element("message", new String[] { "from", "to", "id" }, new String[] { message.getAttribute("to"),
 					subscriberJid, Utils.createUID() });
 			msg.addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid, subscription, null));
-
 			return makeArray(msg);
 		} catch (PubSubException e1) {
 			throw e1;

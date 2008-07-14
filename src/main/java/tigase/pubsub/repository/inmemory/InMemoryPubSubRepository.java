@@ -281,4 +281,11 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		entry.add(it);
 	}
 
+	@Override
+	public void changeAffiliation(String nodeName, String jid, Affiliation affiliation) throws RepositoryException {
+		Entry entry = readNodeEntry(nodeName);
+		this.pubSubDB.changeAffiliation(nodeName, jid, affiliation);
+		entry.changeAffiliation(jid, affiliation);
+	}
+
 }

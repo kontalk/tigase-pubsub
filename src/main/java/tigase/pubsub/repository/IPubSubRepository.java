@@ -35,6 +35,8 @@ public interface IPubSubRepository {
 	public abstract String addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation,
 			final Subscription subscription) throws RepositoryException;
 
+	void changeAffiliation(String node, String subscriberJid, Affiliation affiliation)throws RepositoryException;
+
 	public abstract void changeSubscription(final String nodeName, final String jid, final Subscription subscription)
 			throws RepositoryException;
 
@@ -63,10 +65,10 @@ public interface IPubSubRepository {
 
 	public abstract String[] getSubscribersJid(String nodeName) throws RepositoryException;
 
-	public abstract Subscription getSubscription(String nodeName, String jid) throws RepositoryException;
-
 	// public abstract void readNodeConfig(LeafNodeConfig nodeConfig, String
 	// nodeName) throws RepositoryException;
+
+	public abstract Subscription getSubscription(String nodeName, String jid) throws RepositoryException;
 
 	public abstract String getSubscriptionId(String nodeName, String jid) throws RepositoryException;
 

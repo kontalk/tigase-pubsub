@@ -32,21 +32,21 @@ import tigase.util.JIDUtils;
 
 class Entry {
 
-	private final String name;
-
-	private final Date creationDate;
-
 	private final AbstractNodeConfig config;
 
-	/**
-	 * <JID, Subscriber>
-	 */
-	private final HashMap<String, Subscriber> subscribers = new HashMap<String, Subscriber>();
+	private final Date creationDate;
 
 	/**
 	 * ID
 	 */
 	private final HashMap<String, Item> items = new HashMap<String, Item>();
+
+	private final String name;
+
+	/**
+	 * <JID, Subscriber>
+	 */
+	private final HashMap<String, Subscriber> subscribers = new HashMap<String, Subscriber>();
 
 	Entry(String name, Date creationDate, AbstractNodeConfig config, List<Subscriber> subscribers, List<Item> items) {
 		super();
@@ -72,6 +72,11 @@ class Entry {
 
 	public void add(Subscriber subscriber) {
 		this.subscribers.put(subscriber.getJid(), subscriber);
+	}
+
+	public void changeAffiliation(String jid, Affiliation affiliation) {
+		Subscriber subscriber = this.subscribers.get(jid);
+		subscriber.setAffiliation(affiliation);
 	}
 
 	public void changeSubscription(String jid, Subscription subscription) {

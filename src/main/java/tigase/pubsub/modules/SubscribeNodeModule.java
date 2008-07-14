@@ -91,9 +91,9 @@ public class SubscribeNodeModule extends AbstractModule {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			Affiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
+			Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, jid);
 
-			if (affiliation != Affiliation.owner
+			if (senderAffiliation != Affiliation.owner
 					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(element.getAttribute("from")))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
@@ -108,8 +108,8 @@ public class SubscribeNodeModule extends AbstractModule {
 
 			Subscription subscription = repository.getSubscription(nodeName, jid);
 
-			if (affiliation != null) {
-				if (affiliation == Affiliation.outcast)
+			if (senderAffiliation != null) {
+				if (senderAffiliation == Affiliation.outcast)
 					throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
@@ -120,25 +120,28 @@ public class SubscribeNodeModule extends AbstractModule {
 					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION);
 				}
 			}
-			if (accessModel == AccessModel.whitelist && (affiliation == null || affiliation == Affiliation.none)) {
+			if (accessModel == AccessModel.whitelist && (senderAffiliation == null || senderAffiliation == Affiliation.none)) {
 				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
 			}
 
 			List<Element> results = new ArrayList<Element>();
 			Subscription newSubscription;
+			Affiliation affiliation;
 
 			if (accessModel == AccessModel.open) {
 				newSubscription = Subscription.subscribed;
+				affiliation = Affiliation.member;
 			} else if (accessModel == AccessModel.authorize) {
 				newSubscription = Subscription.pending;
+				affiliation = Affiliation.none;
 			} else {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, "AccessModel '" + accessModel.name()
 						+ "' is not implemented yet");
 			}
 
 			String subid = repository.getSubscriptionId(nodeName, jid);
-			if (affiliation == null) {
-				subid = repository.addSubscriberJid(nodeName, jid, Affiliation.member, newSubscription);
+			if (senderAffiliation == null) {
+				subid = repository.addSubscriberJid(nodeName, jid, affiliation, newSubscription);
 				if (accessModel == AccessModel.authorize) {
 					results.addAll(this.manageSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"),
 							subid, jid));
