@@ -36,6 +36,7 @@ import tigase.disco.XMPPService;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.DefaultConfigModule;
 import tigase.pubsub.modules.JabberVersionModule;
+import tigase.pubsub.modules.ManageAffiliationsModule;
 import tigase.pubsub.modules.ManageSubscriptionModule;
 import tigase.pubsub.modules.NodeConfigModule;
 import tigase.pubsub.modules.NodeCreateModule;
@@ -70,6 +71,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
+
+	private ManageAffiliationsModule manageAffiliationsModule;
 
 	private ManageSubscriptionModule manageSubscriptionModule;
 
@@ -241,7 +244,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
 				this.publishNodeModule));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
-
+		this.manageAffiliationsModule = registerModule(new ManageAffiliationsModule(this.config, this.pubsubRepository));
 		registerModule(new JabberVersionModule());
 	}
 

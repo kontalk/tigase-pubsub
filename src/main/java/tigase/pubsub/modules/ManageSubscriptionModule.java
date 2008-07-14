@@ -100,8 +100,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 				this.repository.changeAffiliation(node, subscriberJid, affiliation);
 			} else {
 				subscription = Subscription.none;
-				// XXX (to remove or not to remove)
-				// this.repository.removeSubscriber(node, subscriberJid);
+				this.repository.removeSubscriber(node, subscriberJid);
 			}
 
 			Element msg = new Element("message", new String[] { "from", "to", "id" }, new String[] { message.getAttribute("to"),
