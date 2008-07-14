@@ -24,8 +24,6 @@ package tigase.pubsub.modules;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sun.imageio.plugins.common.SubImageInputStream;
-
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;

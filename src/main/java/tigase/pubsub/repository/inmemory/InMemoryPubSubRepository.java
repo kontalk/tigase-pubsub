@@ -75,6 +75,13 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
+	public void changeAffiliation(String nodeName, String jid, Affiliation affiliation) throws RepositoryException {
+		Entry entry = readNodeEntry(nodeName);
+		this.pubSubDB.changeAffiliation(nodeName, jid, affiliation);
+		entry.changeAffiliation(jid, affiliation);
+	}
+
+	@Override
 	public void changeSubscription(String nodeName, String jid, Subscription subscription) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		this.pubSubDB.changeSubscription(nodeName, jid, subscription);
@@ -279,13 +286,6 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		Item it = new Item(id, item.toString(), new Date(timeInMilis), new Date(timeInMilis), publisher);
 		Entry entry = readNodeEntry(nodeName);
 		entry.add(it);
-	}
-
-	@Override
-	public void changeAffiliation(String nodeName, String jid, Affiliation affiliation) throws RepositoryException {
-		Entry entry = readNodeEntry(nodeName);
-		this.pubSubDB.changeAffiliation(nodeName, jid, affiliation);
-		entry.changeAffiliation(jid, affiliation);
 	}
 
 }

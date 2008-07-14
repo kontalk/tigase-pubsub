@@ -50,12 +50,12 @@ public class ElementCriteria implements Criteria {
 		return new ElementCriteria(name, null, new String[] { "xmlns" }, new String[] { xmlns });
 	}
 
-	public static final ElementCriteria name(String name, String[] attNames, String[] attValues) {
-		return new ElementCriteria(name, null, attNames, attValues);
-	}
-
 	public static final ElementCriteria name(String name, String cdata, String[] attNames, String[] attValues) {
 		return new ElementCriteria(name, cdata, attNames, attValues);
+	}
+
+	public static final ElementCriteria name(String name, String[] attNames, String[] attValues) {
+		return new ElementCriteria(name, null, attNames, attValues);
 	}
 
 	public static final ElementCriteria nameType(String name, String type) {

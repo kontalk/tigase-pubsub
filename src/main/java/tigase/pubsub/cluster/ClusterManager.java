@@ -73,11 +73,6 @@ public class ClusterManager {
 		return name;
 	}
 
-	public void nodesConnected(Set<String> node_hostnames) {
-		// TODO Auto-generated method stub
-
-	}
-
 	public void nodeDisconnected(String hostname) {
 		String key = null;
 		for (Entry<String, String> e : this.clusterNodes.entrySet()) {
@@ -90,6 +85,11 @@ public class ClusterManager {
 				log.fine("Cluster node '" + e.getValue() + "' is NO LONGER owner of: " + key);
 			}
 		}
+	}
+
+	public void nodesConnected(Set<String> node_hostnames) {
+		// TODO Auto-generated method stub
+
 	}
 
 	public void registerOwner(String clusterNodeName, String... pubSubNodeName) {

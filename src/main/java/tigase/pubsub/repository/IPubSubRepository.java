@@ -35,7 +35,7 @@ public interface IPubSubRepository {
 	public abstract String addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation,
 			final Subscription subscription) throws RepositoryException;
 
-	void changeAffiliation(String node, String subscriberJid, Affiliation affiliation)throws RepositoryException;
+	void changeAffiliation(String node, String subscriberJid, Affiliation affiliation) throws RepositoryException;
 
 	public abstract void changeSubscription(final String nodeName, final String jid, final Subscription subscription)
 			throws RepositoryException;

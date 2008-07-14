@@ -86,7 +86,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	public void nodesConnected(Set<String> node_hostnames) {
 		for (String node : node_hostnames) {
-			log.finest("Node connected: "+node+" ("+getName() + "@" + node+")");
+			log.finest("Node connected: " + node + " (" + getName() + "@" + node + ")");
 			cluster_nodes.add(getName() + "@" + node);
 		}
 		this.clusterManager.nodesConnected(node_hostnames);
@@ -94,7 +94,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	public void nodesDisconnected(Set<String> node_hostnames) {
 		for (String node : node_hostnames) {
-			log.finest("Node disconnected: "+node+" ("+getName() + "@" + node+")");
+			log.finest("Node disconnected: " + node + " (" + getName() + "@" + node + ")");
 			cluster_nodes.remove(getName() + "@" + node);
 			this.clusterManager.nodeDisconnected(getName() + "@" + node);
 		}

@@ -84,6 +84,13 @@ public class Field {
 		return field;
 	}
 
+	public static Field fieldJidSingle(String var, String value, String label) {
+		Field field = new Field(FieldType.jid_single, var);
+		field.label = label;
+		field.values = new String[] { value };
+		return field;
+	}
+
 	public static Field fieldListMulti(String var, String[] values, String label, String[] optionsLabel, String[] optionsValue) {
 		if (optionsLabel != null && optionsLabel.length != optionsValue.length) {
 			throw new RuntimeException("Invalid optionsLabel and optinsValue length");
@@ -110,13 +117,6 @@ public class Field {
 
 	public static Field fieldTextMulti(String var, String value, String label) {
 		Field field = new Field(FieldType.text_multi, var);
-		field.label = label;
-		field.values = new String[] { value };
-		return field;
-	}
-
-	public static Field fieldJidSingle(String var, String value, String label) {
-		Field field = new Field(FieldType.jid_single, var);
 		field.label = label;
 		field.values = new String[] { value };
 		return field;

@@ -24,7 +24,6 @@ package tigase.pubsub.modules;
 import java.util.ArrayList;
 import java.util.List;
 
-import sun.security.util.PendingException;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Field;
