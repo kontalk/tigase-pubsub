@@ -43,6 +43,7 @@ import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
 import tigase.pubsub.modules.PublishItemModule;
 import tigase.pubsub.modules.RetractItemModule;
+import tigase.pubsub.modules.RetrieveItemsModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -95,6 +96,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected SubscribeNodeModule subscribeNodeModule;
 
 	protected UnsubscribeNodeModule unsubscribeNodeModule;
+
+	private RetrieveItemsModule retrirveItemsModule;
 
 	public PubSubComponent() {
 		setName("pubsub");
@@ -245,6 +248,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				this.publishNodeModule));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
 		this.manageAffiliationsModule = registerModule(new ManageAffiliationsModule(this.config, this.pubsubRepository));
+		this.retrirveItemsModule = registerModule( new RetrieveItemsModule(this.config, this.pubsubRepository));
 		registerModule(new JabberVersionModule());
 	}
 

@@ -21,6 +21,8 @@
  */
 package tigase.pubsub.repository;
 
+import java.util.List;
+
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
@@ -82,5 +84,9 @@ public interface IPubSubRepository {
 
 	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher,
 			final Element item) throws RepositoryException;
+
+	Element getItem(String nodeName, String id) throws RepositoryException;
+
+	String[] getItemsIds(String nodeName) throws RepositoryException;
 
 }

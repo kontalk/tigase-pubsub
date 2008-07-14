@@ -23,11 +23,13 @@ package tigase.pubsub.repository.inmemory;
 
 import java.util.Date;
 
+import tigase.xml.Element;
+
 public class Item {
 
 	private final String id;
 
-	private String data;
+	private Element data;
 
 	private final Date creationDate;
 
@@ -35,7 +37,7 @@ public class Item {
 
 	private final String publisher;
 
-	Item(String id, String data, Date creationDate, Date updateDate, String publisher) {
+	Item(String id, Element data, Date creationDate, Date updateDate, String publisher) {
 		super();
 		this.data = data;
 		this.creationDate = creationDate;
@@ -48,7 +50,7 @@ public class Item {
 		return creationDate;
 	}
 
-	public String getData() {
+	public Element getData() {
 		return data;
 	}
 
@@ -64,7 +66,7 @@ public class Item {
 		return updateDate;
 	}
 
-	public void setData(String data) {
+	public void setData(Element data) {
 		this.data = data;
 	}
 

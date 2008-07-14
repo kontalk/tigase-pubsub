@@ -24,6 +24,7 @@ package tigase.pubsub.repository;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,7 +41,10 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
+import tigase.xml.DomBuilderHandler;
 import tigase.xml.Element;
+import tigase.xml.SimpleParser;
+import tigase.xml.SingletonFactory;
 
 public class StatelessPubSubRepository implements IPubSubRepository {
 
@@ -63,6 +67,8 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	private Logger log = Logger.getLogger(this.getClass().getName());
 
 	private final UserRepository repository;
+
+	private final SimpleParser parser = SingletonFactory.getParserInstance();
 
 	public StatelessPubSubRepository(UserRepository repository, PubSubConfig pubSubConfig) throws RepositoryException {
 		this.repository = repository;
@@ -213,6 +219,20 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		}
 	}
 
+	@Override
+	public Element getItem(String nodeName, String id) throws RepositoryException {
+		try {
+			String itemData = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "data");
+			char[] data = itemData.toCharArray();
+			DomBuilderHandler domHandler = new DomBuilderHandler();
+			parser.parse(domHandler, data, 0, data.length);
+			Queue<Element> q = domHandler.getParsedElements();
+			return q.element();
+		} catch (Exception e) {
+			throw new RepositoryException("Item reading error", e);
+		}
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -225,6 +245,18 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date");
 		} catch (Exception e) {
 			throw new RepositoryException("Items creation-date reading error", e);
+		}
+	}
+
+	@Override
+	public String[] getItemsIds(String nodeName) throws RepositoryException {
+		try {
+			String[] ids = repository.getSubnodes(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY);
+			// repository.getKeys(config.getServiceName(), NODES_KEY + nodeName
+			// + "/" + ITEMS_KEY + "/");
+			return ids;
+		} catch (Exception e) {
+			throw new RepositoryException("Items list reading error", e);
 		}
 	}
 
@@ -520,4 +552,19 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		}
 	}
 
+	public String getItemUpdateDate(String nodeName, String id) throws RepositoryException {
+		try {
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date");
+		} catch (Exception e) {
+			throw new RepositoryException("Items update-date reading error", e);
+		}
+	}
+
+	public String getItemPublisher(String nodeName, String id) throws RepositoryException {
+		try {
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher");
+		} catch (Exception e) {
+			throw new RepositoryException("Items publisher reading error", e);
+		}
+	}
 }

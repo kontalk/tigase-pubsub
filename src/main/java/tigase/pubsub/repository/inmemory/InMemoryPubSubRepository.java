@@ -133,11 +133,24 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
+	public Element getItem(String nodeName, String id) throws RepositoryException {
+		Entry entry = readNodeEntry(nodeName);
+		Item item = entry.getItemData(id);
+		return item != null ? item.getData() : null;
+	}
+
+	@Override
 	public String getItemCreationDate(String nodeName, String id) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		if (entry == null)
 			return null;
 		return String.valueOf(entry.getItemCreationDate(id).getTime());
+	}
+
+	@Override
+	public String[] getItemsIds(String nodeName) throws RepositoryException {
+		Entry entry = readNodeEntry(nodeName);
+		return entry.getSortedItemsId();
 	}
 
 	@Override
@@ -203,10 +216,26 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return entry.getSubscriptionId(jid);
 	}
 
-	protected List<Item> readItems(String nodeName) {
-		// this.pubSubDB.getIte, nodeName)
-		// TODO Auto-generated method stub
+	protected List<Item> readItems(String nodeName) throws RepositoryException {
+		String[] ids = this.pubSubDB.getItemsIds(nodeName);
+		if (ids != null) {
+			List<Item> result = new ArrayList<Item>();
+			for (String id : ids) {
+				final Element data = this.pubSubDB.getItem(nodeName, id);
+				final Date creationDate = asDate(this.pubSubDB.getItemCreationDate(nodeName, id));
+				final Date updateDate = asDate(this.pubSubDB.getItemUpdateDate(nodeName, id));
+				final String pubslisher = this.pubSubDB.getItemPublisher(nodeName, id);
+				Item item = new Item(id, data, creationDate, updateDate, pubslisher);
+				result.add(item);
+			}
+			return result;
+		}
 		return null;
+	}
+
+	private Date asDate(String d) {
+		Long x = Long.valueOf(d);
+		return new Date(x.longValue());
 	}
 
 	protected AbstractNodeConfig readNodeConfig(final String nodeName) throws RepositoryException {
@@ -283,7 +312,7 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	@Override
 	public void writeItem(String nodeName, long timeInMilis, String id, String publisher, Element item) throws RepositoryException {
 		this.pubSubDB.writeItem(nodeName, timeInMilis, id, publisher, item);
-		Item it = new Item(id, item.toString(), new Date(timeInMilis), new Date(timeInMilis), publisher);
+		Item it = new Item(id, item, new Date(timeInMilis), new Date(timeInMilis), publisher);
 		Entry entry = readNodeEntry(nodeName);
 		entry.add(it);
 	}

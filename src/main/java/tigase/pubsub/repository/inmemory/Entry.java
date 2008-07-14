@@ -21,14 +21,23 @@
  */
 package tigase.pubsub.repository.inmemory;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.Subscription;
 import tigase.util.JIDUtils;
+import tigase.xml.Element;
 
 class Entry {
 
@@ -41,7 +50,17 @@ class Entry {
 	 */
 	private final HashMap<String, Item> items = new HashMap<String, Item>();
 
+	private final ArrayList<Item> sortedItems = new ArrayList<Item>();
+
 	private final String name;
+
+	private final static Comparator<Item> comparator = new Comparator<Item>() {
+
+		@Override
+		public int compare(Item o1, Item o2) {
+			return -o1.getCreationDate().compareTo(o2.getCreationDate());
+		}
+	};
 
 	/**
 	 * <JID, Subscriber>
@@ -54,11 +73,11 @@ class Entry {
 		this.creationDate = creationDate;
 		this.config = config;
 
-		if (items != null)
+		if (items != null) {
 			for (Item item : items) {
 				add(item);
 			}
-
+		}
 		if (subscribers != null)
 			for (Subscriber subscriber : subscribers) {
 				add(subscriber);
@@ -68,6 +87,8 @@ class Entry {
 
 	public void add(Item it) {
 		this.items.put(it.getId(), it);
+		this.sortedItems.add(it);
+		sortItems();
 	}
 
 	public void add(Subscriber subscriber) {
@@ -85,7 +106,9 @@ class Entry {
 	}
 
 	public void deleteItem(String id) {
-		this.items.remove(id);
+		Item x = this.items.remove(id);
+		if (x != null)
+			this.sortedItems.remove(x);
 	}
 
 	public AbstractNodeConfig getConfig() {
@@ -104,8 +127,20 @@ class Entry {
 			return null;
 	}
 
+	public Item getItemData(String id) {
+		return this.items.get(id);
+	}
+
 	public String getName() {
 		return name;
+	}
+
+	public String[] getSortedItemsId() {
+		String[] result = new String[this.sortedItems.size()];
+		for (int i = 0; i < this.sortedItems.size(); i++) {
+			result[i] = this.sortedItems.get(i).getId();
+		}
+		return result;
 	}
 
 	public Affiliation getSubscriberAffiliation(String jid) {
@@ -137,5 +172,9 @@ class Entry {
 
 	public void removeSubscriber(String jid) {
 		this.subscribers.remove(jid);
+	}
+
+	private void sortItems() {
+		Collections.sort(this.sortedItems, comparator);
 	}
 }
