@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
@@ -40,23 +42,22 @@ import tigase.xml.Element;
 
 public class InMemoryPubSubRepository implements IPubSubRepository {
 
-	private final StatelessPubSubRepository pubSubDB;
-
 	public final static String CREATION_DATE_KEY = "creation-date";
 
 	protected static final String NODE_TYPE_KEY = "pubsub#node_type";
 
 	protected static final String NODES_KEY = "nodes/";
 
-	private final PubSubConfig config;
+	private final List<PubSubRepositoryListener> listeners = new ArrayList<PubSubRepositoryListener>();
+
+	protected Logger log = Logger.getLogger(this.getClass().getName());
 
 	private final HashMap<String, Entry> nodes = new HashMap<String, Entry>();
 
-	private final List<PubSubRepositoryListener> listeners = new ArrayList<PubSubRepositoryListener>();
+	private final StatelessPubSubRepository pubSubDB;
 
 	public InMemoryPubSubRepository(StatelessPubSubRepository pubSubDB, PubSubConfig pubSubConfig) {
 		this.pubSubDB = pubSubDB;
-		this.config = pubSubConfig;
 	}
 
 	@Override
@@ -69,9 +70,16 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 			throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		String subid = this.pubSubDB.addSubscriberJid(nodeName, jid, affiliation, subscription);
-		Subscriber subscriber = new Subscriber(jid, subid, affiliation, subscription);
+		Subscriber subscriber = new Subscriber(jid, subid, subscription);
+		NodeAffiliation nodeAffiliation = new NodeAffiliation(jid, affiliation);
 		entry.add(subscriber);
+		entry.add(nodeAffiliation);
 		return subid;
+	}
+
+	private Date asDate(String d) {
+		Long x = Long.valueOf(d);
+		return new Date(x.longValue());
 	}
 
 	@Override
@@ -109,7 +117,6 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	public void deleteNode(String nodeName) throws RepositoryException {
 		this.pubSubDB.deleteNode(nodeName);
 		this.nodes.remove(nodeName);
-		fireNodeDelete(nodeName);
 	}
 
 	private void fireNewNodeCollection(String nodeName, String oldCollectionName, String newCollectionName) {
@@ -118,10 +125,25 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		}
 	}
 
-	private void fireNodeDelete(String nodeName) {
-		for (PubSubRepositoryListener listener : this.listeners) {
-			listener.onNodeDelete(nodeName);
-		}
+	@Override
+	public void forgetConfiguration(String nodeName) throws RepositoryException {
+		this.nodes.remove(nodeName);
+		readNodeEntry(nodeName);
+	}
+
+	public String[] getAffiliations(final String nodeName) throws RepositoryException {
+		Entry entry = readNodeEntry(nodeName);
+		return entry.getAffiliations();
+	}
+
+	@Override
+	public String[] getBuddyGroups(String owner, String bareJid) throws RepositoryException {
+		return this.pubSubDB.getBuddyGroups(owner, bareJid);
+	}
+
+	@Override
+	public String getBuddySubscription(String owner, String buddy) throws RepositoryException {
+		return this.pubSubDB.getBuddySubscription(owner, buddy);
 	}
 
 	@Override
@@ -130,6 +152,11 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		if (entry == null)
 			return null;
 		return entry.getConfig().getCollection();
+	}
+
+	@Override
+	public IPubSubRepository getDirectRepository() {
+		return this.pubSubDB;
 	}
 
 	@Override
@@ -179,7 +206,7 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 
 	@Override
 	public String[] getNodesList() throws RepositoryException {
-		return this.nodes.keySet().toArray(new String[] {});
+		return this.pubSubDB.getNodesList();
 	}
 
 	@Override
@@ -197,12 +224,6 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public String[] getSubscribersJid(String nodeName) throws RepositoryException {
-		Entry entry = readNodeEntry(nodeName);
-		return entry.getSubscribersJid();
-	}
-
-	@Override
 	public Subscription getSubscription(String nodeName, String jid) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		if (entry == null)
@@ -214,6 +235,33 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	public String getSubscriptionId(String nodeName, String jid) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry.getSubscriptionId(jid);
+	}
+
+	@Override
+	public String[] getSubscriptions(String nodeName) throws RepositoryException {
+		Entry entry = readNodeEntry(nodeName);
+		return entry.getSubscribersJid();
+	}
+
+	@Override
+	public String[] getUserRoster(String owner) throws RepositoryException {
+		return this.pubSubDB.getUserRoster(owner);
+	}
+
+	@Override
+	public void init() {
+		try {
+			log.config("InMemory PS Repository initializing...");
+			this.nodes.clear();
+			String[] nodes = this.pubSubDB.getNodesList();
+			if (nodes != null)
+				for (String nodeName : nodes) {
+					readNodeEntry(nodeName);
+				}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Can't initialize InMemory PS!", e);
+			throw new RuntimeException("Can't initialize InMemory PS!", e);
+		}
 	}
 
 	protected List<Item> readItems(String nodeName) throws RepositoryException {
@@ -233,9 +281,17 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return null;
 	}
 
-	private Date asDate(String d) {
-		Long x = Long.valueOf(d);
-		return new Date(x.longValue());
+	protected List<NodeAffiliation> readNodeAffiliations(final String nodeName) throws RepositoryException {
+		String[] jids = this.pubSubDB.getAffiliations(nodeName);
+		List<NodeAffiliation> result = new ArrayList<NodeAffiliation>();
+		if (jids != null) {
+			for (String jid : jids) {
+				Affiliation affiliation = this.pubSubDB.getSubscriberAffiliation(nodeName, jid);
+				NodeAffiliation na = new NodeAffiliation(jid, affiliation);
+				result.add(na);
+			}
+		}
+		return result;
 	}
 
 	protected AbstractNodeConfig readNodeConfig(final String nodeName) throws RepositoryException {
@@ -245,32 +301,31 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	protected Entry readNodeEntry(final String nodeName) throws RepositoryException {
 		Entry entry = this.nodes.get(nodeName);
 		if (entry == null) {
+			log.fine("Reading '" + nodeName + "' node entry...");
 			AbstractNodeConfig cnf = readNodeConfig(nodeName);
 			if (cnf == null)
 				return null;
 			Date creationDate = this.pubSubDB.getNodeCreationDate(nodeName);
 
 			List<Subscriber> subscribers = readSubscribers(nodeName);
+			List<NodeAffiliation> affiliations = readNodeAffiliations(nodeName);
 			List<Item> items = readItems(nodeName);
-			entry = new Entry(nodeName, creationDate, cnf, subscribers, items);
+			entry = new Entry(nodeName, creationDate, cnf, subscribers, affiliations, items);
 			this.nodes.put(nodeName, entry);
-			// XXX add reading nodes and subscribers
-
 		}
 		return entry;
 	}
 
 	protected List<Subscriber> readSubscribers(final String nodeName) throws RepositoryException {
-		String[] jids = this.pubSubDB.getSubscribersJid(nodeName);
+		String[] jids = this.pubSubDB.getSubscriptions(nodeName);
 		List<Subscriber> result = new ArrayList<Subscriber>();
-
-		for (String jid : jids) {
-			String subId = this.pubSubDB.getSubscriptionId(nodeName, jid);
-			Affiliation affiliation = this.pubSubDB.getSubscriberAffiliation(nodeName, jid);
-			Subscription subscription = this.pubSubDB.getSubscription(nodeName, jid);
-			Subscriber s = new Subscriber(jid, subId, affiliation, subscription);
-			result.add(s);
-		}
+		if (jids != null)
+			for (String jid : jids) {
+				String subId = this.pubSubDB.getSubscriptionId(nodeName, jid);
+				Subscription subscription = this.pubSubDB.getSubscription(nodeName, jid);
+				Subscriber s = new Subscriber(jid, subId, subscription);
+				result.add(s);
+			}
 
 		return result;
 	}

@@ -21,7 +21,6 @@
  */
 package tigase.pubsub.modules;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,13 +28,18 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AccessModel;
+import tigase.pubsub.Affiliation;
+import tigase.pubsub.CollectionNodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.Utils;
+import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
-import tigase.xml.DomBuilderHandler;
 import tigase.xml.Element;
-import tigase.xml.SimpleParser;
-import tigase.xml.SingletonFactory;
 import tigase.xmpp.Authorization;
 
 public class RetrieveItemsModule extends AbstractModule {
@@ -45,6 +49,12 @@ public class RetrieveItemsModule extends AbstractModule {
 
 	public RetrieveItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
+	}
+
+	private Integer asInteger(String attribute) {
+		if (attribute == null)
+			return null;
+		return Integer.parseInt(attribute);
 	}
 
 	private List<String> extractItemsIds(final Element items) throws PubSubException {
@@ -78,10 +88,45 @@ public class RetrieveItemsModule extends AbstractModule {
 			final Element items = pubsub.getChild("items");
 			final String nodeName = items.getAttribute("node");
 			final Integer maxItems = asInteger(items.getAttribute("max_items"));
+			final String senderJid = element.getAttribute("from");
 			if (nodeName == null)
-				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
+				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
 
 			// XXX CHECK RIGHTS AUTH ETC
+			AccessModel accessModel = this.repository.getNodeAccessModel(nodeName);
+			if (accessModel == null)
+				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
+			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+			if (accessModel == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
+				throw new PubSubException(Authorization.FORBIDDEN);
+
+			Subscription senderSubscription = this.repository.getSubscription(nodeName, senderJid);
+			Affiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, senderJid);
+			if (senderAffiliation == Affiliation.outcast) {
+				throw new PubSubException(Authorization.FORBIDDEN);
+			}
+			if (accessModel == AccessModel.whitelist && !senderAffiliation.isRetrieveItem()) {
+				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
+			} else if (accessModel == AccessModel.authorize
+					&& (senderSubscription != Subscription.subscribed || !senderAffiliation.isRetrieveItem())) {
+				throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_SUBSCRIBED);
+			} else if (accessModel == AccessModel.presence) {
+				boolean allowed = hasSenderSubscription(senderJid, nodeName);
+				if (!allowed)
+					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
+			} else if (accessModel == AccessModel.roster) {
+				boolean allowed = isSenderInRosterGroup(senderJid, nodeName);
+				if (!allowed)
+					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
+			}
+
+			if (nodeConfig instanceof CollectionNodeConfig) {
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"retrieve-items"));
+			} else if ((nodeConfig instanceof LeafNodeConfig) && !((LeafNodeConfig) nodeConfig).isPersistItem()) {
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"persistent-items"));
+			}
 
 			List<String> requestedId = extractItemsIds(items);
 			final Element iq = createResultIQ(element);
@@ -114,12 +159,6 @@ public class RetrieveItemsModule extends AbstractModule {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-	}
-
-	private Integer asInteger(String attribute) {
-		if (attribute == null)
-			return null;
-		return Integer.parseInt(attribute);
 	}
 
 }

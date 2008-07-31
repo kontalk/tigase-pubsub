@@ -23,10 +23,37 @@ package tigase.pubsub;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.logging.Logger;
+
+import tigase.util.JIDUtils;
 
 public class Utils {
 
 	private static SecureRandom numberGenerator;
+
+	public static String asString(String... array) {
+		StringBuilder sb = new StringBuilder();
+		if (array != null) {
+			sb.append("[");
+			for (String string : array) {
+				sb.append("'");
+				sb.append(string);
+				sb.append("', ");
+			}
+			sb.append("]");
+		} else {
+			sb.append("[null]");
+		}
+		return sb.toString();
+	}
+
+	public static boolean contain(String string, String... array) {
+		for (String s : array) {
+			if ((s == null && string == null) || (s != null && string != null && string.equals(s)))
+				return true;
+		}
+		return false;
+	}
 
 	public static synchronized String createUID() {
 		SecureRandom ng = numberGenerator;
@@ -40,6 +67,20 @@ public class Utils {
 		tmp[0] = 0x00;
 		BigInteger bi = new BigInteger(tmp);
 		return bi.toString(36);
+	}
+
+	protected static Logger log = Logger.getLogger(Utils.class.getName());
+
+	public static boolean isAllowedDomain(final String jid, final String... domains) {
+		log.finer("Checking is " + jid + " allowed to see domains: " + asString(domains));
+		if (jid == null || domains == null || domains.length == 0)
+			return true;
+		final String jidHost = JIDUtils.getNodeHost(jid);
+		for (String d : domains) {
+			if (jidHost.equals(d))
+				return true;
+		}
+		return false;
 	}
 
 	private Utils() {

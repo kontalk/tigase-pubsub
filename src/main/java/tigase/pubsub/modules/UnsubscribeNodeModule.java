@@ -48,7 +48,6 @@ public class UnsubscribeNodeModule extends AbstractModule {
 
 	@Override
 	public String[] getFeatures() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

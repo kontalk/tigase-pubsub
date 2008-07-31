@@ -19,10 +19,14 @@
  * Last modified by $Author$
  * $Date$
  */
-package tigase.pubsub.repository;
+package tigase.pubsub.modules;
 
-public interface PubSubRepositoryListener {
+public interface NodeConfigListener {
 
-	void onChangeCollection(String nodeName, String oldCollectionName, String newCollectionName);
+	void onNodeConfigChanged(final String nodeName);
+
+	void onNodeCreated(final String nodeName);
+
+	void onNodeDeleted(final String nodeName);
 
 }

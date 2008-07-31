@@ -41,6 +41,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
+import tigase.util.JIDUtils;
 import tigase.xml.DomBuilderHandler;
 import tigase.xml.Element;
 import tigase.xml.SimpleParser;
@@ -50,6 +51,8 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 
 	private static final String ACCESS_MODEL_KEY = "pubsub#access_model";
 
+	static final String AFFILIATIONS_KEY = "affiliations";
+
 	private static final String ASSOCIATE_COLLECTION_KEY = "pubsub#collection";
 
 	public final static String CREATION_DATE_KEY = "creation-date";
@@ -58,17 +61,17 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 
 	private static final String NODE_TYPE_KEY = "pubsub#node_type";
 
-	private static final String NODES_KEY = "nodes/";
+	static final String NODES_KEY = "nodes/";
 
-	private static final String SUBSCRIBES_KEY = "subscribers";
+	private static final String SUBSCRIPTIONS_KEY = "subscriptions";
 
-	private final PubSubConfig config;
+	final PubSubConfig config;
 
 	private Logger log = Logger.getLogger(this.getClass().getName());
 
-	private final UserRepository repository;
-
 	private final SimpleParser parser = SingletonFactory.getParserInstance();
+
+	final UserRepository repository;
 
 	public StatelessPubSubRepository(UserRepository repository, PubSubConfig pubSubConfig) throws RepositoryException {
 		this.repository = repository;
@@ -107,12 +110,15 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	public String addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation,
 			final Subscription subscription) throws RepositoryException {
 		try {
-			String subid = Utils.createUID();
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "affiliation",
-					affiliation.name());
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subscription",
+			final String subid = Utils.createUID();
+			final String bareJid = JIDUtils.getNodeID(jid);
+
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/" + bareJid,
+					"affiliation", affiliation.name());
+
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid, "subscription",
 					subscription.name());
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subid", subid);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid, "subid", subid);
 			return subid;
 		} catch (Exception e) {
 			throw new RepositoryException("Subscriber adding error", e);
@@ -124,8 +130,8 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	public void changeAffiliation(final String nodeName, final String jid, final Affiliation affiliation)
 			throws RepositoryException {
 		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "affiliation",
-					affiliation.name());
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/"
+					+ JIDUtils.getNodeID(jid), "affiliation", affiliation.name());
 		} catch (Exception e) {
 			throw new RepositoryException("Affiliation writing error", e);
 		}
@@ -141,7 +147,7 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	public void changeSubscription(final String nodeName, final String jid, final Subscription subscription)
 			throws RepositoryException {
 		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subscription",
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid, "subscription",
 					subscription.name());
 		} catch (Exception e) {
 			throw new RepositoryException("Subscription writing error", e);
@@ -204,6 +210,36 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		}
 	}
 
+	@Override
+	public void forgetConfiguration(String nodeName) {
+	}
+
+	public String[] getAffiliations(final String nodeName) throws RepositoryException {
+		try {
+			return repository.getSubnodes(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY);
+		} catch (Exception e) {
+			throw new RepositoryException("Affilitaions getting error", e);
+		}
+	}
+
+	@Override
+	public String[] getBuddyGroups(String owner, String buddy) throws RepositoryException {
+		try {
+			return this.repository.getDataList(owner, "roster/" + buddy, "groups");
+		} catch (Exception e) {
+			throw new RepositoryException("Getting buddy groups error", e);
+		}
+	}
+
+	@Override
+	public String getBuddySubscription(String owner, String buddy) throws RepositoryException {
+		try {
+			return this.repository.getData(owner, "roster/" + buddy, "subscription");
+		} catch (Exception e) {
+			throw new RepositoryException("Getting buddy subscription status error", e);
+		}
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -215,8 +251,14 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		try {
 			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", ASSOCIATE_COLLECTION_KEY);
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new RepositoryException("Node collection getting error", e);
 		}
+	}
+
+	@Override
+	public IPubSubRepository getDirectRepository() {
+		return this;
 	}
 
 	@Override
@@ -248,6 +290,14 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		}
 	}
 
+	public String getItemPublisher(String nodeName, String id) throws RepositoryException {
+		try {
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher");
+		} catch (Exception e) {
+			throw new RepositoryException("Items publisher reading error", e);
+		}
+	}
+
 	@Override
 	public String[] getItemsIds(String nodeName) throws RepositoryException {
 		try {
@@ -257,6 +307,14 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 			return ids;
 		} catch (Exception e) {
 			throw new RepositoryException("Items list reading error", e);
+		}
+	}
+
+	public String getItemUpdateDate(String nodeName, String id) throws RepositoryException {
+		try {
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date");
+		} catch (Exception e) {
+			throw new RepositoryException("Items update-date reading error", e);
 		}
 	}
 
@@ -358,9 +416,18 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	 */
 	public String[] getNodesList() throws RepositoryException {
 		try {
+			log.finer("Getting nodes list directly from DB");
 			String[] nodes = repository.getSubnodes(config.getServiceName(), NODES_KEY);
+			if(true){
+				StringBuilder sb = new StringBuilder();
+				for (String string : nodes) {
+					sb.append(string);sb.append(", ");
+				}
+				log.finest("Readed nodes: "+sb.toString());
+			}
 			return nodes;
 		} catch (Exception e) {
+			log.log(Level.SEVERE, "Nodes list getting error", e);
 			throw new RepositoryException("Nodes list getting error", e);
 		}
 	}
@@ -396,8 +463,8 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	 */
 	public Affiliation getSubscriberAffiliation(final String nodeName, final String jid) throws RepositoryException {
 		try {
-			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid,
-					"affiliation");
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/"
+					+ JIDUtils.getNodeID(jid), "affiliation");
 			// NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY, jid);
 			if (tmp != null) {
 				return Affiliation.valueOf(tmp);
@@ -414,27 +481,12 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#getSubscribersJid(java.lang
-	 * .String)
-	 */
-	public String[] getSubscribersJid(String nodeName) throws RepositoryException {
-		try {
-			return repository.getSubnodes(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY);
-		} catch (Exception e) {
-			throw new RepositoryException("Subscribers getting  error", e);
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
 	 * tigase.pubsub.repository.PubSubRepository#getSubscription(java.lang.String
 	 * , java.lang.String)
 	 */
 	public Subscription getSubscription(String nodeName, String jid) throws RepositoryException {
 		try {
-			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid,
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid,
 					"subscription");
 			if (tmp != null) {
 				return Subscription.valueOf(tmp);
@@ -455,10 +507,38 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	 */
 	public String getSubscriptionId(String nodeName, String jid) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid, "subid");
+			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid, "subid");
 		} catch (Exception e) {
 			throw new RepositoryException("SubID reading error", e);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * tigase.pubsub.repository.PubSubRepository#getSubscribersJid(java.lang
+	 * .String)
+	 */
+	public String[] getSubscriptions(String nodeName) throws RepositoryException {
+		try {
+			return repository.getSubnodes(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY);
+		} catch (Exception e) {
+			throw new RepositoryException("Subscribers getting  error", e);
+		}
+	}
+
+	@Override
+	public String[] getUserRoster(String owner) throws RepositoryException {
+		try {
+			return this.repository.getSubnodes(owner, "roster");
+		} catch (Exception e) {
+			throw new RepositoryException("Getting user roster error", e);
+		}
+	}
+
+	@Override
+	public void init() {
 	}
 
 	/*
@@ -494,7 +574,9 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	 */
 	public void removeSubscriber(final String nodeName, final String jid) throws RepositoryException {
 		try {
-			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY + "/" + jid);
+			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid);
+			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/"
+					+ JIDUtils.getNodeID(jid));
 		} catch (Exception e) {
 			throw new RepositoryException("Subscriber removing error", e);
 		}
@@ -549,22 +631,6 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher", publisher);
 		} catch (Exception e) {
 			throw new RepositoryException("Item writing error", e);
-		}
-	}
-
-	public String getItemUpdateDate(String nodeName, String id) throws RepositoryException {
-		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date");
-		} catch (Exception e) {
-			throw new RepositoryException("Items update-date reading error", e);
-		}
-	}
-
-	public String getItemPublisher(String nodeName, String id) throws RepositoryException {
-		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher");
-		} catch (Exception e) {
-			throw new RepositoryException("Items publisher reading error", e);
 		}
 	}
 }

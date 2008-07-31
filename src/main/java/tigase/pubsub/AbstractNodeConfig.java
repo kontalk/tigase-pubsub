@@ -37,17 +37,6 @@ public class AbstractNodeConfig {
 
 	public static final String PUBSUB = "pubsub#";
 
-	public static void main(String[] args) {
-		AbstractNodeConfig c = new AbstractNodeConfig();
-
-		c.setValue("pubsub#title", "xxxx");
-		System.out.println(c.getFormElement());
-
-		LeafNodeConfig l = new LeafNodeConfig();
-		l.copyFrom(c);
-		System.out.println(l.getFormElement());
-	}
-
 	/**
 	 * List with do-not-write elements
 	 */
@@ -81,12 +70,32 @@ public class AbstractNodeConfig {
 		form.copyValuesFrom(c.form);
 	}
 
+	public String getBodyXslt() {
+		return form.getAsString("pubsub#body_xslt");
+	}
+
+	public String getBodyXsltEmbedded() {
+		String[] r = form.getAsStrings("pubsub#embedded_body_xslt");
+		if (r == null)
+			return null;
+		StringBuilder sb = new StringBuilder();
+		for (String string : r) {
+			sb.append(string);
+		}
+		return sb.toString();
+	}
+
 	public String[] getChildren() {
 		return form.getAsStrings("pubsub#children");
 	}
 
 	public String getCollection() {
 		return form.getAsString("pubsub#collection");
+	}
+
+	public String[] getDomains() {
+		String[] v = form.getAsStrings(PUBSUB + "domains");
+		return v == null ? new String[] {} : v;
 	}
 
 	public Element getFormElement() {
@@ -111,11 +120,20 @@ public class AbstractNodeConfig {
 		}
 	}
 
+	public String[] getRosterGroupsAllowed() {
+		return form.getAsStrings("pubsub#roster_groups_allowed");
+	}
+
+	public String getTitle() {
+		return form.getAsString("pubsub#title");
+	}
+
 	protected void init() {
 		blacklist.add("pubsub#children");
 		blacklist.add("pubsub#node_type");
 
-		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, asStrinTable(NodeType.values())));
+		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, new String[] { NodeType.leaf.name(),
+				NodeType.collection.name() }));
 		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));
 		form.addField(Field.fieldBoolean(PUBSUB + "deliver_payloads", true, "Whether to deliver payloads with event notifications"));
 		form.addField(Field.fieldBoolean(PUBSUB + "notify_config", false, "Notify subscribers when the node configuration changes"));
@@ -132,6 +150,16 @@ public class AbstractNodeConfig {
 				"Specify the publisher model", null, asStrinTable(PublisherModel.values())));
 		form.addField(Field.fieldListSingle(PUBSUB + "send_last_published_item", SendLastPublishedItem.on_sub.name(),
 				"When to send the last published item", null, asStrinTable(PublisherModel.values())));
+
+		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
+				"The domains allowed to access this node (blank for any)"));
+
+		form.addField(Field.fieldTextMulti(PUBSUB + "embedded_body_xslt", new String[] {},
+				"The XSL transformation which can be applied to payloads in order to generate an appropriate message body element."));
+
+		form.addField(Field.fieldTextSingle(PUBSUB + "body_xslt", "",
+				"The URL of an XSL transformation which can be applied to payloads in order to generate an appropriate message body element."));
+		form.addField(Field.fieldTextMulti(PUBSUB + "roster_groups_allowed", new String[] {}, "Roster groups allowed to subscribe"));
 
 	}
 
@@ -152,8 +180,8 @@ public class AbstractNodeConfig {
 		String[] keys = repository.getKeys(config.getServiceName(), subnode);
 		if (keys != null)
 			for (String key : keys) {
-				String value = repository.getData(config.getServiceName(), subnode, key);
-				setValue(key, value);
+				String[] values = repository.getDataList(config.getServiceName(), subnode, key);
+				setValues(key, values);
 			}
 	}
 
@@ -162,8 +190,16 @@ public class AbstractNodeConfig {
 		init();
 	}
 
+	public void setBodyXsltEmbedded(String xslt) {
+		setValue("pubsub#embedded_body_xslt", xslt);
+	}
+
 	public void setCollection(String collectionNew) {
 		setValue("pubsub#collection", collectionNew);
+	}
+
+	public void setDomains(String... domains) {
+		setValues(PUBSUB + "domains", domains);
 	}
 
 	public void setValue(String var, boolean data) {
@@ -185,7 +221,7 @@ public class AbstractNodeConfig {
 		} else if (data instanceof Boolean && f.getType() == FieldType.bool) {
 			boolean b = ((Boolean) data).booleanValue();
 			f.setValues(new String[] { b ? "1" : "0" });
-		} else if (data instanceof String[] && f.getType() == FieldType.list_multi) {
+		} else if (data instanceof String[] && (f.getType() == FieldType.list_multi || f.getType() == FieldType.text_multi)) {
 			String[] d = (String[]) data;
 			f.setValues(d);
 		} else {
@@ -195,16 +231,29 @@ public class AbstractNodeConfig {
 
 	}
 
+	private void setValues(String var, String[] data) {
+		if (data == null || data.length > 1) {
+			setValue(var, data);
+		} else if (data.length == 0) {
+			setValue(var, null);
+		} else {
+			setValue(var, data[0]);
+		}
+	}
+
 	public void write(final UserRepository repo, final PubSubConfig config, final String subnode) throws UserNotFoundException,
 			TigaseDBException {
 		List<Field> fields = form.getAllFields();
 		for (Field field : fields) {
 			if (field.getVar() != null && !this.blacklist.contains(field.getVar())) {
+				String[] values = field.getValues();
 				String value = field.getValue();
-				if (value == null) {
+				if (values == null || values.length == 0) {
 					repo.removeData(config.getServiceName(), subnode, field.getVar());
-				} else {
+				} else if (values.length == 1) {
 					repo.setData(config.getServiceName(), subnode, field.getVar(), value);
+				} else {
+					repo.setDataList(config.getServiceName(), subnode, field.getVar(), values);
 				}
 			}
 		}

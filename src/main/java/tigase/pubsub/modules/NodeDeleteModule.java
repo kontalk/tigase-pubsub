@@ -21,6 +21,7 @@
  */
 package tigase.pubsub.modules;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import tigase.criteria.Criteria;
@@ -51,11 +52,23 @@ public class NodeDeleteModule extends AbstractModule {
 		return senderAffiliation;
 	}
 
+	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
+
 	private final PublishItemModule publishModule;
 
 	public NodeDeleteModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishItemModule;
+	}
+
+	public void addNodeConfigListener(NodeConfigListener listener) {
+		this.nodeConfigListeners.add(listener);
+	}
+
+	protected void fireOnNodeDeleted(final String nodeName) {
+		for (NodeConfigListener listener : this.nodeConfigListeners) {
+			listener.onNodeDeleted(nodeName);
+		}
 	}
 
 	@Override
@@ -66,7 +79,7 @@ public class NodeDeleteModule extends AbstractModule {
 	@Override
 	public Criteria getModuleCriteria() {
 		return CRIT_DELETE;
-	};
+	}
 
 	@Override
 	public List<Element> process(Element element) throws PubSubException {
@@ -99,6 +112,7 @@ public class NodeDeleteModule extends AbstractModule {
 
 			log.fine("Delete node [" + nodeName + "]");
 			repository.deleteNode(nodeName);
+			fireOnNodeDeleted(nodeName);
 			return resultArray;
 		} catch (PubSubException e1) {
 			throw e1;
@@ -107,6 +121,10 @@ public class NodeDeleteModule extends AbstractModule {
 			throw new RuntimeException(e);
 		}
 
+	};
+
+	public void removeNodeConfigListener(NodeConfigListener listener) {
+		this.nodeConfigListeners.remove(listener);
 	}
 
 }

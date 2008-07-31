@@ -40,16 +40,6 @@ import tigase.xml.Element;
  */
 public class Form {
 
-	public static void main(String[] args) {
-		Form f = new Form("form", null, null);
-		f.addField(Field.fieldBoolean("dupa#a", true, "AAA"));
-		f.addField(Field.fieldFixed("XXX"));
-		f.addField(Field.fieldFixed("YYY"));
-		f.addField(Field.fieldTextSingle("dupa#a", "BBB", "A to super fajna etykieta"));
-
-		System.out.println(f.getElement());
-	}
-
 	private List<Field> fields = new ArrayList<Field>();
 
 	private Map<String, Field> fieldsByVar = new HashMap<String, Field>();

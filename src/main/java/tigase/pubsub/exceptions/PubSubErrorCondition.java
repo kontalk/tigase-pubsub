@@ -37,9 +37,14 @@ public class PubSubErrorCondition {
 
 	public static final PubSubErrorCondition NODEID_REQUIRED = new PubSubErrorCondition("nodeid-required");
 
+	public static final PubSubErrorCondition NOT_IN_ROSTER_GROUP = new PubSubErrorCondition("not-in-roster-group");
+
 	public static final PubSubErrorCondition NOT_SUBSCRIBED = new PubSubErrorCondition("not-subscribed");
 
 	public static final PubSubErrorCondition PENDING_SUBSCRIPTION = new PubSubErrorCondition("pending-subscription");
+
+	public static final PubSubErrorCondition PRESENCE_SUBSCRIPTION_REQUIRED = new PubSubErrorCondition(
+			"presence-subscription-required");
 
 	protected static final String XMLNS = "http://jabber.org/protocol/pubsub#errors";
 

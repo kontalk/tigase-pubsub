@@ -22,37 +22,18 @@
 package tigase.pubsub.repository.inmemory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.Subscription;
 import tigase.util.JIDUtils;
-import tigase.xml.Element;
 
 class Entry {
-
-	private final AbstractNodeConfig config;
-
-	private final Date creationDate;
-
-	/**
-	 * ID
-	 */
-	private final HashMap<String, Item> items = new HashMap<String, Item>();
-
-	private final ArrayList<Item> sortedItems = new ArrayList<Item>();
-
-	private final String name;
 
 	private final static Comparator<Item> comparator = new Comparator<Item>() {
 
@@ -63,15 +44,40 @@ class Entry {
 	};
 
 	/**
+	 * <bareJID, Affilitation>
+	 */
+	private final HashMap<String, NodeAffiliation> affiliations = new HashMap<String, NodeAffiliation>();
+
+	private final AbstractNodeConfig config;
+
+	private final Date creationDate;
+
+	/**
+	 * ID
+	 */
+	private final HashMap<String, Item> items = new HashMap<String, Item>();
+
+	private final String name;
+
+	private final ArrayList<Item> sortedItems = new ArrayList<Item>();
+
+	/**
 	 * <JID, Subscriber>
 	 */
-	private final HashMap<String, Subscriber> subscribers = new HashMap<String, Subscriber>();
+	private final HashMap<String, Subscriber> subscriptions = new HashMap<String, Subscriber>();
 
-	Entry(String name, Date creationDate, AbstractNodeConfig config, List<Subscriber> subscribers, List<Item> items) {
+	Entry(String name, Date creationDate, AbstractNodeConfig config, List<Subscriber> subscribers,
+			List<NodeAffiliation> affiliations, List<Item> items) {
 		super();
 		this.name = name;
 		this.creationDate = creationDate;
 		this.config = config;
+
+		if (affiliations != null) {
+			for (NodeAffiliation affiliation : affiliations) {
+				add(affiliation);
+			}
+		}
 
 		if (items != null) {
 			for (Item item : items) {
@@ -91,17 +97,21 @@ class Entry {
 		sortItems();
 	}
 
+	public void add(NodeAffiliation nodeAffiliation) {
+		this.affiliations.put(nodeAffiliation.getJid(), nodeAffiliation);
+	}
+
 	public void add(Subscriber subscriber) {
-		this.subscribers.put(subscriber.getJid(), subscriber);
+		this.subscriptions.put(subscriber.getJid(), subscriber);
 	}
 
 	public void changeAffiliation(String jid, Affiliation affiliation) {
-		Subscriber subscriber = this.subscribers.get(jid);
-		subscriber.setAffiliation(affiliation);
+		NodeAffiliation na = this.affiliations.get(JIDUtils.getNodeID(jid));
+		na.setAffiliation(affiliation);
 	}
 
 	public void changeSubscription(String jid, Subscription subscription) {
-		Subscriber subscriber = this.subscribers.get(jid);
+		Subscriber subscriber = this.subscriptions.get(jid);
 		subscriber.setSubscription(subscription);
 	}
 
@@ -109,6 +119,11 @@ class Entry {
 		Item x = this.items.remove(id);
 		if (x != null)
 			this.sortedItems.remove(x);
+	}
+
+	public String[] getAffiliations() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	public AbstractNodeConfig getConfig() {
@@ -144,20 +159,18 @@ class Entry {
 	}
 
 	public Affiliation getSubscriberAffiliation(String jid) {
-		Subscriber subscriber = this.subscribers.get(jid);
-		if (subscriber == null)
-			return null;
-		return subscriber.getAffiliation();
+		NodeAffiliation na = this.affiliations.get(JIDUtils.getNodeID(jid));
+		return na == null ? Affiliation.none : na.getAffiliation();
 	}
 
 	public String[] getSubscribersJid() {
-		return this.subscribers.keySet().toArray(new String[] {});
+		return this.subscriptions.keySet().toArray(new String[] {});
 	}
 
 	public Subscription getSubscriberSubscription(String jid) {
-		Subscriber subscriber = this.subscribers.get(jid);
+		Subscriber subscriber = this.subscriptions.get(jid);
 		if (subscriber == null) {
-			subscriber = this.subscribers.get(JIDUtils.getNodeID(jid));
+			subscriber = this.subscriptions.get(JIDUtils.getNodeID(jid));
 		}
 		if (subscriber == null) {
 			return Subscription.none;
@@ -166,12 +179,12 @@ class Entry {
 	}
 
 	public String getSubscriptionId(String jid) {
-		Subscriber subscriber = this.subscribers.get(jid);
-		return subscriber.getSubid();
+		Subscriber subscriber = this.subscriptions.get(jid);
+		return subscriber == null ? null : subscriber.getSubid();
 	}
 
 	public void removeSubscriber(String jid) {
-		this.subscribers.remove(jid);
+		this.subscriptions.remove(jid);
 	}
 
 	private void sortItems() {

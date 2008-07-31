@@ -27,11 +27,13 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
+import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -66,8 +68,9 @@ public class SubscribeNodeModule extends AbstractModule {
 
 	@Override
 	public String[] getFeatures() {
-		// TODO Auto-generated method stub
-		return null;
+		return new String[] { "http://jabber.org/protocol/pubsub#manage-subscriptions",
+				"http://jabber.org/protocol/pubsub#auto-subscribe", "http://jabber.org/protocol/pubsub#subscribe",
+				"http://jabber.org/protocol/pubsub#subscription-notifications" };
 	}
 
 	@Override
@@ -79,7 +82,7 @@ public class SubscribeNodeModule extends AbstractModule {
 	public List<Element> process(Element element) throws PubSubException {
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element subscribe = pubSub.getChild("subscribe");
-
+		final String senderJid = element.getAttribute("from");
 		final String nodeName = subscribe.getAttribute("node");
 		final String jid = subscribe.getAttribute("jid");
 
@@ -88,11 +91,13 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (nodeType == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
+			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
+				throw new PubSubException(Authorization.FORBIDDEN);
 
-			Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, jid);
+			Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, senderJid);
 
-			if (senderAffiliation != Affiliation.owner
-					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(element.getAttribute("from")))) {
+			if (senderAffiliation != Affiliation.owner && !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 
@@ -132,6 +137,18 @@ public class SubscribeNodeModule extends AbstractModule {
 			} else if (accessModel == AccessModel.authorize) {
 				newSubscription = Subscription.pending;
 				affiliation = Affiliation.none;
+			} else if (accessModel == AccessModel.presence) {
+				boolean allowed = hasSenderSubscription(jid, nodeName);
+				if (!allowed)
+					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
+				newSubscription = Subscription.subscribed;
+				affiliation = Affiliation.member;
+			} else if (accessModel == AccessModel.roster) {
+				boolean allowed = isSenderInRosterGroup(jid, nodeName);
+				if (!allowed)
+					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
+				newSubscription = Subscription.subscribed;
+				affiliation = Affiliation.member;
 			} else {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, "AccessModel '" + accessModel.name()
 						+ "' is not implemented yet");
@@ -167,4 +184,5 @@ public class SubscribeNodeModule extends AbstractModule {
 		}
 
 	}
+
 }

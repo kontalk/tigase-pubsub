@@ -23,16 +23,69 @@ package tigase.pubsub;
 
 public enum Affiliation {
 	/** */
-	member,
+	member(true, true, false, false, false, false, false),
 	/** */
-	none,
+	none(true, false, false, false, false, false, false),
 	/** An entity that is disallowed from subscribing or publishing to a node. */
-	outcast,
+	outcast(false, false, false, false, false, false, false),
 	/**
 	 * The manager of a node, of which there may be more than one; often but not
 	 * necessarily the node creator.
 	 */
-	owner,
+	owner(true, true, true, true, true, true, true),
 	/** An entity that is allowed to publish items to a node. */
-	publisher
+	publisher(true, true, true, true, false, false, false);
+
+	private final boolean configureNode;
+
+	private final boolean deleteItem;
+
+	private final boolean deleteNode;
+
+	private final boolean publishItem;
+
+	private final boolean purgeNode;
+
+	private final boolean retrieveItem;
+
+	private final boolean subscribe;
+
+	private Affiliation(boolean subscribe, boolean retrieveItem, boolean publishItem, boolean deleteItem, boolean configureNode,
+			boolean deleteNode, boolean purgeNode) {
+		this.subscribe = subscribe;
+		this.retrieveItem = retrieveItem;
+		this.publishItem = publishItem;
+		this.deleteItem = deleteItem;
+		this.configureNode = configureNode;
+		this.deleteNode = deleteNode;
+		this.purgeNode = purgeNode;
+	}
+
+	public boolean isConfigureNode() {
+		return configureNode;
+	}
+
+	public boolean isDeleteItem() {
+		return deleteItem;
+	}
+
+	public boolean isDeleteNode() {
+		return deleteNode;
+	}
+
+	public boolean isPublishItem() {
+		return publishItem;
+	}
+
+	public boolean isPurgeNode() {
+		return purgeNode;
+	}
+
+	public boolean isRetrieveItem() {
+		return retrieveItem;
+	}
+
+	public boolean isSubscribe() {
+		return subscribe;
+	}
 }

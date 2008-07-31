@@ -68,9 +68,9 @@ public class ElementCriteria implements Criteria {
 
 	private Map<String, String> attrs = new TreeMap<String, String>();
 
-	private String name;
-
 	private String cdata = null;
+
+	private String name;
 
 	private Criteria nextCriteria;
 

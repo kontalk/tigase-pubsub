@@ -115,7 +115,7 @@ public class ManageAffiliationsModule extends AbstractModule {
 		Element afr = new Element("affiliations", new String[] { "node" }, new String[] { nodeName });
 		ps.addChild(afr);
 
-		String[] subscribers = this.repository.getSubscribersJid(nodeName);
+		String[] subscribers = this.repository.getSubscriptions(nodeName);
 		if (subscribers != null) {
 			for (String jid : subscribers) {
 				Affiliation ja = this.repository.getSubscriberAffiliation(nodeName, jid);

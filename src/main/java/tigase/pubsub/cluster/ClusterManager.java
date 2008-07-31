@@ -29,12 +29,12 @@ import java.util.logging.Logger;
 
 public class ClusterManager {
 
+	private final Set<String> cluster_nodes;
+
 	/**
 	 * <channel, clusternode>
 	 */
 	private final HashMap<String, String> clusterNodes = new HashMap<String, String>();
-
-	private final Set<String> cluster_nodes;
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
@@ -73,6 +73,9 @@ public class ClusterManager {
 		return name;
 	}
 
+	public void nodeConnected(String string) {
+	}
+
 	public void nodeDisconnected(String hostname) {
 		String key = null;
 		for (Entry<String, String> e : this.clusterNodes.entrySet()) {
@@ -85,11 +88,6 @@ public class ClusterManager {
 				log.fine("Cluster node '" + e.getValue() + "' is NO LONGER owner of: " + key);
 			}
 		}
-	}
-
-	public void nodesConnected(Set<String> node_hostnames) {
-		// TODO Auto-generated method stub
-
 	}
 
 	public void registerOwner(String clusterNodeName, String... pubSubNodeName) {

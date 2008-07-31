@@ -35,6 +35,8 @@ import tigase.disco.ServiceIdentity;
 import tigase.disco.XMPPService;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.DefaultConfigModule;
+import tigase.pubsub.modules.DiscoverInfoModule;
+import tigase.pubsub.modules.DiscoverItemsModule;
 import tigase.pubsub.modules.JabberVersionModule;
 import tigase.pubsub.modules.ManageAffiliationsModule;
 import tigase.pubsub.modules.ManageSubscriptionModule;
@@ -42,22 +44,26 @@ import tigase.pubsub.modules.NodeConfigModule;
 import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
 import tigase.pubsub.modules.PublishItemModule;
+import tigase.pubsub.modules.PurgeItemsModule;
 import tigase.pubsub.modules.RetractItemModule;
+import tigase.pubsub.modules.RetrieveAffiliationsModule;
 import tigase.pubsub.modules.RetrieveItemsModule;
+import tigase.pubsub.modules.RetrieveSubscriptionsModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
+import tigase.pubsub.modules.XsltTool;
 import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.StatelessPubSubRepository;
 import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
+import tigase.server.DisableDisco;
 import tigase.server.Packet;
 import tigase.util.DNSResolver;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
 
-public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable {
+public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco {
 
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 
@@ -89,15 +95,19 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected IPubSubRepository pubsubRepository;
 
+	private PurgeItemsModule purgeItemsModule;
+
 	protected RetractItemModule retractItemModule;
+
+	private RetrieveItemsModule retrirveItemsModule;
 
 	protected ServiceEntity serviceEntity;
 
-	protected SubscribeNodeModule subscribeNodeModule;
+	protected AbstractModule subscribeNodeModule;
 
 	protected UnsubscribeNodeModule unsubscribeNodeModule;
 
-	private RetrieveItemsModule retrirveItemsModule;
+	protected XsltTool xslTransformer;
 
 	public PubSubComponent() {
 		setName("pubsub");
@@ -111,6 +121,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		if (element == null)
 			return null;
 		Element ps = element.getChild("pubsub");
+		Element query = element.getChild("query");
 		if (ps != null) {
 			List<Element> children = ps.getChildren();
 			if (children != null) {
@@ -121,6 +132,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 					}
 				}
 			}
+		} else if (query != null) {
+			String n = query.getAttribute("node");
+			return n;
 		}
 		return null;
 	}
@@ -182,59 +196,19 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	@Override
 	public Element getDiscoInfo(String node, String jid) {
-		System.out.println("GET DISCO INFO " + node);
-		if (node != null && jid != null && jid.startsWith(getName() + ".")) {
-			try {
-				NodeType type = pubsubRepository.getNodeType(node);
-				Element query = new Element("query", new String[] { "xmlns" },
-						new String[] { "http://jabber.org/protocol/disco#info" });
-				Element identyity = new Element("identity", new String[] { "category", "type" }, new String[] { "pubsub",
-						type.name() });
-				query.addChild(identyity);
-
-				return query;
-			} catch (RepositoryException e) {
-				e.printStackTrace();
-			}
-		} else if (jid != null && jid.startsWith(getName() + ".")) {
-			Element result = serviceEntity.getDiscoInfo(node);
-			return result;
-		}
 		return null;
 	}
 
 	@Override
 	public List<Element> getDiscoItems(String node, String jid) {
-		log.finest("GET DISCO ITEMS");
-		final String tmpNode = node == null ? "" : node;
-		if (jid.startsWith(getName() + ".")) {
-			try {
-				List<Element> result = new ArrayList<Element>();
-				String[] nodes = pubsubRepository.getNodesList();
-				if (nodes != null)
-					for (String nodeName : nodes) {
-						final NodeType type = pubsubRepository.getNodeType(nodeName);
-						if (type == null)
-							continue;
-						final String collection = pubsubRepository.getCollectionOf(nodeName);
-						if (tmpNode.equals(collection)) {
-							Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] { jid,
-									nodeName, nodeName });
-							result.add(item);
-						}
-					}
-				return result;
-			} catch (RepositoryException e) {
-				throw new RuntimeException("Disco", e);
-			}
-		} else {
-			Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);
-			return Arrays.asList(result);
-		}
+		Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);
+		return Arrays.asList(result);
 	}
 
 	protected void init() {
-		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository));
+		this.xslTransformer = new XsltTool();
+
+		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository, this.xslTransformer));
 		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository, this.publishNodeModule));
 		this.manageSubscriptionModule = registerModule(new ManageSubscriptionModule(this.config, this.pubsubRepository));
 		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository,
@@ -248,8 +222,17 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				this.publishNodeModule));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
 		this.manageAffiliationsModule = registerModule(new ManageAffiliationsModule(this.config, this.pubsubRepository));
-		this.retrirveItemsModule = registerModule( new RetrieveItemsModule(this.config, this.pubsubRepository));
+		this.retrirveItemsModule = registerModule(new RetrieveItemsModule(this.config, this.pubsubRepository));
+		this.purgeItemsModule = registerModule(new PurgeItemsModule(this.config, this.pubsubRepository, this.publishNodeModule));
 		registerModule(new JabberVersionModule());
+
+		registerModule(new DiscoverInfoModule(this.config, this.pubsubRepository, this.modules));
+		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository));
+
+		registerModule(new RetrieveAffiliationsModule(this.config, this.pubsubRepository));
+		registerModule(new RetrieveSubscriptionsModule(this.config, this.pubsubRepository));
+
+		this.pubsubRepository.init();
 	}
 
 	public String myDomain() {
@@ -282,6 +265,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	}
 
 	public <T extends Module> T registerModule(final T module) {
+		log.config("Register PubSub plugin: " + module.getClass().getCanonicalName());
 		this.modules.add(module);
 		return module;
 	}
@@ -353,14 +337,19 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 		init();
 
+		StringBuilder sb = new StringBuilder();
+
 		for (Module module : this.modules) {
 			String[] features = module.getFeatures();
 			if (features != null) {
 				for (String f : features) {
+					sb.append(f);
+					sb.append('\n');
 					serviceEntity.addFeatures(f);
 				}
 			}
 		}
+		log.config("Supported features: " + sb.toString());
 	}
 
 }

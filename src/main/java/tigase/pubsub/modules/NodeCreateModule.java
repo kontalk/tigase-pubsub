@@ -47,6 +47,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
+	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
+
 	private final PublishItemModule publishModule;
 
 	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
@@ -55,10 +57,29 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 		this.publishModule = publishItemModule;
 	}
 
+	public void addNodeConfigListener(NodeConfigListener listener) {
+		this.nodeConfigListeners.add(listener);
+	}
+
+	protected void fireOnNodeCreatedConfigChange(final String nodeName) {
+		for (NodeConfigListener listener : this.nodeConfigListeners) {
+			listener.onNodeCreated(nodeName);
+		}
+	}
+
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure",
-				"http://jabber.org/protocol/pubsub#create-nodes", "http://jabber.org/protocol/pubsub#instant-nodes" };
+				"http://jabber.org/protocol/pubsub#collections", "http://jabber.org/protocol/pubsub#create-nodes",
+				"http://jabber.org/protocol/pubsub#instant-nodes",
+				"http://jabber.org/protocol/pubsub#multi-collection",
+				"http://jabber.org/protocol/pubsub#access-authorize",
+				"http://jabber.org/protocol/pubsub#access-open",
+				"http://jabber.org/protocol/pubsub#access-presence",
+				"http://jabber.org/protocol/pubsub#access-roster",
+				"http://jabber.org/protocol/pubsub#access-whitelist",
+		
+		};
 	}
 
 	@Override
@@ -118,8 +139,12 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				}
 			}
 
+			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
+				throw new PubSubException(Authorization.NOT_ALLOWED);
+
 			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
 					collection == null ? "" : collection);
+			fireOnNodeCreatedConfigChange(nodeName);
 
 			ArrayList<Element> notifications = new ArrayList<Element>();
 			Element result = createResultIQ(element);
@@ -147,5 +172,9 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			throw new RuntimeException(e);
 		}
 
+	}
+
+	public void removeNodeConfigListener(NodeConfigListener listener) {
+		this.nodeConfigListeners.remove(listener);
 	}
 }

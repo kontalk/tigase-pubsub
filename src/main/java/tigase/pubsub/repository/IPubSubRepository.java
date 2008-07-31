@@ -21,8 +21,6 @@
  */
 package tigase.pubsub.repository;
 
-import java.util.List;
-
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
@@ -49,13 +47,30 @@ public interface IPubSubRepository {
 
 	public abstract void deleteNode(String nodeName) throws RepositoryException;
 
+	void forgetConfiguration(final String nodeName) throws RepositoryException;
+
+	public String[] getAffiliations(final String nodeName) throws RepositoryException;
+
+	String[] getBuddyGroups(String owner, String bareJid) throws RepositoryException;
+
+	String getBuddySubscription(String owner, String buddy) throws RepositoryException;
+
 	public abstract String getCollectionOf(String nodeName) throws RepositoryException;
 
+	IPubSubRepository getDirectRepository();
+
+	Element getItem(String nodeName, String id) throws RepositoryException;
+
 	public abstract String getItemCreationDate(final String nodeName, final String id) throws RepositoryException;
+
+	String[] getItemsIds(String nodeName) throws RepositoryException;
 
 	public abstract AccessModel getNodeAccessModel(String nodeName) throws RepositoryException;
 
 	public abstract String[] getNodeChildren(final String node) throws RepositoryException;
+
+	// public abstract void readNodeConfig(LeafNodeConfig nodeConfig, String
+	// nodeName) throws RepositoryException;
 
 	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException;
 
@@ -65,14 +80,15 @@ public interface IPubSubRepository {
 
 	public abstract Affiliation getSubscriberAffiliation(final String nodeName, final String jid) throws RepositoryException;
 
-	public abstract String[] getSubscribersJid(String nodeName) throws RepositoryException;
-
-	// public abstract void readNodeConfig(LeafNodeConfig nodeConfig, String
-	// nodeName) throws RepositoryException;
-
 	public abstract Subscription getSubscription(String nodeName, String jid) throws RepositoryException;
 
 	public abstract String getSubscriptionId(String nodeName, String jid) throws RepositoryException;
+
+	public abstract String[] getSubscriptions(String nodeName) throws RepositoryException;
+
+	String[] getUserRoster(String owner) throws RepositoryException;
+
+	public void init();
 
 	void removeListener(PubSubRepositoryListener listener);
 
@@ -84,9 +100,5 @@ public interface IPubSubRepository {
 
 	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher,
 			final Element item) throws RepositoryException;
-
-	Element getItem(String nodeName, String id) throws RepositoryException;
-
-	String[] getItemsIds(String nodeName) throws RepositoryException;
 
 }

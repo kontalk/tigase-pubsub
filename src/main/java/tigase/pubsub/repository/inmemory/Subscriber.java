@@ -21,29 +21,21 @@
  */
 package tigase.pubsub.repository.inmemory;
 
-import tigase.pubsub.Affiliation;
 import tigase.pubsub.Subscription;
 
 public class Subscriber {
 
 	private final String jid;
 
-	private Affiliation affiliation;
-
 	private final String subid;
 
 	private Subscription subscription;
 
-	Subscriber(String jid, String subid, Affiliation affiliation, Subscription subscriptionType) {
+	Subscriber(String jid, String subid, Subscription subscriptionType) {
 		super();
 		this.jid = jid;
 		this.subid = subid;
-		this.affiliation = affiliation;
 		this.subscription = subscriptionType;
-	}
-
-	public Affiliation getAffiliation() {
-		return affiliation;
 	}
 
 	public String getJid() {
@@ -56,10 +48,6 @@ public class Subscriber {
 
 	public Subscription getSubscription() {
 		return subscription;
-	}
-
-	public void setAffiliation(Affiliation affiliation) {
-		this.affiliation = affiliation;
 	}
 
 	public void setSubscription(Subscription subscriptionType) {

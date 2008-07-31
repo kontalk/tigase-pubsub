@@ -21,6 +21,7 @@
  */
 package tigase.pubsub.modules;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -57,6 +58,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		return r.toArray(new String[] {});
 	}
 
+	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
+
 	private final PublishItemModule publishModule;
 
 	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
@@ -65,9 +68,19 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		this.publishModule = publishItemModule;
 	}
 
+	public void addNodeConfigListener(NodeConfigListener listener) {
+		this.nodeConfigListeners.add(listener);
+	}
+
+	protected void fireOnNodeConfigChange(final String nodeName) {
+		for (NodeConfigListener listener : this.nodeConfigListeners) {
+			listener.onNodeConfigChanged(nodeName);
+		}
+	}
+
 	@Override
 	public String[] getFeatures() {
-		return null;
+		return new String[] { "http://jabber.org/protocol/pubsub#config-node" };
 	}
 
 	@Override
@@ -151,69 +164,77 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				// collectionCurrent==null) &&
 				// !nodeConfig.getCollection().equals(collectionCurrent)
 
-				if (nodeConfig.isCollectionSet()) {
-					String collectionName = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
-					NodeType colNodeType = "".equals(collectionName) ? NodeType.collection : repository.getNodeType(collectionName);
-					if (colNodeType == null) {
-						throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
-					} else if (colNodeType == NodeType.leaf) {
-						throw new PubSubException(element, Authorization.NOT_ALLOWED);
-					}
-					repository.setNewNodeCollection(nodeName, collectionName);
-					if (!"".equals(collectionName)) {
-						Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionName });
-						colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
-						resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collectionName));
-					}
-					if (collectionCurrent != null && !"".equals(collectionCurrent)) {
-						Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionCurrent });
-						colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { nodeName }));
-						resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collectionCurrent));
-					}
-				}
+				if (nodeConfig.getNodeType() != NodeType.leaf && nodeConfig.getNodeType() != NodeType.collection)
+					throw new PubSubException(Authorization.NOT_ALLOWED);
 
-				if (nodeType == NodeType.collection) {
-					if (isIn("", nodeConfig.getChildren())) {
-						throw new PubSubException(Authorization.BAD_REQUEST);
-					}
-					String[] removedNodes = diff(children == null ? new String[] {} : children,
-							nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
-					String[] addedNodes = diff(nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
-							children == null ? new String[] {} : children);
-
-					for (String node : addedNodes) {
-						NodeType colNodeType = repository.getNodeType(node);
+				try {
+					if (nodeConfig.isCollectionSet()) {
+						String collectionName = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
+						NodeType colNodeType = "".equals(collectionName) ? NodeType.collection
+								: repository.getNodeType(collectionName);
 						if (colNodeType == null) {
 							throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+						} else if (colNodeType == NodeType.leaf) {
+							throw new PubSubException(element, Authorization.NOT_ALLOWED);
 						}
-						repository.setNewNodeCollection(node, nodeName);
-
-						Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
-						colE.addChild(new Element("associate", new String[] { "node" }, new String[] { node }));
-						resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
+						repository.setNewNodeCollection(nodeName, collectionName);
+						if (!"".equals(collectionName)) {
+							Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionName });
+							colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
+							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collectionName));
+						}
+						if (collectionCurrent != null && !"".equals(collectionCurrent)) {
+							Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionCurrent });
+							colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { nodeName }));
+							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"),
+									collectionCurrent));
+						}
 					}
-					if (removedNodes != null && removedNodes.length > 0) {
-						for (String node : removedNodes) {
+
+					if (nodeType == NodeType.collection) {
+						if (isIn("", nodeConfig.getChildren())) {
+							throw new PubSubException(Authorization.BAD_REQUEST);
+						}
+						String[] removedNodes = diff(children == null ? new String[] {} : children,
+								nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
+						String[] addedNodes = diff(nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
+								children == null ? new String[] {} : children);
+
+						for (String node : addedNodes) {
 							NodeType colNodeType = repository.getNodeType(node);
 							if (colNodeType == null) {
 								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 							}
-							repository.setNewNodeCollection(node, "");
+							repository.setNewNodeCollection(node, nodeName);
+
 							Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
-							colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { node }));
+							colE.addChild(new Element("associate", new String[] { "node" }, new String[] { node }));
 							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
 						}
+						if (removedNodes != null && removedNodes.length > 0) {
+							for (String node : removedNodes) {
+								NodeType colNodeType = repository.getNodeType(node);
+								if (colNodeType == null) {
+									throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+								}
+								repository.setNewNodeCollection(node, "");
+								Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
+								colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { node }));
+								resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
+							}
+						}
 					}
+
+					repository.update(nodeName, nodeConfig);
+
+					if (nodeConfig.isNotify_config()) {
+						String pssJid = element.getAttribute("to");
+						Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
+						resultArray.addAll(this.publishModule.prepareNotification(configuration, pssJid, nodeName));
+					}
+				} finally {
+					fireOnNodeConfigChange(nodeName);
 				}
-
-				repository.update(nodeName, nodeConfig);
-
-				if (nodeConfig.isNotify_config()) {
-					String pssJid = element.getAttribute("to");
-					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
-					resultArray.addAll(this.publishModule.prepareNotification(configuration, pssJid, nodeName));
-				}
-
 			} else {
 				throw new PubSubException(element, Authorization.BAD_REQUEST);
 			}
@@ -226,5 +247,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			throw new RuntimeException(e);
 		}
 
+	}
+
+	public void removeNodeConfigListener(NodeConfigListener listener) {
+		this.nodeConfigListeners.remove(listener);
 	}
 }

@@ -27,15 +27,15 @@ import tigase.xml.Element;
 
 public class Item {
 
-	private final String id;
+	private final Date creationDate;
 
 	private Element data;
 
-	private final Date creationDate;
-
-	private Date updateDate;
+	private final String id;
 
 	private final String publisher;
+
+	private Date updateDate;
 
 	Item(String id, Element data, Date creationDate, Date updateDate, String publisher) {
 		super();

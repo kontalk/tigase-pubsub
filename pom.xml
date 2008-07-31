@@ -3,7 +3,7 @@
     <groupId>tigase</groupId>
     <artifactId>tigase-pubsub</artifactId>
     <name>tigase-pubsub</name>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
     <description>Publish Subscribe component for Tigase</description>
     <url>http://www.tigase.org</url>
     <inceptionYear>2008</inceptionYear>
@@ -67,7 +67,8 @@
             </plugin>
         </plugins>
     </build>
-    <repositories>
+<!--   
+ <repositories>
         <repository>
             <snapshots />
             <id>tigase</id>
@@ -75,12 +76,19 @@
             <url>http://maven.tigase.org</url>
         </repository>
     </repositories>
+-->
     <dependencies>
         <dependency>
             <groupId>tigase</groupId>
             <artifactId>tigase-server</artifactId>
             <version>4.0.0-SNAPSHOT</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>xalan</groupId>
+            <artifactId>xalan</artifactId>
+            <version>2.7.0</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
     <reporting>

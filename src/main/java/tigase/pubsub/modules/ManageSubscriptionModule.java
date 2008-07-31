@@ -54,7 +54,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 
 	@Override
 	public String[] getFeatures() {
-		return new String[] { "http://jabber.org/protocol/pubsub#get-pending" };
+		return new String[] { "http://jabber.org/protocol/pubsub#get-pending"};
 	}
 
 	@Override
@@ -125,7 +125,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
 
 		List<Element> result = new ArrayList<Element>();
-		for (String jid : this.repository.getSubscribersJid(nodeName)) {
+		for (String jid : this.repository.getSubscriptions(nodeName)) {
 			if (this.repository.getSubscriberAffiliation(nodeName, jid) == Affiliation.owner) {
 				Element message = new Element("message", new String[] { "id", "to", "from" }, new String[] { Utils.createUID(),
 						jid, fromJid });
