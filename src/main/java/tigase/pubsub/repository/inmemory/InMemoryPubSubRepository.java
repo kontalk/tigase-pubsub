@@ -34,13 +34,12 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubRepositoryListener;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.StatelessPubSubRepository;
 import tigase.xml.Element;
 
-public class InMemoryPubSubRepository implements IPubSubRepository {
+public class InMemoryPubSubRepository {
 
 	public final static String CREATION_DATE_KEY = "creation-date";
 
@@ -54,18 +53,16 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 
 	private final HashMap<String, Entry> nodes = new HashMap<String, Entry>();
 
-	private final StatelessPubSubRepository pubSubDB;
+	private final PubSubDAO pubSubDB;
 
-	public InMemoryPubSubRepository(StatelessPubSubRepository pubSubDB, PubSubConfig pubSubConfig) {
+	public InMemoryPubSubRepository(PubSubDAO pubSubDB, PubSubConfig pubSubConfig) {
 		this.pubSubDB = pubSubDB;
 	}
 
-	@Override
 	public void addListener(PubSubRepositoryListener listener) {
 		this.listeners.add(listener);
 	}
 
-	@Override
 	public String addSubscriberJid(String nodeName, String jid, Affiliation affiliation, Subscription subscription)
 			throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
@@ -82,21 +79,18 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return new Date(x.longValue());
 	}
 
-	@Override
 	public void changeAffiliation(String nodeName, String jid, Affiliation affiliation) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		this.pubSubDB.changeAffiliation(nodeName, jid, affiliation);
 		entry.changeAffiliation(jid, affiliation);
 	}
 
-	@Override
 	public void changeSubscription(String nodeName, String jid, Subscription subscription) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		this.pubSubDB.changeSubscription(nodeName, jid, subscription);
 		entry.changeSubscription(jid, subscription);
 	}
 
-	@Override
 	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		this.pubSubDB.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
@@ -106,14 +100,12 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		}
 	}
 
-	@Override
 	public void deleteItem(String nodeName, String id) throws RepositoryException {
 		this.pubSubDB.deleteItem(nodeName, id);
 		Entry entry = readNodeEntry(nodeName);
 		entry.deleteItem(id);
 	}
 
-	@Override
 	public void deleteNode(String nodeName) throws RepositoryException {
 		this.pubSubDB.deleteNode(nodeName);
 		this.nodes.remove(nodeName);
@@ -125,28 +117,25 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		}
 	}
 
-	@Override
 	public void forgetConfiguration(String nodeName) throws RepositoryException {
 		this.nodes.remove(nodeName);
 		readNodeEntry(nodeName);
 	}
 
-	public String[] getAffiliations(final String nodeName) throws RepositoryException {
+	public NodeAffiliation[] getAffiliations(final String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry.getAffiliations();
 	}
 
-	@Override
 	public String[] getBuddyGroups(String owner, String bareJid) throws RepositoryException {
 		return this.pubSubDB.getBuddyGroups(owner, bareJid);
 	}
 
-	@Override
 	public String getBuddySubscription(String owner, String buddy) throws RepositoryException {
 		return this.pubSubDB.getBuddySubscription(owner, buddy);
 	}
 
-	@Override
+	@Deprecated
 	public String getCollectionOf(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		if (entry == null)
@@ -154,19 +143,12 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return entry.getConfig().getCollection();
 	}
 
-	@Override
-	public IPubSubRepository getDirectRepository() {
-		return this.pubSubDB;
-	}
-
-	@Override
 	public Element getItem(String nodeName, String id) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		Item item = entry.getItemData(id);
 		return item != null ? item.getData() : null;
 	}
 
-	@Override
 	public String getItemCreationDate(String nodeName, String id) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		if (entry == null)
@@ -174,13 +156,12 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return String.valueOf(entry.getItemCreationDate(id).getTime());
 	}
 
-	@Override
 	public String[] getItemsIds(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry.getSortedItemsId();
 	}
 
-	@Override
+	@Deprecated
 	public AccessModel getNodeAccessModel(String nodeName) throws RepositoryException {
 		try {
 			Entry entry = readNodeEntry(nodeName);
@@ -192,24 +173,22 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		}
 	}
 
-	@Override
+	@Deprecated
 	public String[] getNodeChildren(String node) throws RepositoryException {
 		Entry entry = readNodeEntry(node);
 		return entry.getConfig().getChildren();
 	}
 
-	@Override
 	public AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry.getConfig();
 	}
 
-	@Override
 	public String[] getNodesList() throws RepositoryException {
 		return this.pubSubDB.getNodesList();
 	}
 
-	@Override
+	@Deprecated
 	public NodeType getNodeType(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		if (entry == null)
@@ -217,13 +196,15 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return entry.getConfig().getNodeType();
 	}
 
-	@Override
-	public Affiliation getSubscriberAffiliation(String nodeName, String jid) throws RepositoryException {
+	public PubSubDAO getPubSubDAO() {
+		return this.pubSubDB;
+	}
+
+	public NodeAffiliation getSubscriberAffiliation(String nodeName, String jid) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry.getSubscriberAffiliation(jid);
 	}
 
-	@Override
 	public Subscription getSubscription(String nodeName, String jid) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		if (entry == null)
@@ -231,24 +212,20 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return entry.getSubscriberSubscription(jid);
 	}
 
-	@Override
 	public String getSubscriptionId(String nodeName, String jid) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry.getSubscriptionId(jid);
 	}
 
-	@Override
-	public String[] getSubscriptions(String nodeName) throws RepositoryException {
+	public Subscriber[] getSubscriptions(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry.getSubscribersJid();
 	}
 
-	@Override
 	public String[] getUserRoster(String owner) throws RepositoryException {
 		return this.pubSubDB.getUserRoster(owner);
 	}
 
-	@Override
 	public void init() {
 		try {
 			log.config("InMemory PS Repository initializing...");
@@ -330,19 +307,16 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		return result;
 	}
 
-	@Override
 	public void removeListener(PubSubRepositoryListener listener) {
 		this.listeners.remove(listener);
 	}
 
-	@Override
 	public void removeSubscriber(String nodeName, String jid) throws RepositoryException {
 		this.pubSubDB.removeSubscriber(nodeName, jid);
 		Entry entry = readNodeEntry(nodeName);
 		entry.removeSubscriber(jid);
 	}
 
-	@Override
 	public void setNewNodeCollection(String nodeName, String collectionNew) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		this.pubSubDB.setNewNodeCollection(nodeName, collectionNew);
@@ -351,7 +325,6 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 		fireNewNodeCollection(nodeName, oldCollectionName, collectionNew);
 	}
 
-	@Override
 	public void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		final String oldCollectionName = entry.getConfig().getCollection();
@@ -364,7 +337,6 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 
 	}
 
-	@Override
 	public void writeItem(String nodeName, long timeInMilis, String id, String publisher, Element item) throws RepositoryException {
 		this.pubSubDB.writeItem(nodeName, timeInMilis, id, publisher, item);
 		Item it = new Item(id, item, new Date(timeInMilis), new Date(timeInMilis), publisher);

@@ -27,13 +27,13 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
-import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -44,7 +44,7 @@ public class PurgeItemsModule extends AbstractModule {
 
 	private final PublishItemModule publishModule;
 
-	public PurgeItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishModule) {
+	public PurgeItemsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, PublishItemModule publishModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishModule;
 	}
@@ -77,12 +77,9 @@ public class PurgeItemsModule extends AbstractModule {
 						"purge-nodes"));
 			}
 
-			final String[] allSubscribers = repository.getSubscriptions(nodeName);
-			final String publisherJid = findBestJid(allSubscribers, element.getAttribute("from"));
+			NodeAffiliation affiliation = repository.getSubscriberAffiliation(nodeName, element.getAttribute("from"));
 
-			Affiliation affiliation = repository.getSubscriberAffiliation(nodeName, publisherJid);
-
-			if (affiliation != Affiliation.owner && affiliation != Affiliation.publisher) {
+			if (!affiliation.getAffiliation().isPurgeNode()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 

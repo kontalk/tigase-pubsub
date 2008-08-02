@@ -34,14 +34,15 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -60,7 +61,7 @@ public class PublishItemModule extends AbstractModule {
 
 	private final XsltTool xslTransformer;
 
-	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, XsltTool xsltTool) {
+	public PublishItemModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, XsltTool xsltTool) {
 		super(config, pubsubRepository);
 		this.xslTransformer = xsltTool;
 		for (String xmlns : SUPPORTED_PEP_XMLNS) {
@@ -211,12 +212,10 @@ public class PublishItemModule extends AbstractModule {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported", "publish"));
 			}
 
-			final String[] allSubscribers = repository.getSubscriptions(nodeName);
-			final String publisherJid = findBestJid(allSubscribers, element.getAttribute("from"));
+			final NodeAffiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, element.getAttribute("from"));
+			final Subscriber[] allSubscribers = repository.getSubscriptions(nodeName);
 
-			Affiliation affiliation = repository.getSubscriberAffiliation(nodeName, publisherJid);
-
-			if (!affiliation.isPurgeNode()) {
+			if (!senderAffiliation.getAffiliation().isPublishItem()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 

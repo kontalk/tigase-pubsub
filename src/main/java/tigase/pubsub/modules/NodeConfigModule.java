@@ -35,7 +35,8 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -62,7 +63,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 	private final PublishItemModule publishModule;
 
-	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+	public NodeConfigModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
 			PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
 		this.publishModule = publishItemModule;
@@ -133,8 +134,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			}
 
 			String jid = element.getAttribute("from");
-			Affiliation senderAffiliation = NodeDeleteModule.getUserAffiliation(this.repository, nodeName, jid);
-			if (senderAffiliation != Affiliation.owner) {
+			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
+			if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 				throw new PubSubException(element, Authorization.FORBIDDEN);
 			}
 			// TODO 8.2.3.4 No Configuration Options

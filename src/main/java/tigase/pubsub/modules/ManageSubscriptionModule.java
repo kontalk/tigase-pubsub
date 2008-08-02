@@ -36,8 +36,9 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -48,13 +49,13 @@ public class ManageSubscriptionModule extends AbstractModule {
 			ElementCriteria.name("field", new String[] { "var" }, new String[] { "FORM_TYPE" })).add(
 			ElementCriteria.name("value", "http://jabber.org/protocol/pubsub#subscribe_authorization", null, null));
 
-	public ManageSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
+	public ManageSubscriptionModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
 	@Override
 	public String[] getFeatures() {
-		return new String[] { "http://jabber.org/protocol/pubsub#get-pending"};
+		return new String[] { "http://jabber.org/protocol/pubsub#get-pending" };
 	}
 
 	@Override
@@ -79,8 +80,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 				throw new PubSubException(message, Authorization.ITEM_NOT_FOUND);
 			}
 			String jid = message.getAttribute("from");
-			Affiliation senderAffiliation = NodeDeleteModule.getUserAffiliation(this.repository, node, jid);
-			if (senderAffiliation != Affiliation.owner) {
+			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(node, jid);
+			if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 				throw new PubSubException(message, Authorization.FORBIDDEN);
 			}
 			String userSubId = this.repository.getSubscriptionId(node, subscriberJid);
@@ -91,7 +92,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 			Subscription subscription = this.repository.getSubscription(node, subscriberJid);
 			if (subscription != Subscription.pending)
 				return null;
-			Affiliation affiliation = this.repository.getSubscriberAffiliation(node, jid);
+			Affiliation affiliation = this.repository.getSubscriberAffiliation(node, jid).getAffiliation();
 			if (allow) {
 				subscription = Subscription.subscribed;
 				affiliation = Affiliation.member;
@@ -125,15 +126,17 @@ public class ManageSubscriptionModule extends AbstractModule {
 		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
 
 		List<Element> result = new ArrayList<Element>();
-		for (String jid : this.repository.getSubscriptions(nodeName)) {
-			if (this.repository.getSubscriberAffiliation(nodeName, jid) == Affiliation.owner) {
-				Element message = new Element("message", new String[] { "id", "to", "from" }, new String[] { Utils.createUID(),
-						jid, fromJid });
-				message.addChild(x.getElement());
-				result.add(message);
+		NodeAffiliation[] affiliations = this.repository.getAffiliations(nodeName);
+		if (affiliations != null) {
+			for (NodeAffiliation affiliation : affiliations) {
+				if (affiliation.getAffiliation() == Affiliation.owner) {
+					Element message = new Element("message", new String[] { "id", "to", "from" }, new String[] { Utils.createUID(),
+							affiliation.getJid(), fromJid });
+					message.addChild(x.getElement());
+					result.add(message);
+				}
 			}
 		}
-
 		return result;
 	}
 }

@@ -47,7 +47,7 @@ import tigase.xml.Element;
 import tigase.xml.SimpleParser;
 import tigase.xml.SingletonFactory;
 
-public class StatelessPubSubRepository implements IPubSubRepository {
+public class PubSubDAO implements IPubSubRepository {
 
 	private static final String ACCESS_MODEL_KEY = "pubsub#access_model";
 
@@ -73,7 +73,7 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 
 	final UserRepository repository;
 
-	public StatelessPubSubRepository(UserRepository repository, PubSubConfig pubSubConfig) throws RepositoryException {
+	public PubSubDAO(UserRepository repository, PubSubConfig pubSubConfig) throws RepositoryException {
 		this.repository = repository;
 		this.config = pubSubConfig;
 
@@ -418,12 +418,13 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		try {
 			log.finer("Getting nodes list directly from DB");
 			String[] nodes = repository.getSubnodes(config.getServiceName(), NODES_KEY);
-			if(true){
+			if (true) {
 				StringBuilder sb = new StringBuilder();
 				for (String string : nodes) {
-					sb.append(string);sb.append(", ");
+					sb.append(string);
+					sb.append(", ");
 				}
-				log.finest("Readed nodes: "+sb.toString());
+				log.finest("Readed nodes: " + sb.toString());
 			}
 			return nodes;
 		} catch (Exception e) {

@@ -29,6 +29,8 @@ import tigase.util.JIDUtils;
 
 public class Utils {
 
+	protected static Logger log = Logger.getLogger(Utils.class.getName());
+
 	private static SecureRandom numberGenerator;
 
 	public static String asString(String... array) {
@@ -68,8 +70,6 @@ public class Utils {
 		BigInteger bi = new BigInteger(tmp);
 		return bi.toString(36);
 	}
-
-	protected static Logger log = Logger.getLogger(Utils.class.getName());
 
 	public static boolean isAllowedDomain(final String jid, final String... domains) {
 		log.finer("Checking is " + jid + " allowed to see domains: " + asString(domains));

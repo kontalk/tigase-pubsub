@@ -30,7 +30,7 @@ import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -39,7 +39,7 @@ public class DiscoverItemsModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("query", "http://jabber.org/protocol/disco#items"));
 
-	public DiscoverItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
+	public DiscoverItemsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 

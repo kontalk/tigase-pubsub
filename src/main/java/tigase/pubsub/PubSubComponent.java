@@ -52,8 +52,7 @@ import tigase.pubsub.modules.RetrieveSubscriptionsModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.StatelessPubSubRepository;
+import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
@@ -93,7 +92,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected PublishItemModule publishNodeModule;
 
-	protected IPubSubRepository pubsubRepository;
+	protected InMemoryPubSubRepository pubsubRepository;
 
 	private PurgeItemsModule purgeItemsModule;
 
@@ -113,7 +112,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		setName("pubsub");
 	}
 
-	protected IPubSubRepository createPubSubRepository(StatelessPubSubRepository directRepository) {
+	protected InMemoryPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
 		return new InMemoryPubSubRepository(directRepository, this.config);
 	}
 
@@ -322,7 +321,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			UserRepository userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 			userRepository.initRepository(res_uri, null);
 
-			StatelessPubSubRepository directPubSubRepository = new StatelessPubSubRepository(userRepository, this.config);
+			PubSubDAO directPubSubRepository = new PubSubDAO(userRepository, this.config);
 
 			this.pubsubRepository = createPubSubRepository(directPubSubRepository);
 			this.defaultNodeConfig = new LeafNodeConfig();

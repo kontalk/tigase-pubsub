@@ -28,13 +28,11 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.RepositoryException;
-import tigase.util.JIDUtils;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -43,20 +41,11 @@ public class NodeDeleteModule extends AbstractModule {
 	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
 
-	public static Affiliation getUserAffiliation(final IPubSubRepository repository, final String nodeName, final String jid)
-			throws RepositoryException {
-		Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, jid);
-		if (senderAffiliation == null) {
-			senderAffiliation = repository.getSubscriberAffiliation(nodeName, JIDUtils.getNodeID(jid));
-		}
-		return senderAffiliation;
-	}
-
 	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
 
 	private final PublishItemModule publishModule;
 
-	public NodeDeleteModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
+	public NodeDeleteModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishItemModule;
 	}
@@ -96,8 +85,8 @@ public class NodeDeleteModule extends AbstractModule {
 			}
 
 			String jid = element.getAttribute("from");
-			Affiliation senderAffiliation = getUserAffiliation(this.repository, nodeName, jid);
-			if (senderAffiliation != Affiliation.owner) {
+			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
+			if (!senderAffiliation.getAffiliation().isDeleteNode()) {
 				throw new PubSubException(element, Authorization.FORBIDDEN);
 			}
 

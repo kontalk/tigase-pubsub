@@ -43,6 +43,8 @@ class Entry {
 		}
 	};
 
+	public static final NodeAffiliation NONE_AFFILIATION = new NodeAffiliation(null, Affiliation.none);
+
 	/**
 	 * <bareJID, Affilitation>
 	 */
@@ -121,9 +123,8 @@ class Entry {
 			this.sortedItems.remove(x);
 	}
 
-	public String[] getAffiliations() {
-		// TODO Auto-generated method stub
-		return null;
+	public NodeAffiliation[] getAffiliations() {
+		return this.affiliations.values().toArray(new NodeAffiliation[] {});
 	}
 
 	public AbstractNodeConfig getConfig() {
@@ -158,13 +159,13 @@ class Entry {
 		return result;
 	}
 
-	public Affiliation getSubscriberAffiliation(String jid) {
+	public NodeAffiliation getSubscriberAffiliation(String jid) {
 		NodeAffiliation na = this.affiliations.get(JIDUtils.getNodeID(jid));
-		return na == null ? Affiliation.none : na.getAffiliation();
+		return na == null ? NONE_AFFILIATION : na;
 	}
 
-	public String[] getSubscribersJid() {
-		return this.subscriptions.keySet().toArray(new String[] {});
+	public Subscriber[] getSubscribersJid() {
+		return this.subscriptions.values().toArray(new Subscriber[] {});
 	}
 
 	public Subscription getSubscriberSubscription(String jid) {

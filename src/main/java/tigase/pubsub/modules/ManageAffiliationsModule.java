@@ -33,8 +33,9 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -54,7 +55,7 @@ public class ManageAffiliationsModule extends AbstractModule {
 		return message;
 	}
 
-	public ManageAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
+	public ManageAffiliationsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
@@ -88,8 +89,8 @@ public class ManageAffiliationsModule extends AbstractModule {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 			String senderJid = element.getAttribute("from");
-			Affiliation senderAffiliation = NodeDeleteModule.getUserAffiliation(this.repository, nodeName, senderJid);
-			if (senderAffiliation != Affiliation.owner) {
+			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, senderJid);
+			if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
@@ -115,15 +116,14 @@ public class ManageAffiliationsModule extends AbstractModule {
 		Element afr = new Element("affiliations", new String[] { "node" }, new String[] { nodeName });
 		ps.addChild(afr);
 
-		String[] subscribers = this.repository.getSubscriptions(nodeName);
-		if (subscribers != null) {
-			for (String jid : subscribers) {
-				Affiliation ja = this.repository.getSubscriberAffiliation(nodeName, jid);
-				if (ja == Affiliation.none) {
+		NodeAffiliation[] affiliationsList = this.repository.getAffiliations(nodeName);
+		if (affiliationsList != null) {
+			for (NodeAffiliation affi : affiliationsList) {
+				if (affi.getAffiliation() == Affiliation.none) {
 					continue;
 				}
-				Element affiliation = new Element("affiliation", new String[] { "jid", "affiliation" }, new String[] { jid,
-						ja.name() });
+				Element affiliation = new Element("affiliation", new String[] { "jid", "affiliation" }, new String[] {
+						affi.getJid(), affi.getAffiliation().name() });
 				afr.addChild(affiliation);
 			}
 		}
@@ -148,7 +148,7 @@ public class ManageAffiliationsModule extends AbstractModule {
 			if (strAfiliation == null)
 				continue;
 			Affiliation newAffiliation = Affiliation.valueOf(strAfiliation);
-			Affiliation oldAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
+			Affiliation oldAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid).getAffiliation();
 			oldAffiliation = oldAffiliation == null ? Affiliation.none : oldAffiliation;
 
 			if (oldAffiliation == Affiliation.none && newAffiliation != Affiliation.none) {

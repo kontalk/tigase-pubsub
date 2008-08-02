@@ -36,7 +36,8 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -60,7 +61,7 @@ public class SubscribeNodeModule extends AbstractModule {
 
 	private final ManageSubscriptionModule manageSubscriptionModule;
 
-	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository,
+	public SubscribeNodeModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository,
 			ManageSubscriptionModule manageSubscriptionModule) {
 		super(config, pubsubRepository);
 		this.manageSubscriptionModule = manageSubscriptionModule;
@@ -95,9 +96,10 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
 				throw new PubSubException(Authorization.FORBIDDEN);
 
-			Affiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, senderJid);
+			NodeAffiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, senderJid);
 
-			if (senderAffiliation != Affiliation.owner && !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
+			if (senderAffiliation.getAffiliation() != Affiliation.owner
+					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 
@@ -112,7 +114,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			Subscription subscription = repository.getSubscription(nodeName, jid);
 
 			if (senderAffiliation != null) {
-				if (senderAffiliation == Affiliation.outcast)
+				if (!senderAffiliation.getAffiliation().isSubscribe())
 					throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
@@ -123,7 +125,8 @@ public class SubscribeNodeModule extends AbstractModule {
 					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION);
 				}
 			}
-			if (accessModel == AccessModel.whitelist && (senderAffiliation == null || senderAffiliation == Affiliation.none)) {
+			if (accessModel == AccessModel.whitelist
+					&& (senderAffiliation == null || senderAffiliation.getAffiliation() == Affiliation.none)) {
 				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
 			}
 

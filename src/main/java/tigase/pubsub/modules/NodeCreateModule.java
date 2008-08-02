@@ -31,7 +31,7 @@ import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -51,7 +51,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 	private final PublishItemModule publishModule;
 
-	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+	public NodeCreateModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
 			PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
 		this.publishModule = publishItemModule;
@@ -71,14 +71,11 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure",
 				"http://jabber.org/protocol/pubsub#collections", "http://jabber.org/protocol/pubsub#create-nodes",
-				"http://jabber.org/protocol/pubsub#instant-nodes",
-				"http://jabber.org/protocol/pubsub#multi-collection",
-				"http://jabber.org/protocol/pubsub#access-authorize",
-				"http://jabber.org/protocol/pubsub#access-open",
-				"http://jabber.org/protocol/pubsub#access-presence",
-				"http://jabber.org/protocol/pubsub#access-roster",
+				"http://jabber.org/protocol/pubsub#instant-nodes", "http://jabber.org/protocol/pubsub#multi-collection",
+				"http://jabber.org/protocol/pubsub#access-authorize", "http://jabber.org/protocol/pubsub#access-open",
+				"http://jabber.org/protocol/pubsub#access-presence", "http://jabber.org/protocol/pubsub#access-roster",
 				"http://jabber.org/protocol/pubsub#access-whitelist",
-		
+
 		};
 	}
 

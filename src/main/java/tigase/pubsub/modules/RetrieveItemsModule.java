@@ -38,7 +38,8 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -47,7 +48,7 @@ public class RetrieveItemsModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("items"));
 
-	public RetrieveItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
+	public RetrieveItemsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
@@ -101,14 +102,14 @@ public class RetrieveItemsModule extends AbstractModule {
 				throw new PubSubException(Authorization.FORBIDDEN);
 
 			Subscription senderSubscription = this.repository.getSubscription(nodeName, senderJid);
-			Affiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, senderJid);
-			if (senderAffiliation == Affiliation.outcast) {
+			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, senderJid);
+			if (senderAffiliation.getAffiliation() == Affiliation.outcast) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
-			if (accessModel == AccessModel.whitelist && !senderAffiliation.isRetrieveItem()) {
+			if (accessModel == AccessModel.whitelist && !senderAffiliation.getAffiliation().isRetrieveItem()) {
 				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
 			} else if (accessModel == AccessModel.authorize
-					&& (senderSubscription != Subscription.subscribed || !senderAffiliation.isRetrieveItem())) {
+					&& (senderSubscription != Subscription.subscribed || !senderAffiliation.getAffiliation().isRetrieveItem())) {
 				throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_SUBSCRIBED);
 			} else if (accessModel == AccessModel.presence) {
 				boolean allowed = hasSenderSubscription(senderJid, nodeName);

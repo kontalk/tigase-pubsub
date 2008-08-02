@@ -30,6 +30,8 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
@@ -38,13 +40,13 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscriptions"));
 
-	public RetrieveSubscriptionsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
+	public RetrieveSubscriptionsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
 	@Override
 	public String[] getFeatures() {
-		return new String[]{"http://jabber.org/protocol/pubsub#retrieve-subscriptions"};
+		return new String[] { "http://jabber.org/protocol/pubsub#retrieve-subscriptions" };
 	}
 
 	@Override
@@ -68,7 +70,7 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 			final Element subscriptionsResult = new Element("subscriptions");
 			pubsubResult.addChild(subscriptionsResult);
 			if (nodeName == null) {
-				IPubSubRepository directRepo = this.repository.getDirectRepository();
+				IPubSubRepository directRepo = this.repository.getPubSubDAO();
 				String[] nodes = directRepo.getNodesList();
 				if (nodes != null) {
 					for (String node : nodes) {
@@ -87,12 +89,10 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 				}
 			} else {
 				subscriptionsResult.addAttribute("node", nodeName);
-				String[] subscribers = this.repository.getSubscriptions(nodeName);
-				for (final String subscriberJid : subscribers) {
-					final Subscription subscription = this.repository.getSubscription(nodeName, subscriberJid);
-					final String subid = this.repository.getSubscriptionId(nodeName, subscriberJid);
+				Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
+				for (final Subscriber subscriber : subscribers) {
 					Element s = new Element("subscription", new String[] { "jid", "subscription", "subid" }, new String[] {
-							subscriberJid, subscription.name(), subid });
+							subscriber.getJid(), subscriber.getSubscription().name(), subscriber.getSubid() });
 					subscriptionsResult.addChild(s);
 				}
 			}

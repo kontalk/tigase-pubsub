@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
@@ -54,9 +56,9 @@ public abstract class AbstractModule implements Module {
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
-	protected final IPubSubRepository repository;
+	protected final InMemoryPubSubRepository repository;
 
-	public AbstractModule(final PubSubConfig config, final IPubSubRepository pubsubRepository) {
+	public AbstractModule(final PubSubConfig config, final InMemoryPubSubRepository pubsubRepository) {
 		this.config = config;
 		this.repository = pubsubRepository;
 	}
@@ -75,15 +77,22 @@ public abstract class AbstractModule implements Module {
 	}
 
 	public String[] getActiveSubscribers(final String nodeName) throws RepositoryException {
-		return getActiveSubscribers(repository.getSubscriptions(nodeName), nodeName);
+		Subscriber[] subscribers = repository.getSubscriptions(nodeName);
+		if (subscribers == null)
+			return new String[] {};
+		String[] jids = new String[subscribers.length];
+		for (int i = 0; i < subscribers.length; i++) {
+			jids[i] = subscribers[i].getJid();
+		}
+		return getActiveSubscribers(jids, nodeName);
 	}
 
 	public String[] getActiveSubscribers(final String[] jids, final String nodeName) throws RepositoryException {
 		List<String> result = new ArrayList<String>();
 		if (jids != null) {
 			for (String jid : jids) {
-				Affiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
-				if (affiliation != Affiliation.outcast && affiliation != Affiliation.none) {
+				NodeAffiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
+				if (affiliation.getAffiliation() != Affiliation.outcast && affiliation.getAffiliation() != Affiliation.none) {
 					Subscription subscription = repository.getSubscription(nodeName, jid);
 					if (subscription == Subscription.subscribed) {
 						result.add(jid);
@@ -96,18 +105,18 @@ public abstract class AbstractModule implements Module {
 	}
 
 	protected boolean hasSenderSubscription(final String jid, final String nodeName) throws RepositoryException {
-		final String[] subscribers = this.repository.getSubscriptions(nodeName);
+		final Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
 		final String bareJid = JIDUtils.getNodeID(jid);
-		for (String owner : subscribers) {
-			Affiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, owner);
-			if (affiliation != Affiliation.owner)
+		for (Subscriber owner : subscribers) {
+			NodeAffiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, owner.getJid());
+			if (affiliation.getAffiliation() != Affiliation.owner)
 				continue;
 			if (bareJid.equals(owner))
 				return true;
-			String[] buddies = this.repository.getUserRoster(owner);
+			String[] buddies = this.repository.getUserRoster(owner.getJid());
 			for (String buddy : buddies) {
 				if (bareJid.equals(buddy)) {
-					String s = this.repository.getBuddySubscription(owner, bareJid);
+					String s = this.repository.getBuddySubscription(owner.getJid(), bareJid);
 					if (s != null && ("from".equals(s) || "both".equals(s))) {
 						return true;
 					}
@@ -118,21 +127,21 @@ public abstract class AbstractModule implements Module {
 	}
 
 	protected boolean isSenderInRosterGroup(String jid, String nodeName) throws RepositoryException {
-		final String[] subscribers = this.repository.getSubscriptions(nodeName);
+		final Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
 		final String bareJid = JIDUtils.getNodeID(jid);
 		final String[] groupsAllowed = this.repository.getNodeConfig(nodeName).getRosterGroupsAllowed();
 		if (groupsAllowed == null || groupsAllowed.length == 0)
 			return true;
-		for (String owner : subscribers) {
-			Affiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, owner);
-			if (affiliation != Affiliation.owner)
+		for (Subscriber owner : subscribers) {
+			NodeAffiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, owner.getJid());
+			if (affiliation.getAffiliation() != Affiliation.owner)
 				continue;
 			if (bareJid.equals(owner))
 				return true;
-			String[] buddies = this.repository.getUserRoster(owner);
+			String[] buddies = this.repository.getUserRoster(owner.getJid());
 			for (String buddy : buddies) {
 				if (bareJid.equals(buddy)) {
-					String[] groups = this.repository.getBuddyGroups(owner, bareJid);
+					String[] groups = this.repository.getBuddyGroups(owner.getJid(), bareJid);
 					for (String group : groups) {
 						if (Utils.contain(group, groupsAllowed))
 							return true;
