@@ -59,6 +59,23 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		return r.toArray(new String[] {});
 	}
 
+	public static void parseConf(final AbstractNodeConfig conf, final Element configure) throws PubSubException {
+		Element x = configure.getChild("x", "jabber:x:data");
+		if (x != null && "submit".equals(x.getAttribute("type"))) {
+			for (Element field : x.getChildren()) {
+				if ("field".equals(field.getName())) {
+					final String var = field.getAttribute("var");
+					String val = null;
+					Element value = field.getChild("value");
+					if (value != null) {
+						val = value.getCData();
+					}
+					conf.setValue(var, val);
+				}
+			}
+		}
+	}
+
 	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
 
 	private final PublishItemModule publishModule;
@@ -97,23 +114,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				return true;
 		}
 		return false;
-	}
-
-	protected void parseConf(final AbstractNodeConfig conf, final String nodeName, final Element configure) throws PubSubException {
-		Element x = configure.getChild("x", "jabber:x:data");
-		if (x != null && "submit".equals(x.getAttribute("type"))) {
-			for (Element field : x.getChildren()) {
-				if ("field".equals(field.getName())) {
-					final String var = field.getAttribute("var");
-					String val = null;
-					Element value = field.getChild("value");
-					if (value != null) {
-						val = value.getCData();
-					}
-					conf.setValue(var, val);
-				}
-			}
-		}
 	}
 
 	@Override
@@ -159,7 +159,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						nodeConfig.getChildren().length);
 				String collectionCurrent = repository.getCollectionOf(nodeName);
 
-				parseConf(nodeConfig, nodeName, configure);
+				parseConf(nodeConfig, configure);
 
 				// && (nodeConfig.getCollection()==null ^
 				// collectionCurrent==null) &&

@@ -94,7 +94,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			}
 			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
 			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
-				throw new PubSubException(Authorization.FORBIDDEN);
+				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 
 			NodeAffiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, senderJid);
 
@@ -115,14 +115,15 @@ public class SubscribeNodeModule extends AbstractModule {
 
 			if (senderAffiliation != null) {
 				if (!senderAffiliation.getAffiliation().isSubscribe())
-					throw new PubSubException(Authorization.FORBIDDEN);
+					throw new PubSubException(Authorization.FORBIDDEN, "Not enough privileges to subscribe");
 			}
 
 			AccessModel accessModel = repository.getNodeAccessModel(nodeName);
 
 			if (subscription != null) {
 				if (subscription == Subscription.pending) {
-					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION);
+					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION,
+							"Subscription is pending");
 				}
 			}
 			if (accessModel == AccessModel.whitelist

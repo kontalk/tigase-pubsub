@@ -19,21 +19,12 @@
  * Last modified by $Author$
  * $Date$
  */
-package tigase.pubsub.exceptions;
+package tigase.adhoc;
 
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
-/**
- * 
- * <p>
- * Created: 2007-05-25 11:55:48
- * </p>
- * 
- * @author bmalkow
- * @version $Rev$
- */
-public class PubSubException extends Exception {
+public class AdHocCommandException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
@@ -43,37 +34,21 @@ public class PubSubException extends Exception {
 
 	private String message;
 
-	private PubSubErrorCondition pubSubErrorCondition;
-
 	private String xmlns = "urn:ietf:params:xml:ns:xmpp-stanzas";
 
-	public PubSubException(final Authorization errorCondition) {
+	public AdHocCommandException(final Authorization errorCondition) {
 		this(null, errorCondition, (String) null);
 	}
 
-	public PubSubException(final Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions) {
-		this((Element) null, errorCondition, pubSubErrorConditions);
-	}
-
-	public PubSubException(Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions, String message) {
-		this((Element) null, errorCondition, pubSubErrorConditions);
-		this.message = message;
-	}
-
-	public PubSubException(final Authorization errorCondition, String message) {
+	public AdHocCommandException(final Authorization errorCondition, String message) {
 		this(null, errorCondition, message);
 	}
 
-	public PubSubException(final Element item, final Authorization errorCondition) {
+	public AdHocCommandException(final Element item, final Authorization errorCondition) {
 		this(item, errorCondition, (String) null);
 	}
 
-	public PubSubException(final Element item, final Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions) {
-		this(item, errorCondition, (String) null);
-		this.pubSubErrorCondition = pubSubErrorConditions;
-	}
-
-	public PubSubException(final Element item, final Authorization errorCondition, final String message) {
+	public AdHocCommandException(final Element item, final Authorization errorCondition, final String message) {
 		this.item = item;
 		this.errorCondition = errorCondition;
 		this.message = message;
@@ -135,9 +110,6 @@ public class PubSubException extends Exception {
 		}
 
 		answer.addChild(makeErrorElement());
-		if (this.pubSubErrorCondition != null) {
-			answer.addChild(this.pubSubErrorCondition.getElement());
-		}
 		return answer;
 	}
 

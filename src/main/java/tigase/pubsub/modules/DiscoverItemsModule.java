@@ -39,8 +39,12 @@ public class DiscoverItemsModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("query", "http://jabber.org/protocol/disco#items"));
 
-	public DiscoverItemsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
+	private final AdHocConfigCommandModule adHocCommandsModule;
+
+	public DiscoverItemsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository,
+			AdHocConfigCommandModule adCommandModule) {
 		super(config, pubsubRepository);
+		this.adHocCommandsModule = adCommandModule;
 	}
 
 	@Override
@@ -83,6 +87,12 @@ public class DiscoverItemsModule extends AbstractModule {
 						}
 					}
 				}
+			} else if ("http://jabber.org/protocol/commands".equals(nodeName)) {
+				List<Element> commandList = this.adHocCommandsModule.getCommandListItems(element.getAttribute("to"));
+				if (commandList != null)
+					for (Element item : commandList) {
+						resultQuery.addChild(item);
+					}
 			} else {
 				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
 				boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,

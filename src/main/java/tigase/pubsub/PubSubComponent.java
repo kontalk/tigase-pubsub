@@ -28,12 +28,14 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import tigase.conf.Configurable;
+import tigase.criteria.Criteria;
 import tigase.db.RepositoryFactory;
 import tigase.db.UserRepository;
 import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
 import tigase.disco.XMPPService;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.AdHocConfigCommandModule;
 import tigase.pubsub.modules.DefaultConfigModule;
 import tigase.pubsub.modules.DiscoverInfoModule;
 import tigase.pubsub.modules.DiscoverItemsModule;
@@ -52,6 +54,7 @@ import tigase.pubsub.modules.RetrieveSubscriptionsModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XsltTool;
+import tigase.pubsub.modules.commands.DefaultConfigCommand;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
@@ -64,9 +67,13 @@ import tigase.xmpp.PacketErrorTypeException;
 
 public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco {
 
+	public static final String ADMINS_KEY = "admin";
+
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+
+	private AdHocConfigCommandModule adHocCommandsModule;
 
 	protected final PubSubConfig config = new PubSubConfig();
 
@@ -105,6 +112,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected AbstractModule subscribeNodeModule;
 
 	protected UnsubscribeNodeModule unsubscribeNodeModule;
+
+	private UserRepository userRepository;
 
 	protected XsltTool xslTransformer;
 
@@ -180,7 +189,13 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
 
-		props.put("admin", new String[] { "admin@localhost" });
+		String[] admins;
+		if (params.get(GEN_ADMINS) != null) {
+			admins = ((String) params.get(GEN_ADMINS)).split(",");
+		} else {
+			admins = new String[] { "admin@" + getDefHostName() };
+		}
+		props.put(ADMINS_KEY, admins);
 
 		return props;
 	}
@@ -225,8 +240,10 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.purgeItemsModule = registerModule(new PurgeItemsModule(this.config, this.pubsubRepository, this.publishNodeModule));
 		registerModule(new JabberVersionModule());
 
+		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(this.config, this.pubsubRepository));
+
 		registerModule(new DiscoverInfoModule(this.config, this.pubsubRepository, this.modules));
-		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository));
+		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository, this.adHocCommandsModule));
 
 		registerModule(new RetrieveAffiliationsModule(this.config, this.pubsubRepository));
 		registerModule(new RetrieveSubscriptionsModule(this.config, this.pubsubRepository));
@@ -274,7 +291,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		log.finest("Processing packet: " + element.toString());
 
 		for (Module module : this.modules) {
-			if (module.getModuleCriteria().match(element)) {
+			Criteria criteria = module.getModuleCriteria();
+			if (criteria != null && criteria.match(element)) {
 				handled = true;
 				log.finest("Handled by module " + module.getClass());
 				List<Element> result = module.process(element);
@@ -310,7 +328,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		ServiceEntity blogItems = new ServiceEntity(getName(), "blogs", "Blogs items news");
 		serviceEntity.addItems(blogItems);
 
-		this.config.setAdmins((String[]) props.get("admin"));
+		this.config.setAdmins((String[]) props.get(ADMINS_KEY));
 
 		this.config.setServiceName("tigase-pubsub");
 
@@ -318,7 +336,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
 			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
 
-			UserRepository userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
+			this.userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 			userRepository.initRepository(res_uri, null);
 
 			PubSubDAO directPubSubRepository = new PubSubDAO(userRepository, this.config);
@@ -327,6 +345,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			this.defaultNodeConfig = new LeafNodeConfig();
 			this.defaultNodeConfig.read(userRepository, config, "default-node-config");
 			this.defaultNodeConfig.write(userRepository, config, "default-node-config");
+
 			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
@@ -335,6 +354,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 
 		init();
+
+		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
+		this.adHocCommandsModule.register(configCommand);
 
 		StringBuilder sb = new StringBuilder();
 

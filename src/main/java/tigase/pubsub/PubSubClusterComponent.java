@@ -68,8 +68,11 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	private final ClusterManager clusterManager;
 
+	private final Set<String> localProcessingNodeNames = new HashSet<String>();
+
 	public PubSubClusterComponent() {
 		super();
+		localProcessingNodeNames.add("http://jabber.org/protocol/commands");
 		this.log = Logger.getLogger(this.getClass().getName());
 		this.clusterManager = new ClusterManager(this.cluster_nodes);
 		if (System.getProperty("test", "no").equals("yes")) {
@@ -214,7 +217,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			} else
 				for (Element element : elements) {
 					String nodeName = extractNodeName(element);
-					if (nodeName != null && this.clusterManager.getClusterNode(nodeName) == null) {
+					if (nodeName != null && this.localProcessingNodeNames.contains(nodeName)) {
+					} else if (nodeName != null && this.clusterManager.getClusterNode(nodeName) == null) {
 						publishNodeGotNotification(nodeName);
 					}
 					super.processPacket(new Packet(element));
@@ -222,7 +226,9 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		} else {
 			Element element = packet.getElement();
 			String node = extractNodeName(element);
-			if (node != null) {
+			if (node != null && this.localProcessingNodeNames.contains(node)) {
+				super.processPacket(packet);
+			} else if (node != null) {
 				String clusterNode = this.clusterManager.getClusterNode(node);
 				if (clusterNode == null) {
 					clusterNode = this.clusterManager.getLessLadenNode();

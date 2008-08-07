@@ -181,7 +181,7 @@ public class InMemoryPubSubRepository {
 
 	public AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
-		return entry.getConfig();
+		return entry == null ? null : entry.getConfig();
 	}
 
 	public String[] getNodesList() throws RepositoryException {
