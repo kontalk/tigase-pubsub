@@ -25,11 +25,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.conf.Configurable;
 import tigase.criteria.Criteria;
 import tigase.db.RepositoryFactory;
+import tigase.db.TigaseDBException;
+import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
 import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
@@ -65,7 +68,8 @@ import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
 
-public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco {
+public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco,
+		DefaultNodeConfigListener {
 
 	public static final String ADMINS_KEY = "admin";
 
@@ -307,6 +311,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return handled;
 	};
 
+	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
+
 	@Override
 	public void setProperties(Map<String, Object> props) {
 		super.setProperties(props);
@@ -343,8 +349,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 			this.pubsubRepository = createPubSubRepository(directPubSubRepository);
 			this.defaultNodeConfig = new LeafNodeConfig();
-			this.defaultNodeConfig.read(userRepository, config, "default-node-config");
-			this.defaultNodeConfig.write(userRepository, config, "default-node-config");
+			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+			this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 
 			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 		} catch (Exception e) {
@@ -356,6 +362,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		init();
 
 		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
+		configCommand.addListener(this);
 		this.adHocCommandsModule.register(configCommand);
 
 		StringBuilder sb = new StringBuilder();
@@ -371,6 +378,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 		log.config("Supported features: " + sb.toString());
+	}
+
+	@Override
+	public void onChangeDefaultNodeConfig() {
+		try {
+			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reading default config error", e);
+		}
 	}
 
 }

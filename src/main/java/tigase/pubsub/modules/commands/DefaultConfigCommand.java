@@ -21,14 +21,21 @@
  */
 package tigase.pubsub.modules.commands;
 
+import java.util.ArrayList;
+import java.util.logging.Logger;
+
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocResponse;
 import tigase.adhoc.AdhHocRequest;
 import tigase.db.UserRepository;
 import tigase.form.Form;
+import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.DefaultNodeConfigListener;
 import tigase.pubsub.LeafNodeConfig;
+import tigase.pubsub.PubSubComponent;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.modules.NodeConfigListener;
 import tigase.pubsub.modules.NodeConfigModule;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -45,6 +52,24 @@ public class DefaultConfigCommand implements AdHocCommand {
 		this.userRepository = userRepository;
 	}
 
+	private final ArrayList<DefaultNodeConfigListener> listener = new ArrayList<DefaultNodeConfigListener>();
+
+	public void addListener(DefaultNodeConfigListener listener) {
+		this.listener.add(listener);
+	}
+
+	protected void fireOnChangeDefaultNodeConfig() {
+		for (DefaultNodeConfigListener listener : this.listener) {
+			listener.onChangeDefaultNodeConfig();
+		}
+	}
+
+	public void removeListener(DefaultNodeConfigListener listener) {
+		this.listener.remove(listener);
+	}
+
+	protected Logger log = Logger.getLogger(this.getClass().getName());
+
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
@@ -58,18 +83,19 @@ public class DefaultConfigCommand implements AdHocCommand {
 				response.cancelSession();
 			} else if (data == null) {
 				LeafNodeConfig defaultNodeConfig = new LeafNodeConfig();
-				defaultNodeConfig.read(userRepository, config, "default-node-config");
+				defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 				response.getElements().add(defaultNodeConfig.getFormElement());
 				response.startSession();
 			} else {
 				Form form = new Form(data);
 				if ("submit".equals(form.getType())) {
-					LeafNodeConfig defaultNodeConfig = new LeafNodeConfig();
-					defaultNodeConfig.read(userRepository, config, "default-node-config");
+					LeafNodeConfig nodeConfig = new LeafNodeConfig();
+					nodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 
-					NodeConfigModule.parseConf(defaultNodeConfig, request.getCommand());
+					NodeConfigModule.parseConf(nodeConfig, request.getCommand());
 
-					defaultNodeConfig.write(userRepository, config, "default-node-config");
+					nodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+					fireOnChangeDefaultNodeConfig();
 
 					Form f = new Form(null, "Info", "Default config saved.");
 

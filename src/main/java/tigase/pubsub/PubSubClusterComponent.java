@@ -46,11 +46,21 @@ import tigase.xmpp.StanzaType;
 public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponent, PubSubRepositoryListener,
 		NodeConfigListener {
 
+	@Override
+	public void onChangeDefaultNodeConfig() {
+		log.info("Default config changed. Publishing info.");
+		final Map<String, String> params = new HashMap<String, String>();
+		sentBroadcast(METHOD_NODE_CREATED, params);
+		super.onChangeDefaultNodeConfig();
+	}
+
 	private static final String METHOD_DELETE_NODE = "pubsub_node_delete";
 
 	public static final String METHOD_GOT_NODE = "cluster_node_got_pubsub_node";
 
 	private static final String METHOD_NODE_CONFIG_CHANGED = "pubsub_node_config_changed";
+
+	private static final String METHOD_DEFAUT_CONFIG_CHANGED = "pubsub_default_config_changed";
 
 	private static final String METHOD_NODE_CREATED = "pubsub_node_created";
 
@@ -189,6 +199,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			String[] nodesNames = getParameters("pubSubNodeName", allMethodParams);
 			String clName = allMethodParams.get("clusterNodeName");
 			this.clusterManager.registerOwner(clName, nodesNames);
+		} else if (METHOD_DEFAUT_CONFIG_CHANGED.equals(methodName)) {
+			super.onChangeDefaultNodeConfig();
 		}
 	}
 
