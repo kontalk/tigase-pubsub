@@ -418,7 +418,7 @@ public class PubSubDAO implements IPubSubRepository {
 		try {
 			log.finer("Getting nodes list directly from DB");
 			String[] nodes = repository.getSubnodes(config.getServiceName(), NODES_KEY);
-			if (true) {
+			if (nodes!=null) {
 				StringBuilder sb = new StringBuilder();
 				for (String string : nodes) {
 					sb.append(string);
