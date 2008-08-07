@@ -31,8 +31,6 @@ import java.util.logging.Logger;
 import tigase.conf.Configurable;
 import tigase.criteria.Criteria;
 import tigase.db.RepositoryFactory;
-import tigase.db.TigaseDBException;
-import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
 import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
@@ -72,6 +70,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		DefaultNodeConfigListener {
 
 	public static final String ADMINS_KEY = "admin";
+
+	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 
@@ -260,6 +260,16 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	}
 
 	@Override
+	public void onChangeDefaultNodeConfig() {
+		try {
+			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+			log.info("Node " + getComponentId() + " read default node configuration.");
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reading default config error", e);
+		}
+	}
+
+	@Override
 	public void processPacket(final Packet packet) {
 		log.finest("Received by " + getComponentId() + ": " + packet.getElement().toString());
 		try {
@@ -282,7 +292,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				log.throwing("PubSub Service", "processPacket (sending internal-server-error)", e);
 			}
 		}
-	}
+	};
 
 	public <T extends Module> T registerModule(final T module) {
 		log.config("Register PubSub plugin: " + module.getClass().getCanonicalName());
@@ -309,9 +319,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 		return handled;
-	};
-
-	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
+	}
 
 	@Override
 	public void setProperties(Map<String, Object> props) {
@@ -378,15 +386,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 		log.config("Supported features: " + sb.toString());
-	}
-
-	@Override
-	public void onChangeDefaultNodeConfig() {
-		try {
-			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Reading default config error", e);
-		}
 	}
 
 }

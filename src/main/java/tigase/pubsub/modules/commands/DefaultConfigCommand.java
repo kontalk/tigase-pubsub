@@ -30,12 +30,10 @@ import tigase.adhoc.AdHocResponse;
 import tigase.adhoc.AdhHocRequest;
 import tigase.db.UserRepository;
 import tigase.form.Form;
-import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.DefaultNodeConfigListener;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubComponent;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.modules.NodeConfigListener;
 import tigase.pubsub.modules.NodeConfigModule;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -45,6 +43,10 @@ public class DefaultConfigCommand implements AdHocCommand {
 
 	private final PubSubConfig config;
 
+	private final ArrayList<DefaultNodeConfigListener> listener = new ArrayList<DefaultNodeConfigListener>();
+
+	protected Logger log = Logger.getLogger(this.getClass().getName());
+
 	private final UserRepository userRepository;
 
 	public DefaultConfigCommand(PubSubConfig config, UserRepository userRepository) {
@@ -52,23 +54,9 @@ public class DefaultConfigCommand implements AdHocCommand {
 		this.userRepository = userRepository;
 	}
 
-	private final ArrayList<DefaultNodeConfigListener> listener = new ArrayList<DefaultNodeConfigListener>();
-
 	public void addListener(DefaultNodeConfigListener listener) {
 		this.listener.add(listener);
 	}
-
-	protected void fireOnChangeDefaultNodeConfig() {
-		for (DefaultNodeConfigListener listener : this.listener) {
-			listener.onChangeDefaultNodeConfig();
-		}
-	}
-
-	public void removeListener(DefaultNodeConfigListener listener) {
-		this.listener.remove(listener);
-	}
-
-	protected Logger log = Logger.getLogger(this.getClass().getName());
 
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
@@ -114,6 +102,12 @@ public class DefaultConfigCommand implements AdHocCommand {
 		}
 	}
 
+	protected void fireOnChangeDefaultNodeConfig() {
+		for (DefaultNodeConfigListener listener : this.listener) {
+			listener.onChangeDefaultNodeConfig();
+		}
+	}
+
 	@Override
 	public String getName() {
 		return "Default config";
@@ -122,6 +116,10 @@ public class DefaultConfigCommand implements AdHocCommand {
 	@Override
 	public String getNode() {
 		return "default-config";
+	}
+
+	public void removeListener(DefaultNodeConfigListener listener) {
+		this.listener.remove(listener);
 	}
 
 }
