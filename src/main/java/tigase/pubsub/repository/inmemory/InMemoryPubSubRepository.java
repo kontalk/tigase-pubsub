@@ -158,7 +158,7 @@ public class InMemoryPubSubRepository {
 
 	public String[] getItemsIds(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
-		return entry.getSortedItemsId();
+		return entry == null ? null : entry.getSortedItemsId();
 	}
 
 	@Deprecated

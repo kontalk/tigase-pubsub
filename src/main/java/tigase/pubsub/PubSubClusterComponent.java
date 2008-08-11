@@ -35,6 +35,7 @@ import tigase.cluster.ClusterElement;
 import tigase.cluster.ClusteredComponent;
 import tigase.pubsub.cluster.ClusterManager;
 import tigase.pubsub.modules.NodeConfigListener;
+import tigase.pubsub.modules.commands.NodesStatCommand;
 import tigase.pubsub.repository.PubSubRepositoryListener;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.server.Packet;
@@ -80,9 +81,9 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		if (System.getProperty("test", "no").equals("yes")) {
 			final Set<String> n = new HashSet<String>();
 			n.add("pubsub.sphere");
-			// n.add("pubsub1.sphere");
-			// n.add("pubsub2.sphere");
-			// n.add("pubsub3.sphere");
+			n.add("pubsub1.sphere");
+			n.add("pubsub2.sphere");
+			n.add("pubsub3.sphere");
 			final String msh = "********** !!!  TEST ENVIROMENT !!! **********";
 			System.out.println(msh);
 			log.config(msh);
@@ -112,6 +113,10 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		super.init();
 		pubsubRepository.addListener(this);
 		this.nodeCreateModule.addNodeConfigListener(this);
+
+		NodesStatCommand statCommand = new NodesStatCommand(this.clusterManager, this.config);
+		this.adHocCommandsModule.register(statCommand);
+
 		log.config("PubSubCluster component configured.");
 	}
 
@@ -258,6 +263,14 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				super.processPacket(packet);
 			}
 		}
+	}
+
+	@Override
+	public String getComponentId() {
+		if (System.getProperty("test", "no").equals("yes")) {
+			return super.getComponentId().replace("@", ".");
+		} else
+			return super.getComponentId();
 	}
 
 	protected void publishNodeGotNotification(final String... nodeName) {

@@ -55,9 +55,9 @@ public class AdHocCommandManager {
 
 			State currentState = null;
 
-			AdhHocRequest request = new AdhHocRequest(element, command, node, senderJid, action, sessionId);
-			AdHocResponse response = new AdHocResponse(sessionId, currentState);
-			AdHocSession session = sessionId == null ? null : this.sessions.get(sessionId);
+			final AdhHocRequest request = new AdhHocRequest(element, command, node, senderJid, action, sessionId);
+			final AdHocResponse response = new AdHocResponse(sessionId, currentState);
+			final AdHocSession session = sessionId == null ? new AdHocSession() : this.sessions.get(sessionId);
 
 			adHocCommand.execute(request, response);
 
@@ -67,7 +67,6 @@ public class AdHocCommandManager {
 			commandResult.addAttribute("status", response.getNewState().name());
 
 			if (response.getCurrentState() == null && response.getNewState() == State.executing) {
-				session = new AdHocSession();
 				this.sessions.put(response.getSessionid(), session);
 			} else if (response.getSessionid() != null
 					&& (response.getNewState() == State.canceled || response.getNewState() == State.completed)) {

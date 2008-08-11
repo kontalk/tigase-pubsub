@@ -74,21 +74,23 @@ public class DiscoverItemsModule extends AbstractModule {
 				if (nodes != null) {
 					for (String node : nodes) {
 						AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(node);
-						boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
-								nodeConfig.getDomains());
-						if (allowed) {
-							String name = nodeConfig.getTitle();
-							name = name == null || name.length() == 0 ? node : name;
-							Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] {
-									element.getAttribute("to"), node, name });
-							resultQuery.addChild(item);
-						} else {
-							log.fine("User " + senderJid + " not allowed to see node '" + node + "'");
+						if (nodeConfig != null) {
+							boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
+									nodeConfig.getDomains());
+							if (allowed) {
+								String name = nodeConfig.getTitle();
+								name = name == null || name.length() == 0 ? node : name;
+								Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] {
+										element.getAttribute("to"), node, name });
+								resultQuery.addChild(item);
+							} else {
+								log.fine("User " + senderJid + " not allowed to see node '" + node + "'");
+							}
 						}
 					}
 				}
 			} else if ("http://jabber.org/protocol/commands".equals(nodeName)) {
-				List<Element> commandList = this.adHocCommandsModule.getCommandListItems(element.getAttribute("to"));
+				List<Element> commandList = this.adHocCommandsModule.getCommandListItems(senderJid, element.getAttribute("to"));
 				if (commandList != null)
 					for (Element item : commandList) {
 						resultQuery.addChild(item);

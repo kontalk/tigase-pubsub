@@ -77,7 +77,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
 
-	private AdHocConfigCommandModule adHocCommandsModule;
+	protected AdHocConfigCommandModule adHocCommandsModule;
 
 	protected final PubSubConfig config = new PubSubConfig();
 

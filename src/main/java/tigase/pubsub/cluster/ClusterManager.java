@@ -21,8 +21,12 @@
  */
 package tigase.pubsub.cluster;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
@@ -46,11 +50,16 @@ public class ClusterManager {
 		return this.clusterNodes.get(pubSubNode);
 	}
 
+	public String[] getKnownNodes() {
+		return this.cluster_nodes.toArray(new String[] {});
+	}
+
 	public String getLessLadenNode() {
 		Map<String, Integer> x = new HashMap<String, Integer>();
 		for (String nodeName : cluster_nodes) {
 			x.put(nodeName, 0);
 		}
+
 		for (String node : this.clusterNodes.values()) {
 			Integer c = x.get(node);
 			if (c == null) {
@@ -61,16 +70,42 @@ public class ClusterManager {
 			x.put(node, c);
 		}
 
-		Integer c = null;
-		String name = null;
-
-		for (Map.Entry<String, Integer> e : x.entrySet()) {
-			if (c == null || c > e.getValue()) {
-				c = e.getValue();
-				name = e.getKey();
+		Integer less = null;
+		for (Integer c : x.values()) {
+			if (less == null || c < less) {
+				less = c;
 			}
 		}
-		return name;
+		List<String> arrayList = new ArrayList<String>();
+
+		for (Map.Entry<String, Integer> e : x.entrySet()) {
+			if (less == e.getValue()) {
+				arrayList.add(e.getKey());
+			}
+		}
+
+		return arrayList.get(random.nextInt(arrayList.size()));
+	}
+
+	private Random random = new SecureRandom();
+
+	public Map<String, List<String>> getNodeLoad() {
+		Map<String, List<String>> result = new HashMap<String, List<String>>();
+
+		for (Entry<String, String> entry : this.clusterNodes.entrySet()) {
+			final String clusterNodeName = entry.getValue();
+			final String pubSubNudeName = entry.getKey();
+
+			List<String> x = result.get(clusterNodeName);
+			if (x == null) {
+				x = new ArrayList<String>();
+				result.put(clusterNodeName, x);
+			}
+			x.add(pubSubNudeName);
+
+		}
+
+		return result;
 	}
 
 	public void nodeConnected(String string) {

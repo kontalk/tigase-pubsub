@@ -33,6 +33,7 @@ import tigase.pubsub.AbstractModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
 public class AdHocConfigCommandModule extends AbstractModule {
@@ -46,11 +47,13 @@ public class AdHocConfigCommandModule extends AbstractModule {
 		super(config, pubsubRepository);
 	}
 
-	public List<Element> getCommandListItems(String toJid) {
+	public List<Element> getCommandListItems(final String senderJid, final String toJid) {
 		ArrayList<Element> commandsList = new ArrayList<Element>();
 		for (AdHocCommand command : this.commandsManager.getAllCommands()) {
-			commandsList.add(new Element("item", new String[] { "jid", "node", "name" }, new String[] { toJid, command.getNode(),
-					command.getName() }));
+			if (config.isAdmin(JIDUtils.getNodeID(senderJid))) {
+				commandsList.add(new Element("item", new String[] { "jid", "node", "name" }, new String[] { toJid,
+						command.getNode(), command.getName() }));
+			}
 		}
 		return commandsList;
 	}
