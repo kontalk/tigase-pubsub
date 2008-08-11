@@ -113,6 +113,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		super.init();
 		pubsubRepository.addListener(this);
 		this.nodeCreateModule.addNodeConfigListener(this);
+		this.nodeDeleteModule.addNodeConfigListener(this);
 
 		NodesStatCommand statCommand = new NodesStatCommand(this.clusterManager, this.config);
 		this.adHocCommandsModule.register(statCommand);
