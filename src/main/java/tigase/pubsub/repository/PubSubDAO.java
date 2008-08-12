@@ -47,7 +47,7 @@ import tigase.xml.Element;
 import tigase.xml.SimpleParser;
 import tigase.xml.SingletonFactory;
 
-public class PubSubDAO implements IPubSubRepository {
+public class PubSubDAO implements IPubSubDAO {
 
 	private static final String ACCESS_MODEL_KEY = "pubsub#access_model";
 
@@ -257,7 +257,7 @@ public class PubSubDAO implements IPubSubRepository {
 	}
 
 	@Override
-	public IPubSubRepository getDirectRepository() {
+	public IPubSubDAO getDirectRepository() {
 		return this;
 	}
 

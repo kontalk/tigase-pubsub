@@ -28,7 +28,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.Subscription;
 import tigase.xml.Element;
 
-public interface IPubSubRepository {
+public interface IPubSubDAO {
 
 	void addListener(PubSubRepositoryListener listener);
 
@@ -57,7 +57,7 @@ public interface IPubSubRepository {
 
 	public abstract String getCollectionOf(String nodeName) throws RepositoryException;
 
-	IPubSubRepository getDirectRepository();
+	IPubSubDAO getDirectRepository();
 
 	Element getItem(String nodeName, String id) throws RepositoryException;
 

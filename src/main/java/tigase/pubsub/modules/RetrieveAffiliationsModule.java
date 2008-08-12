@@ -29,7 +29,7 @@ import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -70,7 +70,7 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 			final Element affiliationsResult = new Element("affiliations");
 			pubsubResult.addChild(affiliationsResult);
 
-			IPubSubRepository directRepo = this.repository.getPubSubDAO();
+			IPubSubDAO directRepo = this.repository.getPubSubDAO();
 			String[] nodes = directRepo.getNodesList();
 			if (nodes != null) {
 				for (String node : nodes) {
