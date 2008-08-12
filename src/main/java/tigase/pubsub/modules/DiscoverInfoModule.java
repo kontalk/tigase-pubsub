@@ -85,6 +85,9 @@ public class DiscoverInfoModule extends AbstractModule {
 				}
 			} else {
 				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+				if (nodeConfig == null)
+					throw new PubSubException(Authorization.ITEM_NOT_FOUND);
+
 				boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
 						nodeConfig.getDomains());
 

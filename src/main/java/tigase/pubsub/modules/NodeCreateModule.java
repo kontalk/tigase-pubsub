@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
+import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
@@ -97,12 +98,11 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				nodeName = UUID.randomUUID().toString().replaceAll("-", "");
 			}
 
-			NodeType nodeType = repository.getNodeType(nodeName);
-			if (nodeType != null) {
+			if (repository.getNodeConfig(nodeName) != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
 
-			nodeType = NodeType.leaf;
+			NodeType nodeType = NodeType.leaf;
 			String collection = null;
 			LeafNodeConfig nodeConfig = new LeafNodeConfig(defaultNodeConfig);
 			if (configure != null) {
@@ -128,10 +128,10 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			}
 
 			if (collection != null) {
-				NodeType colNodeType = repository.getNodeType(collection);
-				if (colNodeType == null) {
+				AbstractNodeConfig colNodeConfig = repository.getNodeConfig(collection);
+				if (colNodeConfig == null) {
 					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
-				} else if (colNodeType == NodeType.leaf) {
+				} else if (colNodeConfig.getNodeType() == NodeType.leaf) {
 					throw new PubSubException(element, Authorization.NOT_ALLOWED);
 				}
 			}

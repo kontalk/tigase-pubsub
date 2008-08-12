@@ -69,7 +69,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	private final Set<String> cluster_nodes = new LinkedHashSet<String>();
 
-	private final ClusterManager clusterManager;
+	private ClusterManager clusterManager;
 
 	private final Set<String> localProcessingNodeNames = new HashSet<String>();
 
@@ -77,23 +77,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		super();
 		localProcessingNodeNames.add("http://jabber.org/protocol/commands");
 		this.log = Logger.getLogger(this.getClass().getName());
-		this.clusterManager = new ClusterManager(this.cluster_nodes);
-		if (System.getProperty("test", "no").equals("yes")) {
-			final Set<String> n = new HashSet<String>();
-			n.add("pubsub.sphere");
-			n.add("pubsub1.sphere");
-			n.add("pubsub2.sphere");
-			n.add("pubsub3.sphere");
-			final String msh = "********** !!!  TEST ENVIROMENT !!! **********";
-			System.out.println(msh);
-			log.config(msh);
-			for (String string : n) {
-				log.config("Test Node connected: " + string);
-				cluster_nodes.add(string);
-				this.clusterManager.nodeConnected(string);
-			}
-
-		}
 		log.config("PubSubCluster Component starting");
 	}
 
@@ -110,6 +93,24 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	protected void init() {
+		this.clusterManager = new ClusterManager(getComponentId(), this.cluster_nodes);
+		if (System.getProperty("test", "no").equals("yes")) {
+			final Set<String> n = new HashSet<String>();
+			n.add("pubsub.sphere");
+			n.add("pubsub1.sphere");
+			// n.add("pubsub2.sphere");
+			// n.add("pubsub3.sphere");
+			final String msh = "********** !!!  TEST ENVIROMENT !!! **********";
+			System.out.println(msh);
+			log.config(msh);
+			for (String string : n) {
+				log.config("Test Node connected: " + string);
+				cluster_nodes.add(string);
+				this.clusterManager.nodeConnected(string);
+			}
+
+		}
+
 		super.init();
 		pubsubRepository.addListener(this);
 		this.nodeCreateModule.addNodeConfigListener(this);
@@ -144,7 +145,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			final String newOwner = this.clusterManager.getClusterNode(newCollectionName);
 			final Map<String, String> params = new HashMap<String, String>();
 			params.put("pubSubNodeName", nodeName);
-			params.put("clusterNodeName", newOwner);
+			params.put("clusterNodeName", newOwner == null ? getComponentId() : newOwner);
 			log.finest("Send broadcast about new nodes owner (after collection change).");
 			sentBroadcast(METHOD_GOT_NODE, params);
 		}
@@ -213,7 +214,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	public void processPacket(final Packet packet) {
-		log.finest("Received: " + packet.toString());
+		log.finest("--------------------- " + getComponentId()+" ----------------------- :: " + packet.toString());
 
 		if (packet.getElemName() == ClusterElement.CLUSTER_EL_NAME || packet.getElemName() == ClusterElement.CLUSTER_EL_NAME
 				&& packet.getElement().getXMLNS() == ClusterElement.XMLNS) {
@@ -256,7 +257,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 					super.processPacket(packet);
 				} else {
 					log.finest("Cluster node " + getComponentId() + " received PubSub node '" + node
-							+ "' and sent it to cluster node " + clusterNode);
+							+ "' and sent it to cluster node [" + clusterNode + "]");
 					sentToNode(packet, clusterNode);
 				}
 			} else {
@@ -268,28 +269,39 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	public String getComponentId() {
+		String name;
 		if (System.getProperty("test", "no").equals("yes")) {
-			return super.getComponentId().replace("@", ".");
+			name = super.getComponentId().replace("@", ".");
 		} else
-			return super.getComponentId();
+			name = super.getComponentId();
+
+		return name;
 	}
 
 	protected void publishNodeGotNotification(final String... nodeName) {
 		final Map<String, String> params = new HashMap<String, String>();
 
+		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < nodeName.length; i++) {
 			params.put("pubSubNodeName." + i, nodeName[i]);
+			sb.append(nodeName[i]);
+			sb.append(", ");
 		}
-		params.put("clusterNodeName", getComponentId());
-		log.finest("Send broadcast about new nodes owner.");
+		final String clusterNodeName = getComponentId();
+		params.put("clusterNodeName", clusterNodeName);
+		log.finest("Send broadcast about new nodes owner: [" + clusterNodeName + "] is owner of " + sb.toString());
 		sentBroadcast(METHOD_GOT_NODE, params);
 	}
 
 	protected void sentBroadcast(final String methodName, final Map<String, String> params) {
+		StringBuilder sb = new StringBuilder();
 		for (String cNN : this.cluster_nodes) {
+			sb.append(cNN + ", ");
 			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), cNN, "set", methodName, params);
-			addOutPacket(new Packet(call.getClusterElement()));
+			Packet toSend = new Packet(call.getClusterElement());
+			addOutPacket(toSend);
 		}
+		log.finer("Sent broadcast '" + methodName + "' method to: " + sb.toString());
 	}
 
 	protected boolean sentToNextNode(ClusterElement clel) {

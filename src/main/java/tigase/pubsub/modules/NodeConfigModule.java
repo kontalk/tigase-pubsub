@@ -157,7 +157,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 				String[] children = nodeConfig.getChildren() == null ? new String[] {} : Arrays.copyOf(nodeConfig.getChildren(),
 						nodeConfig.getChildren().length);
-				String collectionCurrent = repository.getCollectionOf(nodeName);
+				final String collectionCurrent = nodeConfig.getCollection();
 
 				parseConf(nodeConfig, configure);
 
@@ -171,8 +171,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				try {
 					if (nodeConfig.isCollectionSet()) {
 						String collectionName = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
+						AbstractNodeConfig colNodeConfig = this.repository.getNodeConfig(collectionName);
 						NodeType colNodeType = "".equals(collectionName) ? NodeType.collection
-								: repository.getNodeType(collectionName);
+								: (colNodeConfig==null?null:colNodeConfig.getNodeType());
 						if (colNodeType == null) {
 							throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 						} else if (colNodeType == NodeType.leaf) {

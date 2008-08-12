@@ -42,8 +42,11 @@ public class ClusterManager {
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
-	public ClusterManager(Set<String> cluster_nodes) {
+	private final String clusterNodename;
+
+	public ClusterManager(final String clusterNodeName, Set<String> cluster_nodes) {
 		this.cluster_nodes = cluster_nodes;
+		this.clusterNodename = clusterNodeName;
 	}
 
 	public String getClusterNode(final String pubSubNode) {
@@ -54,12 +57,17 @@ public class ClusterManager {
 		return this.cluster_nodes.toArray(new String[] {});
 	}
 
+
 	public String getLessLadenNode() {
+		
+		String[] n = this.cluster_nodes.toArray(new String[]{});
+		return n[random.nextInt(n.length)];
+		
+		/*
 		Map<String, Integer> x = new HashMap<String, Integer>();
 		for (String nodeName : cluster_nodes) {
 			x.put(nodeName, 0);
 		}
-
 		for (String node : this.clusterNodes.values()) {
 			Integer c = x.get(node);
 			if (c == null) {
@@ -70,22 +78,17 @@ public class ClusterManager {
 			x.put(node, c);
 		}
 
-		Integer less = null;
-		for (Integer c : x.values()) {
-			if (less == null || c < less) {
-				less = c;
-			}
-		}
-		List<String> arrayList = new ArrayList<String>();
+		Integer c = null;
+		String name = null;
 
 		for (Map.Entry<String, Integer> e : x.entrySet()) {
-			if (less == e.getValue()) {
-				arrayList.add(e.getKey());
+			if (c == null || c > e.getValue()) {
+				c = e.getValue();
+				name = e.getKey();
 			}
 		}
-
-		return arrayList.get(random.nextInt(arrayList.size()));
-	}
+		return name;
+	*/}
 
 	private Random random = new SecureRandom();
 
@@ -120,7 +123,7 @@ public class ClusterManager {
 			}
 			if (key != null) {
 				this.clusterNodes.remove(key);
-				log.fine("Cluster node '" + e.getValue() + "' is NO LONGER owner of: " + key);
+				log.fine("[" + clusterNodename + "] :: Cluster node '" + e.getValue() + "' is NO LONGER owner of: " + key);
 			}
 		}
 	}
@@ -131,13 +134,13 @@ public class ClusterManager {
 			this.clusterNodes.put(p, clusterNodeName);
 			debug += p + " ";
 		}
-		log.fine("Cluster node '" + clusterNodeName + "' is owner of: " + debug);
+		log.fine("[" + clusterNodename + "] :: Cluster node '" + clusterNodeName + "' is owner of: " + debug);
 
 	}
 
 	public void removePubSubNode(String... nodeNames) {
 		for (String nn : nodeNames) {
-			log.fine("Node '" + nn + "' is unregistered from cluster.");
+			log.fine("[" + clusterNodename + "] :: Node '" + nn + "' is unregistered from cluster.");
 			this.clusterNodes.remove(nn);
 		}
 	}

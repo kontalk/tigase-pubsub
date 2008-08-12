@@ -27,6 +27,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
@@ -69,20 +70,30 @@ public class DiscoverItemsModule extends AbstractModule {
 					new String[] { "http://jabber.org/protocol/disco#items" });
 			resultIq.addChild(resultQuery);
 			log.finest("Asking about Items of node " + nodeName);
-			if (nodeName == null) {
+			AbstractNodeConfig nodeConfig = nodeName == null ? null : repository.getNodeConfig(nodeName);
+			if (nodeName == null || (nodeConfig != null && nodeConfig.getNodeType() == NodeType.collection)) {
+				String parentName;
+				if (nodeName == null) {
+					parentName = "";
+				} else {
+					parentName = nodeName;
+				}
 				String[] nodes = this.repository.getNodesList();
 				if (nodes != null) {
 					for (String node : nodes) {
-						AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(node);
-						if (nodeConfig != null) {
-							boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
-									nodeConfig.getDomains());
+						AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(node);
+						if (childNodeConfig != null) {
+							boolean allowed = (senderJid == null || childNodeConfig == null) ? true : Utils.isAllowedDomain(
+									senderJid, childNodeConfig.getDomains());
+							String collection = childNodeConfig.getCollection();
 							if (allowed) {
-								String name = nodeConfig.getTitle();
+								String name = childNodeConfig.getTitle();
 								name = name == null || name.length() == 0 ? node : name;
 								Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] {
 										element.getAttribute("to"), node, name });
-								resultQuery.addChild(item);
+
+								if (parentName.equals(collection))
+									resultQuery.addChild(item);
 							} else {
 								log.fine("User " + senderJid + " not allowed to see node '" + node + "'");
 							}
@@ -96,7 +107,6 @@ public class DiscoverItemsModule extends AbstractModule {
 						resultQuery.addChild(item);
 					}
 			} else {
-				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
 				boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
 						nodeConfig.getDomains());
 				if (!allowed)

@@ -219,7 +219,7 @@ public class InMemoryPubSubRepository {
 
 	public Subscriber[] getSubscriptions(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
-		return entry.getSubscribersJid();
+		return entry == null ? null : entry.getSubscribersJid();
 	}
 
 	public String[] getUserRoster(String owner) throws RepositoryException {
