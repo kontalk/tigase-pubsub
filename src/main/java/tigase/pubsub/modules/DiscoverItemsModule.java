@@ -31,7 +31,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -42,8 +42,7 @@ public class DiscoverItemsModule extends AbstractModule {
 
 	private final AdHocConfigCommandModule adHocCommandsModule;
 
-	public DiscoverItemsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository,
-			AdHocConfigCommandModule adCommandModule) {
+	public DiscoverItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, AdHocConfigCommandModule adCommandModule) {
 		super(config, pubsubRepository);
 		this.adHocCommandsModule = adCommandModule;
 	}

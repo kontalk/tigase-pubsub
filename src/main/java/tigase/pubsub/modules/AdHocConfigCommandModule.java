@@ -32,7 +32,7 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
@@ -43,7 +43,7 @@ public class AdHocConfigCommandModule extends AbstractModule {
 
 	private final AdHocCommandManager commandsManager = new AdHocCommandManager();
 
-	public AdHocConfigCommandModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
+	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 

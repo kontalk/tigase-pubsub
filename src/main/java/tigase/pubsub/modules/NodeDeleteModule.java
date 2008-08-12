@@ -30,7 +30,7 @@ import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -44,7 +44,7 @@ public class NodeDeleteModule extends AbstractModule {
 
 	private final PublishItemModule publishModule;
 
-	public NodeDeleteModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
+	public NodeDeleteModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishItemModule;
 	}

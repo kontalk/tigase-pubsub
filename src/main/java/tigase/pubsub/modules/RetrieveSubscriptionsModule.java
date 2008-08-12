@@ -30,7 +30,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -40,7 +40,7 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscriptions"));
 
-	public RetrieveSubscriptionsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
+	public RetrieveSubscriptionsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 

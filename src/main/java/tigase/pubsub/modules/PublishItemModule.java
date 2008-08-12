@@ -39,8 +39,8 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
@@ -61,7 +61,7 @@ public class PublishItemModule extends AbstractModule {
 
 	private final XsltTool xslTransformer;
 
-	public PublishItemModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, XsltTool xsltTool) {
+	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, XsltTool xsltTool) {
 		super(config, pubsubRepository);
 		this.xslTransformer = xsltTool;
 		for (String xmlns : SUPPORTED_PEP_XMLNS) {

@@ -31,7 +31,7 @@ public class Subscriber {
 
 	private Subscription subscription;
 
-	Subscriber(String jid, String subid, Subscription subscriptionType) {
+	public Subscriber(String jid, String subid, Subscription subscriptionType) {
 		super();
 		this.jid = jid;
 		this.subid = subid;

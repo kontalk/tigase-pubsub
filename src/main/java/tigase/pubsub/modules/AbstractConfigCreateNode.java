@@ -24,13 +24,13 @@ package tigase.pubsub.modules;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 
 public abstract class AbstractConfigCreateNode extends AbstractModule {
 
 	protected final LeafNodeConfig defaultNodeConfig;
 
-	public AbstractConfigCreateNode(final PubSubConfig config, final InMemoryPubSubRepository pubsubRepository,
+	public AbstractConfigCreateNode(final PubSubConfig config, final IPubSubRepository pubsubRepository,
 			final LeafNodeConfig defaultNodeConfig) {
 		super(config, pubsubRepository);
 		this.defaultNodeConfig = defaultNodeConfig;

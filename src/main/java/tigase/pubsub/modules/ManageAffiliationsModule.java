@@ -33,8 +33,8 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -55,7 +55,7 @@ public class ManageAffiliationsModule extends AbstractModule {
 		return message;
 	}
 
-	public ManageAffiliationsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository) {
+	public ManageAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 

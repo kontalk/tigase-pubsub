@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
@@ -56,9 +56,9 @@ public abstract class AbstractModule implements Module {
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
-	protected final InMemoryPubSubRepository repository;
+	protected final IPubSubRepository repository;
 
-	public AbstractModule(final PubSubConfig config, final InMemoryPubSubRepository pubsubRepository) {
+	public AbstractModule(final PubSubConfig config, final IPubSubRepository pubsubRepository) {
 		this.config = config;
 		this.repository = pubsubRepository;
 	}

@@ -9,12 +9,12 @@ public class NodeAffiliation {
 
 	private final String jid;
 
-	NodeAffiliation(final String jid) {
+	public NodeAffiliation(final String jid) {
 		this.affiliation = Affiliation.none;
 		this.jid = JIDUtils.getNodeID(jid);
 	}
 
-	NodeAffiliation(final String jid, final Affiliation affiliation) {
+	public NodeAffiliation(final String jid, final Affiliation affiliation) {
 		this.affiliation = affiliation;
 		this.jid = jid == null ? null : JIDUtils.getNodeID(jid);
 	}

@@ -34,7 +34,7 @@ import tigase.pubsub.Module;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -45,7 +45,7 @@ public class DiscoverInfoModule extends AbstractModule {
 
 	private ArrayList<Module> modules;
 
-	public DiscoverInfoModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, ArrayList<Module> modules) {
+	public DiscoverInfoModule(PubSubConfig config, IPubSubRepository pubsubRepository, ArrayList<Module> modules) {
 		super(config, pubsubRepository);
 		this.modules = modules;
 	}

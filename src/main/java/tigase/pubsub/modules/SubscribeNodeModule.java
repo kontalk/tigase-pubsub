@@ -35,7 +35,7 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -60,7 +60,7 @@ public class SubscribeNodeModule extends AbstractModule {
 
 	private final ManageSubscriptionModule manageSubscriptionModule;
 
-	public SubscribeNodeModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository,
+	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository,
 			ManageSubscriptionModule manageSubscriptionModule) {
 		super(config, pubsubRepository);
 		this.manageSubscriptionModule = manageSubscriptionModule;

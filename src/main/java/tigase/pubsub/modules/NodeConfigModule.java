@@ -35,7 +35,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -80,7 +80,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 	private final PublishItemModule publishModule;
 
-	public NodeConfigModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
 			PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
 		this.publishModule = publishItemModule;

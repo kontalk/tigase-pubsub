@@ -33,7 +33,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -45,7 +45,7 @@ public class PurgeItemsModule extends AbstractModule {
 
 	private final PublishItemModule publishModule;
 
-	public PurgeItemsModule(PubSubConfig config, InMemoryPubSubRepository pubsubRepository, PublishItemModule publishModule) {
+	public PurgeItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishModule;
 	}

@@ -56,6 +56,7 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XsltTool;
 import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
@@ -103,7 +104,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected PublishItemModule publishNodeModule;
 
-	protected InMemoryPubSubRepository pubsubRepository;
+	protected IPubSubRepository pubsubRepository;
 
 	private PurgeItemsModule purgeItemsModule;
 
@@ -125,7 +126,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		setName("pubsub");
 	}
 
-	protected InMemoryPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
+	protected IPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
 		return new InMemoryPubSubRepository(directRepository, this.config);
 	}
 
