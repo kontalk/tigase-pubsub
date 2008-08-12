@@ -114,8 +114,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	public void processPacket(final Packet packet) {
-		log.finest("--------------------- " + getComponentId() + " ----------------------- :: " + packet.toString());
-
 		if (packet.getElemName() == ClusterElement.CLUSTER_EL_NAME || packet.getElemName() == ClusterElement.CLUSTER_EL_NAME
 				&& packet.getElement().getXMLNS() == ClusterElement.XMLNS) {
 			log.finest("Handling as internal cluster message");
