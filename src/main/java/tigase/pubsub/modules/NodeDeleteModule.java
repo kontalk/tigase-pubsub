@@ -28,7 +28,6 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
@@ -79,8 +78,9 @@ public class NodeDeleteModule extends AbstractModule {
 			if (nodeName == null) {
 				throw new PubSubException(element, Authorization.NOT_ALLOWED);
 			}
-			NodeType nodeType = repository.getNodeType(nodeName);
-			if (nodeType == null) {
+
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
@@ -92,7 +92,6 @@ public class NodeDeleteModule extends AbstractModule {
 
 			List<Element> resultArray = makeArray(createResultIQ(element));
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 			if (nodeConfig.isNotify_config()) {
 				String pssJid = element.getAttribute("to");
 				Element del = new Element("delete", new String[] { "node" }, new String[] { nodeName });

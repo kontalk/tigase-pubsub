@@ -94,11 +94,11 @@ public class RetrieveItemsModule extends AbstractModule {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
 
 			// XXX CHECK RIGHTS AUTH ETC
-			AccessModel accessModel = this.repository.getNodeAccessModel(nodeName);
-			if (accessModel == null)
-				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
+
 			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
-			if (accessModel == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
+			if (nodeConfig == null)
+				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
+			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
 				throw new PubSubException(Authorization.FORBIDDEN);
 
 			Subscription senderSubscription = this.repository.getSubscription(nodeName, senderJid);
@@ -106,16 +106,16 @@ public class RetrieveItemsModule extends AbstractModule {
 			if (senderAffiliation.getAffiliation() == Affiliation.outcast) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
-			if (accessModel == AccessModel.whitelist && !senderAffiliation.getAffiliation().isRetrieveItem()) {
+			if (nodeConfig.getNodeAccessModel() == AccessModel.whitelist && !senderAffiliation.getAffiliation().isRetrieveItem()) {
 				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
-			} else if (accessModel == AccessModel.authorize
+			} else if (nodeConfig.getNodeAccessModel() == AccessModel.authorize
 					&& (senderSubscription != Subscription.subscribed || !senderAffiliation.getAffiliation().isRetrieveItem())) {
 				throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_SUBSCRIBED);
-			} else if (accessModel == AccessModel.presence) {
+			} else if (nodeConfig.getNodeAccessModel() == AccessModel.presence) {
 				boolean allowed = hasSenderSubscription(senderJid, nodeName);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
-			} else if (accessModel == AccessModel.roster) {
+			} else if (nodeConfig.getNodeAccessModel() == AccessModel.roster) {
 				boolean allowed = isSenderInRosterGroup(senderJid, nodeName);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);

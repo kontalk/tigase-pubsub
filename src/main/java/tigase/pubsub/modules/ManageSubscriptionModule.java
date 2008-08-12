@@ -29,8 +29,8 @@ import tigase.criteria.ElementCriteria;
 import tigase.form.Field;
 import tigase.form.Form;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -75,8 +75,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 			if (allow == null)
 				return null;
 
-			NodeType nodeType = repository.getNodeType(node);
-			if (nodeType == null) {
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(node);
+			if (nodeConfig == null) {
 				throw new PubSubException(message, Authorization.ITEM_NOT_FOUND);
 			}
 			String jid = message.getAttribute("from");

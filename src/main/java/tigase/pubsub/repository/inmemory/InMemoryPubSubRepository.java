@@ -29,11 +29,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
+import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubRepositoryListener;
 import tigase.pubsub.repository.RepositoryException;
@@ -135,14 +135,6 @@ public class InMemoryPubSubRepository {
 		return this.pubSubDB.getBuddySubscription(owner, buddy);
 	}
 
-	@Deprecated
-	public String getCollectionOf(String nodeName) throws RepositoryException {
-		Entry entry = readNodeEntry(nodeName);
-		if (entry == null)
-			return null;
-		return entry.getConfig().getCollection();
-	}
-
 	public Element getItem(String nodeName, String id) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		Item item = entry.getItemData(id);
@@ -161,24 +153,6 @@ public class InMemoryPubSubRepository {
 		return entry == null ? null : entry.getSortedItemsId();
 	}
 
-	@Deprecated
-	public AccessModel getNodeAccessModel(String nodeName) throws RepositoryException {
-		try {
-			Entry entry = readNodeEntry(nodeName);
-			if (entry == null)
-				return null;
-			return entry.getConfig().getNodeAccessModel();
-		} catch (Exception e) {
-			throw new RepositoryException("AccessModel getting error", e);
-		}
-	}
-
-	@Deprecated
-	public String[] getNodeChildren(String node) throws RepositoryException {
-		Entry entry = readNodeEntry(node);
-		return entry.getConfig().getChildren();
-	}
-
 	public AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry == null ? null : entry.getConfig();
@@ -188,15 +162,7 @@ public class InMemoryPubSubRepository {
 		return this.pubSubDB.getNodesList();
 	}
 
-	@Deprecated
-	public NodeType getNodeType(String nodeName) throws RepositoryException {
-		Entry entry = readNodeEntry(nodeName);
-		if (entry == null)
-			return null;
-		return entry.getConfig().getNodeType();
-	}
-
-	public PubSubDAO getPubSubDAO() {
+	public IPubSubDAO getPubSubDAO() {
 		return this.pubSubDB;
 	}
 

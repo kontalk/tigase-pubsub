@@ -80,6 +80,17 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		log.config("PubSubCluster Component starting");
 	}
 
+	@Override
+	public String getComponentId() {
+		String name;
+		if (System.getProperty("test", "no").equals("yes")) {
+			name = super.getComponentId().replace("@", ".");
+		} else
+			name = super.getComponentId();
+
+		return name;
+	}
+
 	protected String getFirstClusterNode() {
 		String cluster_node = null;
 		for (String node : cluster_nodes) {
@@ -214,7 +225,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	public void processPacket(final Packet packet) {
-		log.finest("--------------------- " + getComponentId()+" ----------------------- :: " + packet.toString());
+		log.finest("--------------------- " + getComponentId() + " ----------------------- :: " + packet.toString());
 
 		if (packet.getElemName() == ClusterElement.CLUSTER_EL_NAME || packet.getElemName() == ClusterElement.CLUSTER_EL_NAME
 				&& packet.getElement().getXMLNS() == ClusterElement.XMLNS) {
@@ -265,17 +276,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				super.processPacket(packet);
 			}
 		}
-	}
-
-	@Override
-	public String getComponentId() {
-		String name;
-		if (System.getProperty("test", "no").equals("yes")) {
-			name = super.getComponentId().replace("@", ".");
-		} else
-			name = super.getComponentId();
-
-		return name;
 	}
 
 	protected void publishNodeGotNotification(final String... nodeName) {

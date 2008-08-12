@@ -27,6 +27,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
@@ -77,10 +78,10 @@ public class RetractItemModule extends AbstractModule {
 			if (nodeName == null) {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
-			NodeType nodeType = repository.getNodeType(nodeName);
-			if (nodeType == null) {
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
-			} else if (nodeType == NodeType.collection) {
+			} else if (nodeConfig.getNodeType() == NodeType.collection) {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
 						"retract-items"));
 			}
@@ -91,9 +92,9 @@ public class RetractItemModule extends AbstractModule {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			LeafNodeConfig nodeConfig = (LeafNodeConfig) repository.getNodeConfig(nodeName);
+			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 
-			if (!nodeConfig.isPersistItem()) {
+			if (!leafNodeConfig.isPersistItem()) {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
 						"persistent-items"));
 			}
@@ -118,7 +119,7 @@ public class RetractItemModule extends AbstractModule {
 			for (String id : itemsToDelete) {
 				String date = repository.getItemCreationDate(nodeName, id);
 				if (date != null) {
-					Element notification = createNotification(nodeConfig, itemsToDelete, nodeName);
+					Element notification = createNotification(leafNodeConfig, itemsToDelete, nodeName);
 					result.addAll(publishModule.prepareNotification(notification, element.getAttribute("to"), nodeName));
 					repository.deleteItem(nodeName, id);
 				}

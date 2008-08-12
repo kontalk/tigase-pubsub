@@ -37,9 +37,9 @@ import tigase.xmpp.Authorization;
 
 public class NodesStatCommand implements AdHocCommand {
 
-	private PubSubConfig config;
-
 	private ClusterManager clusterManager;
+
+	private PubSubConfig config;
 
 	public NodesStatCommand(final ClusterManager clusterManager, PubSubConfig config) {
 		this.config = config;

@@ -128,8 +128,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
 			}
 
-			NodeType nodeType = repository.getNodeType(nodeName);
-			if (nodeType == null) {
+			final AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
@@ -144,8 +144,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			List<Element> resultArray = makeArray(result);
 
 			if ("get".equals(type)) {
-				AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
-
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
 						new String[] { "http://jabber.org/protocol/pubsub#owner" });
 				Element rConfigure = new Element("configure", new String[] { "node" }, new String[] { nodeName });
@@ -154,7 +152,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 				result.addChild(rPubSub);
 			} else if ("set".equals(type)) {
-				AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 				String[] children = nodeConfig.getChildren() == null ? new String[] {} : Arrays.copyOf(nodeConfig.getChildren(),
 						nodeConfig.getChildren().length);
 				final String collectionCurrent = nodeConfig.getCollection();
@@ -172,8 +169,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 					if (nodeConfig.isCollectionSet()) {
 						String collectionName = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
 						AbstractNodeConfig colNodeConfig = this.repository.getNodeConfig(collectionName);
-						NodeType colNodeType = "".equals(collectionName) ? NodeType.collection
-								: (colNodeConfig==null?null:colNodeConfig.getNodeType());
+						NodeType colNodeType = "".equals(collectionName) ? NodeType.collection : (colNodeConfig == null ? null
+								: colNodeConfig.getNodeType());
 						if (colNodeType == null) {
 							throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 						} else if (colNodeType == NodeType.leaf) {
@@ -193,7 +190,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						}
 					}
 
-					if (nodeType == NodeType.collection) {
+					if (nodeConfig.getNodeType() == NodeType.collection) {
 						if (isIn("", nodeConfig.getChildren())) {
 							throw new PubSubException(Authorization.BAD_REQUEST);
 						}
@@ -203,8 +200,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 								children == null ? new String[] {} : children);
 
 						for (String node : addedNodes) {
-							NodeType colNodeType = repository.getNodeType(node);
-							if (colNodeType == null) {
+							AbstractNodeConfig nc = repository.getNodeConfig(node);
+							if (nc == null) {
 								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 							}
 							repository.setNewNodeCollection(node, nodeName);
@@ -215,8 +212,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						}
 						if (removedNodes != null && removedNodes.length > 0) {
 							for (String node : removedNodes) {
-								NodeType colNodeType = repository.getNodeType(node);
-								if (colNodeType == null) {
+								AbstractNodeConfig nc = repository.getNodeConfig(node);
+								if (nc == null) {
 									throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 								}
 								repository.setNewNodeCollection(node, "");

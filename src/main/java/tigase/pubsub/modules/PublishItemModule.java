@@ -81,10 +81,12 @@ public class PublishItemModule extends AbstractModule {
 
 	protected List<String> getParents(final String nodeName) throws RepositoryException {
 		ArrayList<String> result = new ArrayList<String>();
-		String cn = repository.getCollectionOf(nodeName);
+		AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+		String cn = nodeConfig.getCollection();
 		while (cn != null && !"".equals(cn)) {
 			result.add(cn);
-			cn = repository.getCollectionOf(cn);
+			AbstractNodeConfig nc = repository.getNodeConfig(cn);
+			cn = nc.getCollection();
 		}
 		;
 		return result;
@@ -205,10 +207,10 @@ public class PublishItemModule extends AbstractModule {
 				return pepProcess(element, pubSub, publish);
 			}
 
-			NodeType nodeType = repository.getNodeType(nodeName);
-			if (nodeType == null) {
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
-			} else if (nodeType == NodeType.collection) {
+			} else if (nodeConfig.getNodeType() == NodeType.collection) {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported", "publish"));
 			}
 
@@ -219,11 +221,11 @@ public class PublishItemModule extends AbstractModule {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			LeafNodeConfig nodeConfig = (LeafNodeConfig) repository.getNodeConfig(nodeName);
+			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 
 			List<Element> itemsToSend = makeItemsToSend(publish);
 
-			if (nodeConfig.isPersistItem()) {
+			if (leafNodeConfig.isPersistItem()) {
 				// checking ID
 				for (Element item : itemsToSend) {
 					String id = item.getAttribute("id");
@@ -256,7 +258,7 @@ public class PublishItemModule extends AbstractModule {
 				}
 			}
 
-			if (nodeConfig.isPersistItem()) {
+			if (leafNodeConfig.isPersistItem()) {
 				for (Element item : itemsToSend) {
 					final String id = item.getAttribute("id");
 					repository.writeItem(nodeName, System.currentTimeMillis(), id, element.getAttribute("from"), item);

@@ -35,6 +35,8 @@ public class ClusterManager {
 
 	private final Set<String> cluster_nodes;
 
+	private final String clusterNodename;
+
 	/**
 	 * <channel, clusternode>
 	 */
@@ -42,7 +44,7 @@ public class ClusterManager {
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
-	private final String clusterNodename;
+	private Random random = new SecureRandom();
 
 	public ClusterManager(final String clusterNodeName, Set<String> cluster_nodes) {
 		this.cluster_nodes = cluster_nodes;
@@ -57,40 +59,23 @@ public class ClusterManager {
 		return this.cluster_nodes.toArray(new String[] {});
 	}
 
-
 	public String getLessLadenNode() {
-		
-		String[] n = this.cluster_nodes.toArray(new String[]{});
+
+		String[] n = this.cluster_nodes.toArray(new String[] {});
 		return n[random.nextInt(n.length)];
-		
+
 		/*
-		Map<String, Integer> x = new HashMap<String, Integer>();
-		for (String nodeName : cluster_nodes) {
-			x.put(nodeName, 0);
-		}
-		for (String node : this.clusterNodes.values()) {
-			Integer c = x.get(node);
-			if (c == null) {
-				continue;
-			} else {
-				c++;
-			}
-			x.put(node, c);
-		}
-
-		Integer c = null;
-		String name = null;
-
-		for (Map.Entry<String, Integer> e : x.entrySet()) {
-			if (c == null || c > e.getValue()) {
-				c = e.getValue();
-				name = e.getKey();
-			}
-		}
-		return name;
-	*/}
-
-	private Random random = new SecureRandom();
+		 * Map<String, Integer> x = new HashMap<String, Integer>(); for (String
+		 * nodeName : cluster_nodes) { x.put(nodeName, 0); } for (String node :
+		 * this.clusterNodes.values()) { Integer c = x.get(node); if (c == null)
+		 * { continue; } else { c++; } x.put(node, c); }
+		 * 
+		 * Integer c = null; String name = null;
+		 * 
+		 * for (Map.Entry<String, Integer> e : x.entrySet()) { if (c == null ||
+		 * c > e.getValue()) { c = e.getValue(); name = e.getKey(); } } return
+		 * name;
+		 */}
 
 	public Map<String, List<String>> getNodeLoad() {
 		Map<String, List<String>> result = new HashMap<String, List<String>>();

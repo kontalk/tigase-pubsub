@@ -27,8 +27,8 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -84,8 +84,8 @@ public class ManageAffiliationsModule extends AbstractModule {
 			if (nodeName == null) {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
-			NodeType nodeType = this.repository.getNodeType(nodeName);
-			if (nodeType == null) {
+			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 			String senderJid = element.getAttribute("from");

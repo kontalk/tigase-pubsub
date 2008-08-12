@@ -30,7 +30,6 @@ import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -88,11 +87,10 @@ public class SubscribeNodeModule extends AbstractModule {
 		final String jid = subscribe.getAttribute("jid");
 
 		try {
-			NodeType nodeType = repository.getNodeType(nodeName);
-			if (nodeType == null) {
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
-			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
 			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 
@@ -118,7 +116,7 @@ public class SubscribeNodeModule extends AbstractModule {
 					throw new PubSubException(Authorization.FORBIDDEN, "Not enough privileges to subscribe");
 			}
 
-			AccessModel accessModel = repository.getNodeAccessModel(nodeName);
+			AccessModel accessModel = nodeConfig.getNodeAccessModel();
 
 			if (subscription != null) {
 				if (subscription == Subscription.pending) {

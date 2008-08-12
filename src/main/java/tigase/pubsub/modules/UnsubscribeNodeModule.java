@@ -26,8 +26,8 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -67,9 +67,8 @@ public class UnsubscribeNodeModule extends AbstractModule {
 		final String subid = unsubscribe.getAttribute("subid");
 
 		try {
-
-			NodeType nodeType = repository.getNodeType(nodeName);
-			if (nodeType == null) {
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
