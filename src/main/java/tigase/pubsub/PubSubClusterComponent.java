@@ -21,22 +21,17 @@
  */
 package tigase.pubsub;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.cluster.ClusterElement;
 import tigase.cluster.ClusteredComponent;
-import tigase.pubsub.cluster.ClusterManager;
-import tigase.pubsub.modules.NodeConfigListener;
-import tigase.pubsub.modules.commands.NodesStatCommand;
-import tigase.pubsub.repository.PubSubRepositoryListener;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.server.Packet;
 import tigase.xml.Element;
@@ -44,38 +39,12 @@ import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
-public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponent, PubSubRepositoryListener,
-		NodeConfigListener {
-
-	private static final String METHOD_DEFAUT_CONFIG_CHANGED = "pubsub_default_config_changed";
-
-	private static final String METHOD_DELETE_NODE = "pubsub_node_delete";
-
-	public static final String METHOD_GOT_NODE = "cluster_node_got_pubsub_node";
-
-	private static final String METHOD_NODE_CONFIG_CHANGED = "pubsub_node_config_changed";
-
-	private static final String METHOD_NODE_CREATED = "pubsub_node_created";
-
-	protected static String[] getParameters(final String name, final Map<String, String> allMethodParams) {
-		List<String> nodesNames = new ArrayList<String>();
-		for (Map.Entry<String, String> pps : allMethodParams.entrySet()) {
-			if (pps.getKey().startsWith("pubSubNodeName")) {
-				nodesNames.add(pps.getValue());
-			}
-		}
-		return nodesNames.toArray(new String[] {});
-	}
+public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponent {
 
 	private final Set<String> cluster_nodes = new LinkedHashSet<String>();
 
-	private ClusterManager clusterManager;
-
-	private final Set<String> localProcessingNodeNames = new HashSet<String>();
-
 	public PubSubClusterComponent() {
 		super();
-		localProcessingNodeNames.add("http://jabber.org/protocol/commands");
 		this.log = Logger.getLogger(this.getClass().getName());
 		log.config("PubSubCluster Component starting");
 	}
@@ -104,7 +73,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	protected void init() {
-		this.clusterManager = new ClusterManager(getComponentId(), this.cluster_nodes);
 		if (System.getProperty("test", "no").equals("yes")) {
 			final Set<String> n = new HashSet<String>();
 			n.add("pubsub.sphere");
@@ -117,18 +85,10 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			for (String string : n) {
 				log.config("Test Node connected: " + string);
 				cluster_nodes.add(string);
-				this.clusterManager.nodeConnected(string);
 			}
-
 		}
 
 		super.init();
-		pubsubRepository.addListener(this);
-		this.nodeCreateModule.addNodeConfigListener(this);
-		this.nodeDeleteModule.addNodeConfigListener(this);
-
-		NodesStatCommand statCommand = new NodesStatCommand(this.clusterManager, this.config);
-		this.adHocCommandsModule.register(statCommand);
 
 		log.config("PubSubCluster component configured.");
 	}
@@ -137,8 +97,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		for (String node : node_hostnames) {
 			log.finest("Node connected: " + node + " (" + getName() + "@" + node + ")");
 			cluster_nodes.add(getName() + "@" + node);
-			this.clusterManager.nodeConnected(getName() + "@" + node);
-			// debug cluster_nodes.add(node);
 		}
 	}
 
@@ -146,81 +104,12 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		for (String node : node_hostnames) {
 			log.finest("Node disconnected: " + node + " (" + getName() + "@" + node + ")");
 			cluster_nodes.remove(getName() + "@" + node);
-			this.clusterManager.nodeDisconnected(getName() + "@" + node);
 		}
-	}
-
-	@Override
-	public void onChangeCollection(String nodeName, String oldCollectionName, String newCollectionName) {
-		if (!"".equals(newCollectionName)) {
-			final String newOwner = this.clusterManager.getClusterNode(newCollectionName);
-			final Map<String, String> params = new HashMap<String, String>();
-			params.put("pubSubNodeName", nodeName);
-			params.put("clusterNodeName", newOwner == null ? getComponentId() : newOwner);
-			log.finest("Send broadcast about new nodes owner (after collection change).");
-			sentBroadcast(METHOD_GOT_NODE, params);
-		}
-	}
-
-	@Override
-	public void onChangeDefaultNodeConfig() {
-		log.info("Default config changed. Publishing info.");
-		final Map<String, String> params = new HashMap<String, String>();
-		params.put("nodeType", "leaf");
-		sentBroadcast(METHOD_NODE_CREATED, params);
-		super.onChangeDefaultNodeConfig();
-	}
-
-	@Override
-	public void onNodeConfigChanged(String nodeName) {
-		final Map<String, String> params = new HashMap<String, String>();
-		params.put("pubSubNodeName", nodeName);
-		log.finest("Send broadcast about node '" + nodeName + "' config changed.");
-		sentBroadcast(METHOD_NODE_CONFIG_CHANGED, params);
-	}
-
-	@Override
-	public void onNodeCreated(String nodeName) {
-		final Map<String, String> params = new HashMap<String, String>();
-		params.put("pubSubNodeName", nodeName);
-		log.finest("Send broadcast about node '" + nodeName + "' created.");
-		sentBroadcast(METHOD_NODE_CREATED, params);
-	}
-
-	@Override
-	public void onNodeDeleted(String nodeName) {
-		final Map<String, String> params = new HashMap<String, String>();
-		params.put("pubSubNodeName", nodeName);
-		log.finest("Send broadcast about node '" + nodeName + "' delete.");
-		sentBroadcast(METHOD_DELETE_NODE, params);
 	}
 
 	protected void processMethodCall(String methodName, Map<String, String> allMethodParams) throws RepositoryException {
-		if (METHOD_NODE_CREATED.equals(methodName)) {
-			String[] nodesNames = getParameters("pubSubNodeName", allMethodParams);
-			for (String n : nodesNames) {
-				try {
-					pubsubRepository.getNodeConfig(n);
-				} catch (RepositoryException e) {
-					e.printStackTrace();
-					log.log(Level.SEVERE, "Remote method (node_created) processign error.", e);
-				}
-			}
-		} else if (METHOD_NODE_CONFIG_CHANGED.equals(methodName)) {
-			String[] nodesNames = getParameters("pubSubNodeName", allMethodParams);
-			for (String n : nodesNames) {
-				pubsubRepository.forgetConfiguration(n);
-			}
-		} else if (METHOD_DELETE_NODE.equals(methodName)) {
-			String[] nodesNames = getParameters("pubSubNodeName", allMethodParams);
-			this.clusterManager.removePubSubNode(nodesNames);
-		} else if (METHOD_GOT_NODE.equals(methodName)) {
-			String[] nodesNames = getParameters("pubSubNodeName", allMethodParams);
-			String clName = allMethodParams.get("clusterNodeName");
-			this.clusterManager.registerOwner(clName, nodesNames);
-		} else if (METHOD_DEFAUT_CONFIG_CHANGED.equals(methodName)) {
-			super.onChangeDefaultNodeConfig();
-		}
+		log.severe("Unexpected remote method call");
+		System.out.println("!!!! Unexpected remote method call !!!!");
 	}
 
 	@Override
@@ -236,7 +125,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				try {
 					processMethodCall(clel.getMethodName(), clel.getAllMethodParams());
 				} catch (Exception e) {
-					log.throwing("PubSUb Service", "processPacket", e);
+					log.throwing("PubSub Service", "processPacket (remote method call)", e);
 					e.printStackTrace();
 					try {
 						addOutPacket(Authorization.INTERNAL_SERVER_ERROR.getResponseMessage(packet, e.getMessage(), true));
@@ -247,23 +136,13 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				}
 			} else
 				for (Element element : elements) {
-					String nodeName = extractNodeName(element);
-					if (nodeName != null && this.localProcessingNodeNames.contains(nodeName)) {
-					} else if (nodeName != null && this.clusterManager.getClusterNode(nodeName) == null) {
-						publishNodeGotNotification(nodeName);
-					}
 					super.processPacket(new Packet(element));
 				}
 		} else {
 			Element element = packet.getElement();
 			String node = extractNodeName(element);
-			if (node != null && this.localProcessingNodeNames.contains(node)) {
-				super.processPacket(packet);
-			} else if (node != null) {
-				String clusterNode = this.clusterManager.getClusterNode(node);
-				if (clusterNode == null) {
-					clusterNode = this.clusterManager.getLessLadenNode();
-				}
+			if (node != null) {
+				String clusterNode = getRandomNode();
 				if (clusterNode == null || this.publishNodeModule.isPEPNodeName(node)) {
 					super.processPacket(packet);
 				} else {
@@ -278,32 +157,26 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		}
 	}
 
-	protected void publishNodeGotNotification(final String... nodeName) {
-		final Map<String, String> params = new HashMap<String, String>();
+	private static Random random = new SecureRandom();
 
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < nodeName.length; i++) {
-			params.put("pubSubNodeName." + i, nodeName[i]);
-			sb.append(nodeName[i]);
-			sb.append(", ");
-		}
-		final String clusterNodeName = getComponentId();
-		params.put("clusterNodeName", clusterNodeName);
-		log.finest("Send broadcast about new nodes owner: [" + clusterNodeName + "] is owner of " + sb.toString());
-		sentBroadcast(METHOD_GOT_NODE, params);
+	private String getRandomNode() {
+		String[] nodes = this.cluster_nodes.toArray(new String[] {});
+		if (nodes == null || nodes.length == 0)
+			return null;
+		int a = random.nextInt(nodes.length);
+		return nodes[a];
 	}
 
-	protected void sentBroadcast(final String methodName, final Map<String, String> params) {
-		StringBuilder sb = new StringBuilder();
-		for (String cNN : this.cluster_nodes) {
-			sb.append(cNN + ", ");
-			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), cNN, "set", methodName, params);
-			Packet toSend = new Packet(call.getClusterElement());
-			addOutPacket(toSend);
-		}
-		log.finer("Sent broadcast '" + methodName + "' method to: " + sb.toString());
-	}
-
+	/*
+	 * protected void sentBroadcast(final String methodName, final Map<String,
+	 * String> params) { StringBuilder sb = new StringBuilder(); for (String cNN
+	 * : this.cluster_nodes) { sb.append(cNN + ", "); ClusterElement call =
+	 * ClusterElement.createClusterMethodCall(getComponentId(), cNN, "set",
+	 * methodName, params); Packet toSend = new
+	 * Packet(call.getClusterElement()); addOutPacket(toSend); }
+	 * log.finer("Sent broadcast '" + methodName + "' method to: " +
+	 * sb.toString()); }
+	 */
 	protected boolean sentToNextNode(ClusterElement clel) {
 		ClusterElement next_clel = ClusterElement.createForNextNode(clel, cluster_nodes, getComponentId());
 		if (next_clel != null) {
