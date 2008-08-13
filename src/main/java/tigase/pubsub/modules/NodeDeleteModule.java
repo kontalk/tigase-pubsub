@@ -32,6 +32,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -85,11 +86,12 @@ public class NodeDeleteModule extends AbstractModule {
 			}
 
 			String jid = element.getAttribute("from");
-			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
-			if (!senderAffiliation.getAffiliation().isDeleteNode()) {
-				throw new PubSubException(element, Authorization.FORBIDDEN);
+			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
+				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
+				if (!senderAffiliation.getAffiliation().isDeleteNode()) {
+					throw new PubSubException(element, Authorization.FORBIDDEN);
+				}
 			}
-
 			List<Element> resultArray = makeArray(createResultIQ(element));
 
 			if (nodeConfig.isNotify_config()) {

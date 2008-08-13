@@ -285,7 +285,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			Element result = e.makeElement(packet.getElement());
 			addOutPacket(new Packet(result));
 		} catch (Exception e) {
-			log.throwing("PubSUb Service", "processPacket", e);
+			log.log(Level.SEVERE, "Unexpected exception: internal-server-error", e);
 			e.printStackTrace();
 			try {
 				addOutPacket(Authorization.INTERNAL_SERVER_ERROR.getResponseMessage(packet, e.getMessage(), true));

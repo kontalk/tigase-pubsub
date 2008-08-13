@@ -42,7 +42,6 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
-import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -215,7 +214,6 @@ public class PublishItemModule extends AbstractModule {
 			}
 
 			final NodeAffiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, element.getAttribute("from"));
-			final Subscriber[] allSubscribers = repository.getSubscriptions(nodeName);
 
 			if (!senderAffiliation.getAffiliation().isPublishItem()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
