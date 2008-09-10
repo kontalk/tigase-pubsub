@@ -21,6 +21,8 @@
  */
 package tigase.pubsub.repository;
 
+import java.util.Date;
+
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
@@ -61,9 +63,11 @@ public interface IPubSubDAO {
 
 	Element getItem(String nodeName, String id) throws RepositoryException;
 
-	public abstract String getItemCreationDate(final String nodeName, final String id) throws RepositoryException;
+	public abstract Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException;
 
 	String[] getItemsIds(String nodeName) throws RepositoryException;
+
+	public abstract Date getItemUpdateDate(final String nodeName, final String id) throws RepositoryException;
 
 	public abstract AccessModel getNodeAccessModel(String nodeName) throws RepositoryException;
 

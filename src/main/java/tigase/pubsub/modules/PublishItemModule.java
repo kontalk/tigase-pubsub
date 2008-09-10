@@ -22,6 +22,9 @@
 package tigase.pubsub.modules;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,15 +51,25 @@ import tigase.xmpp.Authorization;
 
 public class PublishItemModule extends AbstractModule {
 
+	private static class Item {
+		final String id;
+		final Date updateDate;
+
+		Item(String id, Date date) {
+			this.updateDate = date;
+			this.id = id;
+		}
+	}
+
 	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood", "http://jabber.org/protocol/geoloc",
 			"http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
 
-	private long idCounter = 0;
+	private long idCounter = 0;;
 
-	private final Set<String> pepNodes = new HashSet<String>();;
+	private final Set<String> pepNodes = new HashSet<String>();
 
 	private final XsltTool xslTransformer;
 
@@ -261,6 +274,9 @@ public class PublishItemModule extends AbstractModule {
 					final String id = item.getAttribute("id");
 					repository.writeItem(nodeName, System.currentTimeMillis(), id, element.getAttribute("from"), item);
 				}
+				if (leafNodeConfig.getMaxItems() != null) {
+					trimItems(nodeName, leafNodeConfig.getMaxItems());
+				}
 			}
 
 			return result;
@@ -271,6 +287,30 @@ public class PublishItemModule extends AbstractModule {
 			throw new RuntimeException(e);
 		}
 
+	}
+
+	public void trimItems(final String nodeName, final Integer maxItems) throws RepositoryException {
+		final String[] ids = this.repository.getItemsIds(nodeName);
+		if (ids == null || ids.length <= maxItems)
+			return;
+		final ArrayList<Item> items = new ArrayList<Item>();
+		for (String id : ids) {
+			Date updateDate = this.repository.getItemUpdateDate(nodeName, id);
+			if (updateDate != null) {
+				Item i = new Item(id, updateDate);
+				items.add(i);
+			}
+		}
+		Collections.sort(items, new Comparator<Item>() {
+			@Override
+			public int compare(Item o1, Item o2) {
+				return o2.updateDate.compareTo(o1.updateDate);
+			}
+		});
+		for (int i = maxItems; i < items.size(); i++) {
+			Item it = items.get(i);
+			this.repository.deleteItem(nodeName, it.id);
+		}
 	}
 
 }

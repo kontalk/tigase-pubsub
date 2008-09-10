@@ -22,6 +22,9 @@
 package tigase.pubsub.repository.stateless;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import tigase.pubsub.AbstractNodeConfig;
@@ -127,13 +130,18 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public String getItemCreationDate(String nodeName, String id) throws RepositoryException {
+	public Date getItemCreationDate(String nodeName, String id) throws RepositoryException {
 		return this.dao.getItemCreationDate(nodeName, id);
 	}
 
 	@Override
 	public String[] getItemsIds(String nodeName) throws RepositoryException {
 		return this.dao.getItemsIds(nodeName);
+	}
+
+	@Override
+	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
+		return this.dao.getItemUpdateDate(nodeName, id);
 	}
 
 	@Override
@@ -223,4 +231,5 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		this.dao.writeItem(nodeName, timeInMilis, id, publisher, item);
 	}
 
+	
 }

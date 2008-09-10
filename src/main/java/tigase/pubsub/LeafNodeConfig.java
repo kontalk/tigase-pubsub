@@ -21,6 +21,7 @@
  */
 package tigase.pubsub;
 
+
 public class LeafNodeConfig extends AbstractNodeConfig {
 
 	public LeafNodeConfig() {
@@ -29,6 +30,11 @@ public class LeafNodeConfig extends AbstractNodeConfig {
 
 	public LeafNodeConfig(AbstractNodeConfig config) {
 		super(config);
+	}
+
+	public Integer getMaxItems() {
+		Integer x = form.getAsInteger("pubsub#max_items");
+		return x;
 	}
 
 	@Override

@@ -22,6 +22,7 @@
 package tigase.pubsub.modules;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import tigase.criteria.Criteria;
@@ -117,7 +118,7 @@ public class RetractItemModule extends AbstractModule {
 			result.add(createResultIQ(element));
 
 			for (String id : itemsToDelete) {
-				String date = repository.getItemCreationDate(nodeName, id);
+				Date date = repository.getItemCreationDate(nodeName, id);
 				if (date != null) {
 					Element notification = createNotification(leafNodeConfig, itemsToDelete, nodeName);
 					result.addAll(publishModule.prepareNotification(notification, element.getAttribute("to"), nodeName));

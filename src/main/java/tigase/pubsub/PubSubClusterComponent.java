@@ -41,6 +41,8 @@ import tigase.xmpp.StanzaType;
 
 public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponent {
 
+	private static Random random = new SecureRandom();
+
 	private final Set<String> cluster_nodes = new LinkedHashSet<String>();
 
 	public PubSubClusterComponent() {
@@ -69,6 +71,14 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			}
 		}
 		return cluster_node;
+	}
+
+	private String getRandomNode() {
+		String[] nodes = this.cluster_nodes.toArray(new String[] {});
+		if (nodes == null || nodes.length == 0)
+			return null;
+		int a = random.nextInt(nodes.length);
+		return nodes[a];
 	}
 
 	@Override
@@ -153,16 +163,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				super.processPacket(packet);
 			}
 		}
-	}
-
-	private static Random random = new SecureRandom();
-
-	private String getRandomNode() {
-		String[] nodes = this.cluster_nodes.toArray(new String[] {});
-		if (nodes == null || nodes.length == 0)
-			return null;
-		int a = random.nextInt(nodes.length);
-		return nodes[a];
 	}
 
 	/*

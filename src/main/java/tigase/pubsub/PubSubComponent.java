@@ -54,6 +54,7 @@ import tigase.pubsub.modules.RetrieveItemsModule;
 import tigase.pubsub.modules.RetrieveSubscriptionsModule;
 import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
+import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
 import tigase.pubsub.modules.commands.DefaultConfigCommand;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -253,7 +254,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 		registerModule(new RetrieveAffiliationsModule(this.config, this.pubsubRepository));
 		registerModule(new RetrieveSubscriptionsModule(this.config, this.pubsubRepository));
-
+		registerModule(new XmppPingModule());
 		this.pubsubRepository.init();
 	}
 

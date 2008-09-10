@@ -235,11 +235,11 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	 * tigase.pubsub.repository.inmemory.IPubSubRepository#getItemCreationDate
 	 * (java.lang.String, java.lang.String)
 	 */
-	public String getItemCreationDate(String nodeName, String id) throws RepositoryException {
+	public Date getItemCreationDate(String nodeName, String id) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		if (entry == null)
 			return null;
-		return String.valueOf(entry.getItemCreationDate(id).getTime());
+		return entry.getItemCreationDate(id);
 	}
 
 	/*
@@ -252,6 +252,11 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 	public String[] getItemsIds(String nodeName) throws RepositoryException {
 		Entry entry = readNodeEntry(nodeName);
 		return entry == null ? null : entry.getSortedItemsId();
+	}
+
+	@Override
+	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
+		return this.pubSubDB.getItemUpdateDate(nodeName, id);
 	}
 
 	/*
@@ -371,8 +376,8 @@ public class InMemoryPubSubRepository implements IPubSubRepository {
 			List<Item> result = new ArrayList<Item>();
 			for (String id : ids) {
 				final Element data = this.pubSubDB.getItem(nodeName, id);
-				final Date creationDate = asDate(this.pubSubDB.getItemCreationDate(nodeName, id));
-				final Date updateDate = asDate(this.pubSubDB.getItemUpdateDate(nodeName, id));
+				final Date creationDate = this.pubSubDB.getItemCreationDate(nodeName, id);
+				final Date updateDate = this.pubSubDB.getItemUpdateDate(nodeName, id);
 				final String pubslisher = this.pubSubDB.getItemPublisher(nodeName, id);
 				Item item = new Item(id, data, creationDate, updateDate, pubslisher);
 				result.add(item);

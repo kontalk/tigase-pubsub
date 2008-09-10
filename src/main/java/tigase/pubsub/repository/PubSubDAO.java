@@ -189,8 +189,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 */
 	public void deleteItem(String nodeName, String id) throws RepositoryException {
 		try {
-			repository.removeSubnode(config.getServiceName(), nodeName + "/" + config.getServiceName() + "/" + NODES_KEY + nodeName
-					+ "/" + ITEMS_KEY + "/" + id);
+			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id);
 		} catch (Exception e) {
 			throw new RepositoryException("Item removing error", e);
 		}
@@ -282,9 +281,14 @@ public class PubSubDAO implements IPubSubDAO {
 	 * tigase.pubsub.repository.PubSubRepository#getItemCreationDate(java.lang
 	 * .String, java.lang.String)
 	 */
-	public String getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
+	public Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date");
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
+					"creation-date");
+			if (tmp == null)
+				return null;
+			Date d = new Date(Long.parseLong(tmp));
+			return d;
 		} catch (Exception e) {
 			throw new RepositoryException("Items creation-date reading error", e);
 		}
@@ -310,9 +314,14 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	public String getItemUpdateDate(String nodeName, String id) throws RepositoryException {
+	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date");
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
+					"update-date");
+			if (tmp == null)
+				return null;
+			Date d = new Date(Long.parseLong(tmp));
+			return d;
 		} catch (Exception e) {
 			throw new RepositoryException("Items update-date reading error", e);
 		}
