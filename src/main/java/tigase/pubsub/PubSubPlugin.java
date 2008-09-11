@@ -57,8 +57,10 @@ public class PubSubPlugin extends SimpleForwarder {
 			Map<String, Object> settings) throws XMPPException {
 		final String pubSubComponentUrl = (String) settings.get(PUBSUB_COMPONENT_URL);
 
-		if (packet.getElemTo() == null || packet.getElemTo().equals("sphere"))
+		if (packet.getElemTo() == null || packet.getElemTo().equals("sphere")) {
+			log.finest("Forwarding packet to: " + pubSubComponentUrl);
 			packet.getElement().setAttribute("to", pubSubComponentUrl);
+		}
 		super.process(packet, session, repo, results, settings);
 	}
 
