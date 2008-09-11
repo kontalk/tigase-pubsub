@@ -342,8 +342,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
 
-		ServiceEntity blogItems = new ServiceEntity(getName(), "blogs", "Blogs items news");
-		serviceEntity.addItems(blogItems);
 
 		this.config.setAdmins((String[]) props.get(ADMINS_KEY));
 
