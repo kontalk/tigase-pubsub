@@ -60,7 +60,10 @@ public class PubSubPlugin extends SimpleForwarder {
 		if (packet.getElemTo() == null || packet.getElemTo().equals("sphere")) {
 			log.finest("Forwarding packet to: " + pubSubComponentUrl);
 			packet.getElement().setAttribute("to", pubSubComponentUrl);
+		} else {
+			log.finest("Leaving packet As Is");
 		}
+
 		super.process(packet, session, repo, results, settings);
 	}
 
