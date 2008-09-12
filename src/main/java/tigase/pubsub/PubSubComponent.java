@@ -350,9 +350,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		try {
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
 			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
-			if (!res_uri.contains("autoCreateUser=true")) {
-				res_uri += "&autoCreateUser=true";
-			}
+// 			if (!res_uri.contains("autoCreateUser=true")) {
+// 				res_uri += "&autoCreateUser=true";
+// 			}
 
 			this.userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 			userRepository.initRepository(res_uri, null);
