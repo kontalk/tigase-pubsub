@@ -21,9 +21,7 @@
  */
 package tigase.pubsub.repository;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,12 +29,13 @@ import java.util.logging.Logger;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
-import tigase.form.Field;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
+import tigase.pubsub.ElementCache;
 import tigase.pubsub.LeafNodeConfig;
+import tigase.pubsub.ListCache;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
@@ -59,15 +58,21 @@ public class PubSubDAO implements IPubSubDAO {
 
 	private static final String ITEMS_KEY = "items";
 
+	private final static long MAX_CACHE_TIME = 5000;
+
 	private static final String NODE_TYPE_KEY = "pubsub#node_type";
 
 	static final String NODES_KEY = "nodes/";
 
 	private static final String SUBSCRIPTIONS_KEY = "subscriptions";
 
+	private final ListCache<String, String> collectionCache = new ListCache<String, String>(1000, MAX_CACHE_TIME);
+
 	final PubSubConfig config;
 
 	private Logger log = Logger.getLogger(this.getClass().getName());
+
+	private final ElementCache<String[]> nodesListCache = new ElementCache<String[]>(MAX_CACHE_TIME);
 
 	private final SimpleParser parser = SingletonFactory.getParserInstance();
 
@@ -246,9 +251,17 @@ public class PubSubDAO implements IPubSubDAO {
 	 * tigase.pubsub.repository.PubSubRepository#getCollectionOf(java.lang.String
 	 * )
 	 */
-	public String getCollectionOf(String nodeName) throws RepositoryException {
+	public String getCollectionOf(final String nodeName) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", ASSOCIATE_COLLECTION_KEY);
+			String collection = collectionCache.get(nodeName);
+			if (collection == null) {
+				collection = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/",
+						ASSOCIATE_COLLECTION_KEY);
+				if (collection != null) {
+					collectionCache.put(nodeName, collection);
+				}
+			}
+			return collection;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RepositoryException("Node collection getting error", e);
@@ -350,32 +363,14 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#getNodeChildren(java.lang.String
-	 * )
-	 */
-	public String[] getNodeChildren(final String node) throws RepositoryException {
-		List<String> result = new ArrayList<String>();
-		final String tmpNode = node == null ? "" : node;
-		for (String name : getNodesList()) {
-			final String collection = getCollectionOf(name);
-			if (tmpNode.equals(collection)) {
-				result.add(name);
-			}
-		}
-		return result.toArray(new String[] {});
-	}
-
 	public <T extends AbstractNodeConfig> T getNodeConfig(final Class<T> nodeConfigClass, final String nodeName)
 			throws RepositoryException {
 		try {
 			T nodeConfig = nodeConfigClass.newInstance();
 			nodeConfig.read(repository, config, NODES_KEY + nodeName + "/configuration");
-			Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
-			nodeConfig.add(f);
+			// Field f = Field.fieldTextMulti("pubsub#children",
+			// getNodeChildren(nodeName), null);
+			// nodeConfig.add(f);
 			return nodeConfig;
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
@@ -425,15 +420,13 @@ public class PubSubDAO implements IPubSubDAO {
 	 */
 	public String[] getNodesList() throws RepositoryException {
 		try {
-			log.finer("Getting nodes list directly from DB");
-			String[] nodes = repository.getSubnodes(config.getServiceName(), NODES_KEY);
-			if (nodes != null) {
-				StringBuilder sb = new StringBuilder();
-				for (String string : nodes) {
-					sb.append(string);
-					sb.append(", ");
-				}
-				log.finest("Readed nodes: " + sb.toString());
+			String[] nodes = nodesListCache.getData();
+			if (nodes == null) {
+				log.finer("Getting nodes list directly from DB");
+				nodes = repository.getSubnodes(config.getServiceName(), NODES_KEY);
+				nodesListCache.setData(nodes);
+			} else {
+				log.finer("Getting nodes list from Cache");
 			}
 			return nodes;
 		} catch (Exception e) {
@@ -551,25 +544,6 @@ public class PubSubDAO implements IPubSubDAO {
 	public void init() {
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#readNodeConfig(tigase.pubsub
-	 * .LeafNodeConfig, java.lang.String)
-	 */
-	public void readNodeConfig(LeafNodeConfig nodeConfig, String nodeName) throws RepositoryException {
-		try {
-			nodeConfig.read(repository, config, NODES_KEY + nodeName + "/configuration");
-			// if (nodeConfig.getNodeType() == NodeType.collection) {
-			Field f = Field.fieldTextMulti("pubsub#children", getNodeChildren(nodeName), null);
-			nodeConfig.add(f);
-			// }
-		} catch (Exception e) {
-			throw new RepositoryException("Node configuration reading error", e);
-		}
-	}
-
 	@Override
 	public void removeListener(PubSubRepositoryListener listener) {
 		throw new RuntimeException("Listeners are unsupported");
@@ -643,4 +617,5 @@ public class PubSubDAO implements IPubSubDAO {
 			throw new RepositoryException("Item writing error", e);
 		}
 	}
+
 }

@@ -129,7 +129,7 @@ public class AbstractNodeConfig {
 	}
 
 	protected void init() {
-		blacklist.add("pubsub#children");
+	//	blacklist.add("pubsub#children");
 		blacklist.add("pubsub#node_type");
 
 		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, new String[] { NodeType.leaf.name(),

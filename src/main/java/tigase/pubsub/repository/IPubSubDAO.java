@@ -71,8 +71,6 @@ public interface IPubSubDAO {
 
 	public abstract AccessModel getNodeAccessModel(String nodeName) throws RepositoryException;
 
-	public abstract String[] getNodeChildren(final String node) throws RepositoryException;
-
 	// public abstract void readNodeConfig(LeafNodeConfig nodeConfig, String
 	// nodeName) throws RepositoryException;
 
