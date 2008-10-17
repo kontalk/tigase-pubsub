@@ -21,6 +21,7 @@
  */
 package tigase.pubsub.repository;
 
+import java.lang.reflect.Constructor;
 import java.util.Date;
 import java.util.Queue;
 import java.util.logging.Level;
@@ -58,11 +59,13 @@ public class PubSubDAO implements IPubSubDAO {
 
 	private static final String ITEMS_KEY = "items";
 
-	private final static long MAX_CACHE_TIME = 5000;
+	private final static long MAX_CACHE_TIME = 2000;
 
 	private static final String NODE_TYPE_KEY = "pubsub#node_type";
 
 	static final String NODES_KEY = "nodes/";
+
+	private static final String ROOT_COLLECTION_KEY = "root-collection";
 
 	private static final String SUBSCRIPTIONS_KEY = "subscriptions";
 
@@ -71,6 +74,9 @@ public class PubSubDAO implements IPubSubDAO {
 	final PubSubConfig config;
 
 	private Logger log = Logger.getLogger(this.getClass().getName());
+
+	private final ListCache<String, AbstractNodeConfig> nodesConfigCache = new ListCache<String, AbstractNodeConfig>(1000,
+			MAX_CACHE_TIME);
 
 	private final ElementCache<String[]> nodesListCache = new ElementCache<String[]>(MAX_CACHE_TIME);
 
@@ -129,6 +135,14 @@ public class PubSubDAO implements IPubSubDAO {
 			throw new RepositoryException("Subscriber adding error", e);
 		}
 
+	}
+
+	public void addToRootCollection(String nodeName) throws RepositoryException {
+		try {
+			repository.setData(config.getServiceName(), ROOT_COLLECTION_KEY, nodeName, "root");
+		} catch (Exception e) {
+			throw new RepositoryException("Adding to root collection error", e);
+		}
 	}
 
 	@Override
@@ -366,11 +380,9 @@ public class PubSubDAO implements IPubSubDAO {
 	public <T extends AbstractNodeConfig> T getNodeConfig(final Class<T> nodeConfigClass, final String nodeName)
 			throws RepositoryException {
 		try {
-			T nodeConfig = nodeConfigClass.newInstance();
+			Constructor<T> constructor = nodeConfigClass.getConstructor(String.class);
+			T nodeConfig = constructor.newInstance(nodeName);
 			nodeConfig.read(repository, config, NODES_KEY + nodeName + "/configuration");
-			// Field f = Field.fieldTextMulti("pubsub#children",
-			// getNodeChildren(nodeName), null);
-			// nodeConfig.add(f);
 			return nodeConfig;
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
@@ -379,6 +391,10 @@ public class PubSubDAO implements IPubSubDAO {
 	}
 
 	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException {
+		AbstractNodeConfig nc = nodesConfigCache.get(nodeName);
+		if (nc != null) {
+			return nc;
+		}
 		try {
 			NodeType type = getNodeType(nodeName);
 			if (type == null)
@@ -394,7 +410,10 @@ public class PubSubDAO implements IPubSubDAO {
 			default:
 				throw new RepositoryException("Unknown node type " + type);
 			}
-			return getNodeConfig(cl, nodeName);
+			nc = getNodeConfig(cl, nodeName);
+			if (nc != null)
+				nodesConfigCache.put(nodeName, nc);
+			return nc;
 		} catch (RepositoryException e) {
 			throw e;
 		} catch (Exception e) {
@@ -454,6 +473,15 @@ public class PubSubDAO implements IPubSubDAO {
 			}
 		} catch (Exception e) {
 			throw new RepositoryException("Owner getting error", e);
+		}
+	}
+
+	public String[] getRootNodes() throws RepositoryException {
+		try {
+			String[] ids = repository.getKeys(config.getServiceName(), ROOT_COLLECTION_KEY);
+			return ids;
+		} catch (Exception e) {
+			throw new RepositoryException("Getting root collection error", e);
 		}
 	}
 
@@ -542,6 +570,22 @@ public class PubSubDAO implements IPubSubDAO {
 
 	@Override
 	public void init() {
+	}
+
+	public void removeAllFromRootCollection() throws RepositoryException {
+		try {
+			repository.removeSubnode(config.getServiceName(), ROOT_COLLECTION_KEY);
+		} catch (Exception e) {
+			throw new RepositoryException("Removing root collection error", e);
+		}
+	}
+
+	public void removeFromRootCollection(String nodeName) throws RepositoryException {
+		try {
+			repository.removeData(config.getServiceName(), ROOT_COLLECTION_KEY, nodeName);
+		} catch (Exception e) {
+			throw new RepositoryException("Removing from root collection error", e);
+		}
 	}
 
 	@Override

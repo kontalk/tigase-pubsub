@@ -28,6 +28,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -98,6 +99,35 @@ public class NodeDeleteModule extends AbstractModule {
 				String pssJid = element.getAttribute("to");
 				Element del = new Element("delete", new String[] { "node" }, new String[] { nodeName });
 				resultArray.addAll(this.publishModule.prepareNotification(del, pssJid, nodeName));
+			}
+
+			final String parentNodeName = nodeConfig.getCollection();
+			CollectionNodeConfig parentCollectionConfig = null;
+			if (parentNodeName != null && !parentNodeName.equals("")) {
+				parentCollectionConfig = (CollectionNodeConfig) repository.getNodeConfig(parentNodeName);
+				parentCollectionConfig.removeChildren(nodeName);
+			} else {
+				repository.removeFromRootCollection(nodeName);
+			}
+
+			if (nodeConfig instanceof CollectionNodeConfig) {
+				CollectionNodeConfig cnc = (CollectionNodeConfig) nodeConfig;
+				final String[] childrenNodes = cnc.getChildren();
+				if (childrenNodes != null && childrenNodes.length > 0) {
+					for (String childNodeName : childrenNodes) {
+						AbstractNodeConfig childNodeConfig = repository.getNodeConfig(childNodeName);
+						childNodeConfig.setCollection(parentNodeName);
+						repository.update(childNodeName, childNodeConfig);
+						if (parentNodeName != null && !parentNodeName.equals("")) {
+							parentCollectionConfig.addChildren(childNodeName);
+						} else {
+							repository.addToRootCollection(childNodeName);
+						}
+					}
+				}
+			}
+			if (parentCollectionConfig != null) {
+				repository.update(parentNodeName, parentCollectionConfig);
 			}
 
 			log.fine("Delete node [" + nodeName + "]");

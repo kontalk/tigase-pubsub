@@ -22,8 +22,6 @@
 package tigase.pubsub.repository.stateless;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
@@ -59,6 +57,10 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	public String addSubscriberJid(String nodeName, String jid, Affiliation affiliation, Subscription subscription)
 			throws RepositoryException {
 		return this.dao.addSubscriberJid(nodeName, jid, affiliation, subscription);
+	}
+
+	public void addToRootCollection(String nodeName) throws RepositoryException {
+		dao.addToRootCollection(nodeName);
 	}
 
 	@Override
@@ -160,6 +162,12 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
+	public String[] getRootCollection() throws RepositoryException {
+		String[] result = this.dao.getRootNodes();
+		return result == null ? new String[] {} : result;
+	}
+
+	@Override
 	public NodeAffiliation getSubscriberAffiliation(String nodeName, String jid) throws RepositoryException {
 		Affiliation affiliation = this.dao.getSubscriberAffiliation(nodeName, jid);
 		NodeAffiliation na = new NodeAffiliation(jid, affiliation);
@@ -199,6 +207,10 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	public void init() {
 	}
 
+	public void removeFromRootCollection(String nodeName) throws RepositoryException {
+		dao.removeFromRootCollection(nodeName);
+	}
+
 	@Override
 	public void removeListener(PubSubRepositoryListener listener) {
 		this.listeners.remove(listener);
@@ -231,5 +243,4 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 		this.dao.writeItem(nodeName, timeInMilis, id, publisher, item);
 	}
 
-	
 }

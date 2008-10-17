@@ -44,11 +44,15 @@ public class AbstractNodeConfig {
 
 	protected final Form form = new Form("form", null, null);
 
-	public AbstractNodeConfig() {
+	private final String nodeName;
+
+	public AbstractNodeConfig(final String nodeName) {
+		this.nodeName = nodeName;
 		init();
 	}
 
-	public AbstractNodeConfig(final AbstractNodeConfig config) {
+	public AbstractNodeConfig(final String nodeName, final AbstractNodeConfig config) {
+		this.nodeName = nodeName;
 		init();
 		copyFrom(config);
 	}
@@ -111,6 +115,10 @@ public class AbstractNodeConfig {
 		}
 	}
 
+	public String getNodeName() {
+		return nodeName;
+	}
+
 	public NodeType getNodeType() {
 		String tmp = form.getAsString("pubsub#node_type");
 		if (tmp == null) {
@@ -129,7 +137,6 @@ public class AbstractNodeConfig {
 	}
 
 	protected void init() {
-	//	blacklist.add("pubsub#children");
 		blacklist.add("pubsub#node_type");
 
 		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, new String[] { NodeType.leaf.name(),

@@ -21,6 +21,47 @@
  */
 package tigase.pubsub;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import tigase.form.Field;
+
 public class CollectionNodeConfig extends AbstractNodeConfig {
+
+	public CollectionNodeConfig(String nodeName) {
+		super(nodeName);
+	}
+
+	public void addChildren(String... children) {
+		Set<String> list = new HashSet<String>();
+		String[] cur = getChildren();
+		if (cur != null)
+			list.addAll(Arrays.asList(cur));
+		for (String kid : children) {
+			list.add(kid);
+		}
+		setChildren(list.toArray(new String[] {}));
+	}
+
+	@Override
+	protected void init() {
+		super.init();
+		Field f = Field.fieldTextMulti("pubsub#children", "", null);
+		add(f);
+	}
+
+	public void removeChildren(String nodeName) {
+		Set<String> list = new HashSet<String>();
+		String[] cur = getChildren();
+		if (cur != null)
+			list.addAll(Arrays.asList(cur));
+		list.remove(nodeName);
+		setChildren(list.toArray(new String[] {}));
+	}
+
+	public void setChildren(String[] children) {
+		setValue("pubsub#children", children);
+	}
 
 }

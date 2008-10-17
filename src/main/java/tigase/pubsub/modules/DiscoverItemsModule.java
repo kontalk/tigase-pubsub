@@ -68,55 +68,62 @@ public class DiscoverItemsModule extends AbstractModule {
 			Element resultQuery = new Element("query", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/disco#items" });
 			resultIq.addChild(resultQuery);
-			log.finest("Asking about Items of node " + nodeName);
-			AbstractNodeConfig nodeConfig = nodeName == null ? null : repository.getNodeConfig(nodeName);
-			if (nodeName == null || (nodeConfig != null && nodeConfig.getNodeType() == NodeType.collection)) {
-				String parentName;
-				if (nodeName == null) {
-					parentName = "";
-				} else {
-					parentName = nodeName;
-				}
-				String[] nodes = this.repository.getNodesList();
-				if (nodes != null) {
-					for (String node : nodes) {
-						AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(node);
-						if (childNodeConfig != null) {
-							boolean allowed = (senderJid == null || childNodeConfig == null) ? true : Utils.isAllowedDomain(
-									senderJid, childNodeConfig.getDomains());
-							String collection = childNodeConfig.getCollection();
-							if (allowed) {
-								String name = childNodeConfig.getTitle();
-								name = name == null || name.length() == 0 ? node : name;
-								Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] {
-										element.getAttribute("to"), node, name });
 
-								if (parentName.equals(collection))
-									resultQuery.addChild(item);
-							} else {
-								log.fine("User " + senderJid + " not allowed to see node '" + node + "'");
-							}
-						}
-					}
-				}
-			} else if ("http://jabber.org/protocol/commands".equals(nodeName)) {
+			if ("http://jabber.org/protocol/commands".equals(nodeName)) {
 				List<Element> commandList = this.adHocCommandsModule.getCommandListItems(senderJid, element.getAttribute("to"));
 				if (commandList != null)
 					for (Element item : commandList) {
 						resultQuery.addChild(item);
 					}
 			} else {
-				boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
-						nodeConfig.getDomains());
-				if (!allowed)
-					throw new PubSubException(Authorization.FORBIDDEN);
-				resultQuery.addAttribute("node", nodeName);
-				String[] itemsId = repository.getItemsIds(nodeName);
-				if (itemsId != null) {
-					for (String itemId : itemsId) {
-						resultQuery.addChild(new Element("item", new String[] { "jid", "name" }, new String[] {
-								element.getAttribute("to"), itemId }));
 
+				log.finest("Asking about Items of node " + nodeName);
+				AbstractNodeConfig nodeConfig = nodeName == null ? null : repository.getNodeConfig(nodeName);
+				String[] nodes;
+				if (nodeName == null || (nodeConfig != null && nodeConfig.getNodeType() == NodeType.collection)) {
+					String parentName;
+					if (nodeName == null) {
+						parentName = "";
+						nodes = repository.getRootCollection();
+					} else {
+						parentName = nodeName;
+						nodes = nodeConfig.getChildren();
+					}
+					// = this.repository.getNodesList();
+					if (nodes != null) {
+						for (String node : nodes) {
+							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(node);
+							if (childNodeConfig != null) {
+								boolean allowed = (senderJid == null || childNodeConfig == null) ? true : Utils.isAllowedDomain(
+										senderJid, childNodeConfig.getDomains());
+								String collection = childNodeConfig.getCollection();
+								if (allowed) {
+									String name = childNodeConfig.getTitle();
+									name = name == null || name.length() == 0 ? node : name;
+									Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] {
+											element.getAttribute("to"), node, name });
+
+									if (parentName.equals(collection))
+										resultQuery.addChild(item);
+								} else {
+									log.fine("User " + senderJid + " not allowed to see node '" + node + "'");
+								}
+							}
+						}
+					}
+				} else {
+					boolean allowed = (senderJid == null || nodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
+							nodeConfig.getDomains());
+					if (!allowed)
+						throw new PubSubException(Authorization.FORBIDDEN);
+					resultQuery.addAttribute("node", nodeName);
+					String[] itemsId = repository.getItemsIds(nodeName);
+					if (itemsId != null) {
+						for (String itemId : itemsId) {
+							resultQuery.addChild(new Element("item", new String[] { "jid", "name" }, new String[] {
+									element.getAttribute("to"), itemId }));
+
+						}
 					}
 				}
 			}

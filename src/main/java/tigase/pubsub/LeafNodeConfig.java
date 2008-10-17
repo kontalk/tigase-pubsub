@@ -21,15 +21,14 @@
  */
 package tigase.pubsub;
 
-
 public class LeafNodeConfig extends AbstractNodeConfig {
 
-	public LeafNodeConfig() {
-		super();
+	public LeafNodeConfig(final String nodeName) {
+		super(nodeName);
 	}
 
-	public LeafNodeConfig(AbstractNodeConfig config) {
-		super(config);
+	public LeafNodeConfig(final String nodeName, AbstractNodeConfig config) {
+		super(nodeName, config);
 	}
 
 	public Integer getMaxItems() {

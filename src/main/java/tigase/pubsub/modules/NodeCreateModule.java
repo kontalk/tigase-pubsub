@@ -28,6 +28,7 @@ import java.util.UUID;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
@@ -104,7 +105,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			NodeType nodeType = NodeType.leaf;
 			String collection = null;
-			LeafNodeConfig nodeConfig = new LeafNodeConfig(defaultNodeConfig);
+			LeafNodeConfig nodeConfig = new LeafNodeConfig(nodeName, defaultNodeConfig);
 			if (configure != null) {
 				Element x = configure.getChild("x", "jabber:x:data");
 				if (x != null && "submit".equals(x.getAttribute("type"))) {
@@ -127,13 +128,15 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				}
 			}
 
+			CollectionNodeConfig colNodeConfig = null;
 			if (collection != null) {
-				AbstractNodeConfig colNodeConfig = repository.getNodeConfig(collection);
-				if (colNodeConfig == null) {
+				AbstractNodeConfig absNodeConfig = repository.getNodeConfig(collection);
+				if (absNodeConfig == null) {
 					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
-				} else if (colNodeConfig.getNodeType() == NodeType.leaf) {
+				} else if (absNodeConfig.getNodeType() == NodeType.leaf) {
 					throw new PubSubException(element, Authorization.NOT_ALLOWED);
 				}
+				colNodeConfig = (CollectionNodeConfig) absNodeConfig;
 			}
 
 			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
@@ -141,6 +144,14 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
 					collection == null ? "" : collection);
+
+			if (colNodeConfig == null) {
+				repository.addToRootCollection(nodeName);
+			} else {
+				colNodeConfig.addChildren(nodeName);
+				repository.update(collection, colNodeConfig);
+			}
+
 			fireOnNodeCreatedConfigChange(nodeName);
 
 			ArrayList<Element> notifications = new ArrayList<Element>();

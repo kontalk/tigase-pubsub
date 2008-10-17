@@ -36,6 +36,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -176,7 +177,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						} else if (colNodeType == NodeType.leaf) {
 							throw new PubSubException(element, Authorization.NOT_ALLOWED);
 						}
-						repository.setNewNodeCollection(nodeName, collectionName);
+						switchCollection(nodeName, collectionName);
 						if (!"".equals(collectionName)) {
 							Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionName });
 							colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
@@ -204,7 +205,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							if (nc == null) {
 								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 							}
-							repository.setNewNodeCollection(node, nodeName);
+							switchCollection(node, nodeName);
 
 							Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
 							colE.addChild(new Element("associate", new String[] { "node" }, new String[] { node }));
@@ -216,7 +217,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 								if (nc == null) {
 									throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 								}
-								repository.setNewNodeCollection(node, "");
+								switchCollection(node, "");
 								Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
 								colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { node }));
 								resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
@@ -250,5 +251,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 	public void removeNodeConfigListener(NodeConfigListener listener) {
 		this.nodeConfigListeners.remove(listener);
+	}
+
+	private void switchCollection(String nodeName, String collectionNodeName) throws RepositoryException {
+		repository.setNewNodeCollection(nodeName, collectionNodeName);
 	}
 }

@@ -70,14 +70,14 @@ public class DefaultConfigCommand implements AdHocCommand {
 
 				response.cancelSession();
 			} else if (data == null) {
-				LeafNodeConfig defaultNodeConfig = new LeafNodeConfig();
+				LeafNodeConfig defaultNodeConfig = new LeafNodeConfig("default");
 				defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 				response.getElements().add(defaultNodeConfig.getFormElement());
 				response.startSession();
 			} else {
 				Form form = new Form(data);
 				if ("submit".equals(form.getType())) {
-					LeafNodeConfig nodeConfig = new LeafNodeConfig();
+					LeafNodeConfig nodeConfig = new LeafNodeConfig("default");
 					nodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 
 					NodeConfigModule.parseConf(nodeConfig, request.getCommand());

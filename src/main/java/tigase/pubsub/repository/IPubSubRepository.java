@@ -17,6 +17,8 @@ public interface IPubSubRepository {
 	public abstract String addSubscriberJid(String nodeName, String jid, Affiliation affiliation, Subscription subscription)
 			throws RepositoryException;
 
+	public void addToRootCollection(String nodeName) throws RepositoryException;
+
 	public abstract void changeAffiliation(String nodeName, String jid, Affiliation affiliation) throws RepositoryException;
 
 	public abstract void changeSubscription(String nodeName, String jid, Subscription subscription) throws RepositoryException;
@@ -39,16 +41,19 @@ public interface IPubSubRepository {
 	public abstract Element getItem(String nodeName, String id) throws RepositoryException;
 
 	public abstract Date getItemCreationDate(String nodeName, String id) throws RepositoryException;
-	
+
 	public abstract String[] getItemsIds(String nodeName) throws RepositoryException;
 
 	public abstract Date getItemUpdateDate(String nodeName, String id) throws RepositoryException;
 
 	public abstract AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException;
 
+	@Deprecated
 	public abstract String[] getNodesList() throws RepositoryException;
 
 	public abstract IPubSubDAO getPubSubDAO();
+
+	public abstract String[] getRootCollection() throws RepositoryException;
 
 	public abstract NodeAffiliation getSubscriberAffiliation(String nodeName, String jid) throws RepositoryException;
 
@@ -61,6 +66,8 @@ public interface IPubSubRepository {
 	public abstract String[] getUserRoster(String owner) throws RepositoryException;
 
 	public abstract void init();
+
+	public void removeFromRootCollection(String nodeName) throws RepositoryException;
 
 	public abstract void removeListener(PubSubRepositoryListener listener);
 

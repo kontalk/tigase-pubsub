@@ -56,10 +56,11 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
+import tigase.pubsub.modules.commands.DatabaseCleanCommand;
 import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
-import tigase.pubsub.repository.inmemory.InMemoryPubSubRepository;
 import tigase.pubsub.repository.stateless.StatelessPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
@@ -87,6 +88,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected DefaultConfigModule defaultConfigModule;
 
 	protected LeafNodeConfig defaultNodeConfig;
+
+	private PubSubDAO directPubSubRepository;
 
 	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
 
@@ -270,7 +273,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Reading default config error", e);
 		}
-	}
+	};
 
 	@Override
 	public void processPacket(final Packet packet) {
@@ -295,7 +298,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				log.throwing("PubSub Service", "processPacket (sending internal-server-error)", e);
 			}
 		}
-	};
+	}
 
 	public <T extends Module> T registerModule(final T module) {
 		log.config("Register PubSub plugin: " + module.getClass().getCanonicalName());
@@ -342,7 +345,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
 
-
 		this.config.setAdmins((String[]) props.get(ADMINS_KEY));
 
 		this.config.setServiceName("tigase-pubsub");
@@ -350,17 +352,17 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		try {
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
 			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
-// 			if (!res_uri.contains("autoCreateUser=true")) {
-// 				res_uri += "&autoCreateUser=true";
-// 			}
+			// if (!res_uri.contains("autoCreateUser=true")) {
+			// res_uri += "&autoCreateUser=true";
+			// }
 
 			this.userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 			userRepository.initRepository(res_uri, null);
 
-			PubSubDAO directPubSubRepository = new PubSubDAO(userRepository, this.config);
+			directPubSubRepository = new PubSubDAO(userRepository, this.config);
 
 			this.pubsubRepository = createPubSubRepository(directPubSubRepository);
-			this.defaultNodeConfig = new LeafNodeConfig();
+			this.defaultNodeConfig = new LeafNodeConfig("default");
 			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 			this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 
@@ -374,8 +376,12 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		init();
 
 		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
+		final DatabaseCleanCommand databaseCleanCommand = new DatabaseCleanCommand(this.config, this.directPubSubRepository);
 		configCommand.addListener(this);
+
+		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
 		this.adHocCommandsModule.register(configCommand);
+		this.adHocCommandsModule.register(databaseCleanCommand);
 
 		StringBuilder sb = new StringBuilder();
 
@@ -391,5 +397,4 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 		log.config("Supported features: " + sb.toString());
 	}
-
 }
