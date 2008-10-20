@@ -118,7 +118,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	}
 
 	protected void processMethodCall(String methodName, Map<String, String> allMethodParams) throws RepositoryException {
-		log.severe("Unexpected remote method call");
+		log.warning("Unexpected remote method call");
 		System.out.println("!!!! Unexpected remote method call !!!!");
 	}
 

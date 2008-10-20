@@ -449,7 +449,7 @@ public class PubSubDAO implements IPubSubDAO {
 			}
 			return nodes;
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Nodes list getting error", e);
+			log.log(Level.WARNING, "Nodes list getting error", e);
 			throw new RepositoryException("Nodes list getting error", e);
 		}
 	}

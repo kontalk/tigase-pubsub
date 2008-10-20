@@ -69,6 +69,7 @@ import tigase.util.DNSResolver;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
+import tigase.xmpp.StanzaType;
 
 public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco,
 		DefaultNodeConfigListener {
@@ -283,13 +284,18 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			boolean handled = runModules(element);
 
 			if (!handled) {
-				addOutPacket(Authorization.FEATURE_NOT_IMPLEMENTED.getResponseMessage(packet, "Stanza is not processed", true));
+				final StanzaType type = packet.getType();
+				if (type != StanzaType.error) {
+					addOutPacket(Authorization.FEATURE_NOT_IMPLEMENTED.getResponseMessage(packet, "Stanza is not processed", true));
+				} else {
+					log.finer(packet.getElemName() + " stanza with type='error' ignored");
+				}
 			}
 		} catch (PubSubException e) {
 			Element result = e.makeElement(packet.getElement());
 			addOutPacket(new Packet(result));
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Unexpected exception: internal-server-error", e);
+			log.log(Level.WARNING, "Unexpected exception: internal-server-error", e);
 			e.printStackTrace();
 			try {
 				addOutPacket(Authorization.INTERNAL_SERVER_ERROR.getResponseMessage(packet, e.getMessage(), true));

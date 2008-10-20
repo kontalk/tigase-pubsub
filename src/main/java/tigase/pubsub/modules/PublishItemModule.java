@@ -176,7 +176,7 @@ public class PublishItemModule extends AbstractModule {
 				body = this.xslTransformer.transform(itemToSend, nodeConfig);
 			} catch (Exception e) {
 				body = null;
-				log.log(Level.SEVERE, "Problem with generating BODY", e);
+				log.log(Level.WARNING, "Problem with generating BODY", e);
 			}
 		}
 

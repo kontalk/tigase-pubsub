@@ -195,12 +195,12 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						if (isIn("", nodeConfig.getChildren())) {
 							throw new PubSubException(Authorization.BAD_REQUEST);
 						}
-						String[] removedNodes = diff(children == null ? new String[] {} : children,
+						String[] removedChildNodes = diff(children == null ? new String[] {} : children,
 								nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
-						String[] addedNodes = diff(nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
+						String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
 								children == null ? new String[] {} : children);
 
-						for (String node : addedNodes) {
+						for (String node : addedChildNodes) {
 							AbstractNodeConfig nc = repository.getNodeConfig(node);
 							if (nc == null) {
 								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
@@ -211,8 +211,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							colE.addChild(new Element("associate", new String[] { "node" }, new String[] { node }));
 							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
 						}
-						if (removedNodes != null && removedNodes.length > 0) {
-							for (String node : removedNodes) {
+						if (removedChildNodes != null && removedChildNodes.length > 0) {
+							for (String node : removedChildNodes) {
 								AbstractNodeConfig nc = repository.getNodeConfig(node);
 								if (nc == null) {
 									throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
