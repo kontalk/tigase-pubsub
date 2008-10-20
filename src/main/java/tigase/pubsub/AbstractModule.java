@@ -92,7 +92,8 @@ public abstract class AbstractModule implements Module {
 		if (jids != null) {
 			for (String jid : jids) {
 				NodeAffiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
-				if (affiliation.getAffiliation() != Affiliation.outcast && affiliation.getAffiliation() != Affiliation.none) {
+				// /* && affiliation.getAffiliation() != Affiliation.none */
+				if (affiliation.getAffiliation() != Affiliation.outcast) {
 					Subscription subscription = repository.getSubscription(nodeName, jid);
 					if (subscription == Subscription.subscribed) {
 						result.add(jid);

@@ -58,12 +58,12 @@ public class SubscribeNodeModule extends AbstractModule {
 		return resPubSub;
 	}
 
-	private final ManageSubscriptionModule manageSubscriptionModule;
+	private final PendingSubscriptionModule pendingSubscriptionModule;
 
 	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-			ManageSubscriptionModule manageSubscriptionModule) {
+			PendingSubscriptionModule manageSubscriptionModule) {
 		super(config, pubsubRepository);
-		this.manageSubscriptionModule = manageSubscriptionModule;
+		this.pendingSubscriptionModule = manageSubscriptionModule;
 	}
 
 	@Override
@@ -160,7 +160,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (senderAffiliation == null) {
 				subid = repository.addSubscriberJid(nodeName, jid, affiliation, newSubscription);
 				if (accessModel == AccessModel.authorize) {
-					results.addAll(this.manageSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"),
+					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"),
 							subid, jid));
 				}
 

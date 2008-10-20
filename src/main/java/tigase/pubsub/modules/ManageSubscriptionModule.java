@@ -26,29 +26,36 @@ import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.form.Field;
-import tigase.form.Form;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
 public class ManageSubscriptionModule extends AbstractModule {
 
-	private static final Criteria CRIT = ElementCriteria.name("message").add(
-			ElementCriteria.name("x", new String[] { "xmlns", "type" }, new String[] { "jabber:x:data", "submit" })).add(
-			ElementCriteria.name("field", new String[] { "var" }, new String[] { "FORM_TYPE" })).add(
-			ElementCriteria.name("value", "http://jabber.org/protocol/pubsub#subscribe_authorization", null, null));
+	private static final Criteria CRIT = ElementCriteria.name("iq").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("subscriptions"));
+
+	private static Element createAffiliationNotification(String fromJid, String toJid, String nodeName, Subscription subscription) {
+		Element message = new Element("message", new String[] { "from", "to" }, new String[] { fromJid, toJid });
+		Element pubsub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+		message.addChild(pubsub);
+		Element affilations = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
+		pubsub.addChild(affilations);
+		affilations.addChild(new Element("subscription", new String[] { "jid", "subscription" }, new String[] { toJid,
+				subscription.name() }));
+		return message;
+	}
 
 	public ManageSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
@@ -56,7 +63,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 
 	@Override
 	public String[] getFeatures() {
-		return new String[] { "http://jabber.org/protocol/pubsub#get-pending" };
+		return new String[] { "http://jabber.org/protocol/pubsub#manage-subscriptions" };
 	}
 
 	@Override
@@ -65,51 +72,39 @@ public class ManageSubscriptionModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element message) throws PubSubException {
+	public List<Element> process(Element element) throws PubSubException {
 		try {
-			Form x = new Form(message.getChild("x", "jabber:x:data"));
-			final String subId = x.getAsString("pubsub#subid");
-			final String node = x.getAsString("pubsub#node");
-			final String subscriberJid = x.getAsString("pubsub#subscriber_jid");
-			final Boolean allow = x.getAsBoolean("pubsub#allow");
+			Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
+			Element subscriptions = pubsub.getChild("subscriptions");
+			String nodeName = subscriptions.getAttribute("node");
+			String type = element.getAttribute("type");
 
-			if (allow == null)
-				return null;
-
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(node);
-			if (nodeConfig == null) {
-				throw new PubSubException(message, Authorization.ITEM_NOT_FOUND);
+			if (type == null || !type.equals("get") && !type.equals("set")) {
+				throw new PubSubException(Authorization.BAD_REQUEST);
 			}
-			String jid = message.getAttribute("from");
-			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(node, jid);
+
+			if (nodeName == null) {
+				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
+			}
+			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+			if (nodeConfig == null) {
+				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
+			}
+			String senderJid = element.getAttribute("from");
+
+			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
+				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, senderJid);
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
-					throw new PubSubException(message, Authorization.FORBIDDEN);
+					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
 			}
-			String userSubId = this.repository.getSubscriptionId(node, subscriberJid);
-			if (subId != null && !subId.equals(userSubId)) {
-				throw new PubSubException(message, Authorization.NOT_ACCEPTABLE, PubSubErrorCondition.INVALID_SUBID);
-			}
 
-			Subscription subscription = this.repository.getSubscription(node, subscriberJid);
-			if (subscription != Subscription.pending)
-				return null;
-			Affiliation affiliation = this.repository.getSubscriberAffiliation(node, jid).getAffiliation();
-			if (allow) {
-				subscription = Subscription.subscribed;
-				affiliation = Affiliation.member;
-				this.repository.changeSubscription(node, subscriberJid, subscription);
-				this.repository.changeAffiliation(node, subscriberJid, affiliation);
-			} else {
-				subscription = Subscription.none;
-				this.repository.removeSubscriber(node, subscriberJid);
+			if (type.equals("get")) {
+				return processGet(element, subscriptions, nodeName);
+			} else if (type.equals("set")) {
+				return processSet(element, subscriptions, nodeName);
 			}
-
-			Element msg = new Element("message", new String[] { "from", "to", "id" }, new String[] { message.getAttribute("to"),
-					subscriberJid, Utils.createUID() });
-			msg.addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid, subscription, null));
-			return makeArray(msg);
+			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -118,27 +113,62 @@ public class ManageSubscriptionModule extends AbstractModule {
 		}
 	}
 
-	public List<Element> sendAuthorizationRequest(final String nodeName, final String fromJid, final String subID,
-			final String subscriberJid) throws RepositoryException {
-		Form x = new Form("form", "PubSub subscriber request",
-				"To approve this entity's subscription request, click the OK button. To deny the request, click the cancel button.");
-		x.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#subscribe_authorization"));
-		x.addField(Field.fieldHidden("pubsub#subid", subID));
-		x.addField(Field.fieldTextSingle("pubsub#node", nodeName, "Node ID"));
-		x.addField(Field.fieldJidSingle("pusub#subscriber_jid", subscriberJid, "Subscriber Address"));
-		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
-
+	private List<Element> processGet(Element element, Element subscriptions, String nodeName) throws RepositoryException {
 		List<Element> result = new ArrayList<Element>();
-		NodeAffiliation[] affiliations = this.repository.getAffiliations(nodeName);
-		if (affiliations != null) {
-			for (NodeAffiliation affiliation : affiliations) {
-				if (affiliation.getAffiliation() == Affiliation.owner) {
-					Element message = new Element("message", new String[] { "id", "to", "from" }, new String[] { Utils.createUID(),
-							affiliation.getJid(), fromJid });
-					message.addChild(x.getElement());
-					result.add(message);
+		Element iq = createResultIQ(element);
+		Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
+		iq.addChild(ps);
+		Element afr = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
+		ps.addChild(afr);
+
+		Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
+		if (subscribers != null) {
+			for (Subscriber subscriber : subscribers) {
+				if (subscriber.getSubscription() == Subscription.none) {
+					continue;
 				}
+				Element subscription = new Element("subscription", new String[] { "jid", "subscription" }, new String[] {
+						subscriber.getJid(), subscriber.getSubscription().name() });
+				afr.addChild(subscription);
 			}
+		}
+
+		result.add(iq);
+		return result;
+	}
+
+	private List<Element> processSet(Element element, Element subscriptions, String nodeName) throws PubSubException,
+			RepositoryException {
+		List<Element> result = new ArrayList<Element>();
+		Element iq = createResultIQ(element);
+		result.add(iq);
+		List<Element> subss = subscriptions.getChildren();
+		for (Element a : subss) {
+			if (!"subscription".equals(a.getName()))
+				throw new PubSubException(Authorization.BAD_REQUEST);
+		}
+		for (Element af : subss) {
+			String strSubscription = af.getAttribute("subscription");
+			String jid = af.getAttribute("jid");
+			if (strSubscription == null)
+				continue;
+			Subscription newSubscription = Subscription.valueOf(strSubscription);
+			Subscription oldSubscription = this.repository.getSubscription(nodeName, jid);
+
+			oldSubscription = oldSubscription == null ? Subscription.none : oldSubscription;
+
+			if (oldSubscription == Subscription.none && newSubscription != Subscription.none) {
+				NodeAffiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
+				this.repository.addSubscriberJid(nodeName, jid, affiliation.getAffiliation(), newSubscription);
+				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+			} else if (oldSubscription != Subscription.none && newSubscription == Subscription.none) {
+				this.repository.removeSubscriber(nodeName, jid);
+				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+			} else {
+				this.repository.changeSubscription(nodeName, jid, newSubscription);
+				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+			}
+
 		}
 		return result;
 	}
