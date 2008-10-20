@@ -39,6 +39,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -80,9 +81,11 @@ public class ManageSubscriptionModule extends AbstractModule {
 				throw new PubSubException(message, Authorization.ITEM_NOT_FOUND);
 			}
 			String jid = message.getAttribute("from");
-			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(node, jid);
-			if (senderAffiliation.getAffiliation() != Affiliation.owner) {
-				throw new PubSubException(message, Authorization.FORBIDDEN);
+			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
+				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(node, jid);
+				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
+					throw new PubSubException(message, Authorization.FORBIDDEN);
+				}
 			}
 			String userSubId = this.repository.getSubscriptionId(node, subscriberJid);
 			if (subId != null && !subId.equals(userSubId)) {

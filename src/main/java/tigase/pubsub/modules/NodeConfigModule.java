@@ -38,6 +38,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -135,9 +136,11 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			}
 
 			String jid = element.getAttribute("from");
-			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
-			if (senderAffiliation.getAffiliation() != Affiliation.owner) {
-				throw new PubSubException(element, Authorization.FORBIDDEN);
+			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
+				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
+				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
+					throw new PubSubException(element, Authorization.FORBIDDEN);
+				}
 			}
 			// TODO 8.2.3.4 No Configuration Options
 
@@ -197,8 +200,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						}
 						String[] removedChildNodes = diff(children == null ? new String[] {} : children,
 								nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
-						String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
-								children == null ? new String[] {} : children);
+						String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {}
+								: nodeConfig.getChildren(), children == null ? new String[] {} : children);
 
 						for (String node : addedChildNodes) {
 							AbstractNodeConfig nc = repository.getNodeConfig(node);
