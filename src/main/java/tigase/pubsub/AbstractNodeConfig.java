@@ -161,6 +161,9 @@ public class AbstractNodeConfig {
 		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
 				"The domains allowed to access this node (blank for any)"));
 
+		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
+				"Whether to deliver notifications to available users only"));
+
 		form.addField(Field.fieldTextMulti(PUBSUB + "embedded_body_xslt", new String[] {},
 				"The XSL transformation which can be applied to payloads in order to generate an appropriate message body element."));
 
@@ -176,6 +179,10 @@ public class AbstractNodeConfig {
 
 	public boolean isDeliver_payloads() {
 		return form.getAsBoolean("pubsub#deliver_payloads");
+	}
+
+	public boolean isDeliverPresenceBased() {
+		return form.getAsBoolean("pubsub#presence_based_delivery");
 	}
 
 	public boolean isNotify_config() {

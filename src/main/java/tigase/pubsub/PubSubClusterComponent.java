@@ -22,12 +22,15 @@
 package tigase.pubsub;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.cluster.ClusterElement;
@@ -40,6 +43,8 @@ import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
 public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponent {
+
+	private static final String METHOD_PRESENCE_COLLECTION = "presenceCollection";
 
 	private static Random random = new SecureRandom();
 
@@ -107,6 +112,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		for (String node : node_hostnames) {
 			log.finest("Node connected: " + node + " (" + getName() + "@" + node + ")");
 			cluster_nodes.add(getName() + "@" + node);
+			sendAvailableJidsToNode(getName() + "@" + node);
 		}
 	}
 
@@ -117,9 +123,45 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		}
 	}
 
+	protected static String[] getParameters(final String name, final Map<String, String> allMethodParams) {
+		List<String> nodesNames = new ArrayList<String>();
+		for (Map.Entry<String, String> pps : allMethodParams.entrySet()) {
+			if (pps.getKey().startsWith(name)) {
+				nodesNames.add(pps.getValue());
+			}
+		}
+		return nodesNames.toArray(new String[] {});
+	}
+
+	protected void sendAvailableJidsToNode(final String node) {
+		Map<String, String> params = new HashMap<String, String>();
+		int counter = 0;
+		for (String jid : presenceCollectorModule.getAllAvailableJids()) {
+			++counter;
+			params.put("jid." + counter, jid);
+			if (params.size() > 99) {
+				ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
+						METHOD_PRESENCE_COLLECTION, params);
+				addOutPacket(new Packet(call.getClusterElement()));
+
+				params = new HashMap<String, String>();
+			}
+
+		}
+		if (params.size() != 0) {
+			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
+					METHOD_PRESENCE_COLLECTION, params);
+			addOutPacket(new Packet(call.getClusterElement()));
+		}
+	}
+
 	protected void processMethodCall(String methodName, Map<String, String> allMethodParams) throws RepositoryException {
-		log.warning("Unexpected remote method call");
-		System.out.println("!!!! Unexpected remote method call !!!!");
+		if (METHOD_PRESENCE_COLLECTION.equals(methodName)) {
+			String[] jids = getParameters("jid", allMethodParams);
+			for (String jid : jids) {
+				this.presenceCollectorModule.addJid(jid);
+			}
+		}
 	}
 
 	@Override
@@ -148,33 +190,27 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				}
 		} else {
 			Element element = packet.getElement();
-			String node = extractNodeName(element);
-			if (node != null) {
-				String clusterNode = getRandomNode();
-				if (clusterNode == null || this.publishNodeModule.isPEPNodeName(node)) {
-					super.processPacket(packet);
-				} else {
-					log.finest("Cluster node " + getComponentId() + " received PubSub node '" + node
-							+ "' and sent it to cluster node [" + clusterNode + "]");
-					sentToNode(packet, clusterNode);
-				}
+			if (element.getName().equals("presence")) {
+
 			} else {
-				log.finest("Cluster node " + getComponentId() + " received stanza without node name");
-				super.processPacket(packet);
+				String node = extractNodeName(element);
+				if (node != null) {
+					String clusterNode = getRandomNode();
+					if (clusterNode == null || this.publishNodeModule.isPEPNodeName(node)) {
+						super.processPacket(packet);
+					} else {
+						log.finest("Cluster node " + getComponentId() + " received PubSub node '" + node
+								+ "' and sent it to cluster node [" + clusterNode + "]");
+						sentToNode(packet, clusterNode);
+					}
+				} else {
+					log.finest("Cluster node " + getComponentId() + " received stanza without node name");
+					super.processPacket(packet);
+				}
 			}
 		}
 	}
 
-	/*
-	 * protected void sentBroadcast(final String methodName, final Map<String,
-	 * String> params) { StringBuilder sb = new StringBuilder(); for (String cNN
-	 * : this.cluster_nodes) { sb.append(cNN + ", "); ClusterElement call =
-	 * ClusterElement.createClusterMethodCall(getComponentId(), cNN, "set",
-	 * methodName, params); Packet toSend = new
-	 * Packet(call.getClusterElement()); addOutPacket(toSend); }
-	 * log.finer("Sent broadcast '" + methodName + "' method to: " +
-	 * sb.toString()); }
-	 */
 	protected boolean sentToNextNode(ClusterElement clel) {
 		ClusterElement next_clel = ClusterElement.createForNextNode(clel, cluster_nodes, getComponentId());
 		if (next_clel != null) {
@@ -198,6 +234,12 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			}
 		}
 		return false;
+	}
+
+	protected void sentBroadcast(final Packet packet) {
+		for (String cNN : this.cluster_nodes) {
+			sentToNode(packet, cNN);
+		}
 	}
 
 	protected boolean sentToNode(final Packet packet, final String cluster_node) {

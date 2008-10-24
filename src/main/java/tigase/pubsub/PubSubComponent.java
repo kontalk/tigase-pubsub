@@ -47,6 +47,7 @@ import tigase.pubsub.modules.NodeConfigModule;
 import tigase.pubsub.modules.NodeCreateModule;
 import tigase.pubsub.modules.NodeDeleteModule;
 import tigase.pubsub.modules.PendingSubscriptionModule;
+import tigase.pubsub.modules.PresenceCollectorModule;
 import tigase.pubsub.modules.PublishItemModule;
 import tigase.pubsub.modules.PurgeItemsModule;
 import tigase.pubsub.modules.RetractItemModule;
@@ -109,6 +110,10 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected NodeDeleteModule nodeDeleteModule;
 
+	private PendingSubscriptionModule pendingSubscriptionModule;
+
+	protected PresenceCollectorModule presenceCollectorModule;
+
 	protected PublishItemModule publishNodeModule;
 
 	protected IPubSubRepository pubsubRepository;
@@ -128,8 +133,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	private UserRepository userRepository;
 
 	protected XsltTool xslTransformer;
-
-	private PendingSubscriptionModule pendingSubscriptionModule;
 
 	public PubSubComponent() {
 		setName("pubsub");
@@ -236,7 +239,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected void init() {
 		this.xslTransformer = new XsltTool();
 
-		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository, this.xslTransformer));
+		this.presenceCollectorModule = registerModule(new PresenceCollectorModule());
+		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository, this.xslTransformer,
+				this.presenceCollectorModule));
 		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository, this.publishNodeModule));
 		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(this.config, this.pubsubRepository));
 		this.manageSubscriptionModule = registerModule(new ManageSubscriptionModule(this.config, this.pubsubRepository));

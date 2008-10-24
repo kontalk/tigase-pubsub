@@ -15,9 +15,9 @@
  * along with this program. Look for COPYING file in the top folder.
  * If not, see http://www.gnu.org/licenses/.
  *
- * $Rev: 71 $
- * Last modified by $Author: bmalkow $
- * $Date: 2008-10-20 09:12:14 +0200 (Pn, 20 paź 2008) $
+ * $Rev$
+ * Last modified by $Author$
+ * $Date$
  */
 package tigase.pubsub.modules;
 

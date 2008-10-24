@@ -71,11 +71,15 @@ public class PublishItemModule extends AbstractModule {
 
 	private final Set<String> pepNodes = new HashSet<String>();
 
+	private final PresenceCollectorModule presenceCollector;
+
 	private final XsltTool xslTransformer;
 
-	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, XsltTool xsltTool) {
+	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, XsltTool xsltTool,
+			PresenceCollectorModule presenceCollector) {
 		super(config, pubsubRepository);
 		this.xslTransformer = xsltTool;
+		this.presenceCollector = presenceCollector;
 		for (String xmlns : SUPPORTED_PEP_XMLNS) {
 			pepNodes.add(xmlns);
 		}
@@ -162,6 +166,16 @@ public class PublishItemModule extends AbstractModule {
 	public List<Element> prepareNotification(final Element itemToSend, final String jidFrom, final String publisherNodeName,
 			final Map<String, String> headers, AbstractNodeConfig nodeConfig) throws RepositoryException {
 		String[] subscribers = getActiveSubscribers(publisherNodeName);
+		if (nodeConfig.isDeliverPresenceBased()) {
+			List<String> s = new ArrayList<String>();
+			for (String jid : subscribers) {
+				for (String subjid : this.presenceCollector.getAllAvailableResources(jid)) {
+					s.add(subjid);
+				}
+			}
+			subscribers = s.toArray(new String[] {});
+		}
+
 		return prepareNotification(subscribers, itemToSend, jidFrom, nodeConfig, publisherNodeName, headers);
 	}
 
