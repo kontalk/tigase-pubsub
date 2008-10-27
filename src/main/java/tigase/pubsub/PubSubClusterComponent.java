@@ -191,7 +191,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		} else {
 			Element element = packet.getElement();
 			if (element.getName().equals("presence")) {
-
+				sentBroadcast(packet);
 			} else {
 				String node = extractNodeName(element);
 				if (node != null) {
@@ -237,13 +237,16 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	}
 
 	protected void sentBroadcast(final Packet packet) {
+		log.finest("Send broadcast with: " + packet.toString());
 		for (String cNN : this.cluster_nodes) {
 			sentToNode(packet, cNN);
 		}
 	}
 
 	protected boolean sentToNode(final Packet packet, final String cluster_node) {
-		if (cluster_nodes.size() > 0) {
+		if (cluster_node.equals(getComponentId())) {
+			super.processPacket(packet);
+		} else if (cluster_nodes.size() > 0) {
 			String sess_man_id = getComponentId();
 			if (cluster_node != null) {
 				ClusterElement clel = new ClusterElement(sess_man_id, cluster_node, StanzaType.set, packet);
