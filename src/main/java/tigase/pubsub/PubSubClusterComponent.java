@@ -188,6 +188,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				for (Element element : elements) {
 					super.processPacket(new Packet(element));
 				}
+		} else if (this.cluster_nodes == null || this.cluster_nodes.size() == 0) {
+			super.processPacket(packet);
 		} else {
 			Element element = packet.getElement();
 			if (element.getName().equals("presence")) {
