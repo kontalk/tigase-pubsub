@@ -176,7 +176,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						NodeType colNodeType = "".equals(collectionName) ? NodeType.collection : (colNodeConfig == null ? null
 								: colNodeConfig.getNodeType());
 						if (colNodeType == null) {
-							throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+							throw new PubSubException(element, Authorization.ITEM_NOT_FOUND, "Node '" + collectionName
+									+ "' doesn't exists (#1)");
 						} else if (colNodeType == NodeType.leaf) {
 							throw new PubSubException(element, Authorization.NOT_ALLOWED);
 						}
@@ -206,7 +207,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						for (String node : addedChildNodes) {
 							AbstractNodeConfig nc = repository.getNodeConfig(node);
 							if (nc == null) {
-								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND, "Node '" + node
+										+ "' doesn't exists (#2)");
 							}
 							switchCollection(node, nodeName);
 
@@ -218,7 +220,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							for (String node : removedChildNodes) {
 								AbstractNodeConfig nc = repository.getNodeConfig(node);
 								if (nc == null) {
-									throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+									throw new PubSubException(element, Authorization.ITEM_NOT_FOUND, "Node '" + node
+											+ "' doesn't exists (#3)");
 								}
 								switchCollection(node, "");
 								Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
