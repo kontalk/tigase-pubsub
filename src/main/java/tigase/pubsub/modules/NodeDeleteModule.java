@@ -105,7 +105,8 @@ public class NodeDeleteModule extends AbstractModule {
 			CollectionNodeConfig parentCollectionConfig = null;
 			if (parentNodeName != null && !parentNodeName.equals("")) {
 				parentCollectionConfig = (CollectionNodeConfig) repository.getNodeConfig(parentNodeName);
-				parentCollectionConfig.removeChildren(nodeName);
+				if (parentCollectionConfig != null)
+					parentCollectionConfig.removeChildren(nodeName);
 			} else {
 				repository.removeFromRootCollection(nodeName);
 			}
