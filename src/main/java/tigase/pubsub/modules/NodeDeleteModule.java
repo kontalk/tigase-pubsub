@@ -121,7 +121,7 @@ public class NodeDeleteModule extends AbstractModule {
 							childNodeConfig.setCollection(parentNodeName);
 							repository.update(childNodeName, childNodeConfig);
 						}
-						if (parentNodeName != null && !parentNodeName.equals("")) {
+						if (parentCollectionConfig != null) {
 							parentCollectionConfig.addChildren(childNodeName);
 						} else {
 							repository.addToRootCollection(childNodeName);
