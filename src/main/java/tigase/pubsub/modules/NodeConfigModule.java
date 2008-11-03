@@ -144,8 +144,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			}
 			// TODO 8.2.3.4 No Configuration Options
 
-			Element result = createResultIQ(element);
-			List<Element> resultArray = makeArray(result);
+			final Element result = createResultIQ(element);
+			final List<Element> resultArray = makeArray(result);
 
 			if ("get".equals(type)) {
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
