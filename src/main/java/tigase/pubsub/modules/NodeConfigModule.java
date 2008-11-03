@@ -30,8 +30,8 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
+import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -158,89 +158,87 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			} else if ("set".equals(type)) {
 				String[] children = nodeConfig.getChildren() == null ? new String[] {} : Arrays.copyOf(nodeConfig.getChildren(),
 						nodeConfig.getChildren().length);
-				final String collectionCurrent = nodeConfig.getCollection();
+				final String collectionOld = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
 
 				parseConf(nodeConfig, configure);
 
-				// && (nodeConfig.getCollection()==null ^
-				// collectionCurrent==null) &&
-				// !nodeConfig.getCollection().equals(collectionCurrent)
+				if (!collectionOld.equals(nodeConfig.getCollection())) {
+					if (collectionOld.equals("")) {
+						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(nodeConfig.getCollection());
+						if (colNodeConfig == null)
+							throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#1) Node '" + nodeConfig.getCollection()
+									+ "' doesn't exists");
+						if (!(colNodeConfig instanceof CollectionNodeConfig))
+							throw new PubSubException(Authorization.NOT_ALLOWED, "(#1) Node '" + nodeConfig.getCollection()
+									+ "' is not collection node");
 
-				if (nodeConfig.getNodeType() != NodeType.leaf && nodeConfig.getNodeType() != NodeType.collection)
-					throw new PubSubException(Authorization.NOT_ALLOWED);
+						((CollectionNodeConfig) colNodeConfig).addChildren(nodeName);
 
-				try {
-					if (nodeConfig.isCollectionSet()) {
-						String collectionName = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
-						AbstractNodeConfig colNodeConfig = this.repository.getNodeConfig(collectionName);
-						NodeType colNodeType = "".equals(collectionName) ? NodeType.collection : (colNodeConfig == null ? null
-								: colNodeConfig.getNodeType());
-						if (colNodeType == null) {
-							throw new PubSubException(element, Authorization.ITEM_NOT_FOUND, "Node '" + collectionName
-									+ "' doesn't exists (#1)");
-						} else if (colNodeType == NodeType.leaf) {
-							throw new PubSubException(element, Authorization.NOT_ALLOWED);
-						}
-						switchCollection(nodeName, collectionName);
-						if (!"".equals(collectionName)) {
-							Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionName });
-							colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
-							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collectionName));
-						}
-						if (collectionCurrent != null && !"".equals(collectionCurrent)) {
-							Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionCurrent });
-							colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { nodeName }));
-							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"),
-									collectionCurrent));
-						}
+						repository.update(colNodeConfig.getNodeName(), colNodeConfig);
+						repository.removeFromRootCollection(nodeName);
 					}
 
-					if (nodeConfig.getNodeType() == NodeType.collection) {
-						if (isIn("", nodeConfig.getChildren())) {
-							throw new PubSubException(Authorization.BAD_REQUEST);
+					if (nodeConfig.getCollection().equals("")) {
+						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(collectionOld);
+						if (colNodeConfig != null && colNodeConfig instanceof CollectionNodeConfig) {
+							((CollectionNodeConfig) colNodeConfig).removeChildren(nodeName);
+							repository.update(colNodeConfig.getNodeName(), colNodeConfig);
 						}
-						String[] removedChildNodes = diff(children == null ? new String[] {} : children,
-								nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
-						String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {}
-								: nodeConfig.getChildren(), children == null ? new String[] {} : children);
 
-						for (String node : addedChildNodes) {
-							AbstractNodeConfig nc = repository.getNodeConfig(node);
-							if (nc == null) {
-								throw new PubSubException(element, Authorization.ITEM_NOT_FOUND, "Node '" + node
-										+ "' doesn't exists (#2)");
-							}
-							switchCollection(node, nodeName);
-
-							Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
-							colE.addChild(new Element("associate", new String[] { "node" }, new String[] { node }));
-							resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
-						}
-						if (removedChildNodes != null && removedChildNodes.length > 0) {
-							for (String node : removedChildNodes) {
-								AbstractNodeConfig nc = repository.getNodeConfig(node);
-								if (nc == null) {
-									throw new PubSubException(element, Authorization.ITEM_NOT_FOUND, "Node '" + node
-											+ "' doesn't exists (#3)");
-								}
-								switchCollection(node, "");
-								Element colE = new Element("collection", new String[] { "node" }, new String[] { nodeName });
-								colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { node }));
-								resultArray.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), nodeName));
-							}
-						}
+						repository.addToRootCollection(nodeName);
 					}
 
-					repository.update(nodeName, nodeConfig);
-
-					if (nodeConfig.isNotify_config()) {
-						String pssJid = element.getAttribute("to");
-						Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
-						resultArray.addAll(this.publishModule.prepareNotification(configuration, pssJid, nodeName));
-					}
-				} finally {
-					fireOnNodeConfigChange(nodeName);
 				}
+
+				if (nodeConfig instanceof CollectionNodeConfig) {
+					final String[] removedChildNodes = diff(children == null ? new String[] {} : children,
+							nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
+					final String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {}
+							: nodeConfig.getChildren(), children == null ? new String[] {} : children);
+
+					for (String ann : addedChildNodes) {
+						AbstractNodeConfig nc = repository.getNodeConfig(ann);
+						if (nc == null)
+							throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#2) Node '" + ann + "' doesn't exists");
+
+						if (nc.getCollection().equals("")) {
+							repository.removeFromRootCollection(nc.getNodeName());
+						} else {
+							AbstractNodeConfig cnc = repository.getNodeConfig(nc.getCollection());
+							if (cnc == null)
+								throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#3) Node '" + nc.getCollection()
+										+ "' doesn't exists");
+							if (!(cnc instanceof CollectionNodeConfig))
+								throw new PubSubException(Authorization.NOT_ALLOWED, "(#2) Node '" + nc.getCollection()
+										+ "' is not collection node");
+
+							((CollectionNodeConfig) cnc).removeChildren(nc.getNodeName());
+							repository.update(cnc.getNodeName(), cnc);
+						}
+
+						nc.setCollection(nodeName);
+						repository.update(nc.getNodeName(), nc);
+
+					}
+
+					for (String rnn : removedChildNodes) {
+						AbstractNodeConfig nc = repository.getNodeConfig(rnn);
+						if (nc != null) {
+							nc.setCollection("");
+							repository.update(nc.getNodeName(), nc);
+						}
+					}
+
+				}
+
+				repository.update(nodeName, nodeConfig);
+
+				if (nodeConfig.isNotify_config()) {
+					String pssJid = element.getAttribute("to");
+					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
+					resultArray.addAll(this.publishModule.prepareNotification(configuration, pssJid, nodeName));
+				}
+
 			} else {
 				throw new PubSubException(element, Authorization.BAD_REQUEST);
 			}
@@ -259,7 +257,4 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		this.nodeConfigListeners.remove(listener);
 	}
 
-	private void switchCollection(String nodeName, String collectionNodeName) throws RepositoryException {
-		repository.setNewNodeCollection(nodeName, collectionNodeName);
-	}
 }
