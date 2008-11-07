@@ -39,6 +39,10 @@ public class AbstractNodeConfig {
 
 	protected final Form form = new Form("form", null, null);
 
+	public Form getForm() {
+		return form;
+	}
+
 	private final String nodeName;
 
 	public AbstractNodeConfig(final String nodeName) {

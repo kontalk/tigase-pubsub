@@ -28,6 +28,8 @@ import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
+import tigase.form.Field;
+import tigase.form.Form;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
@@ -64,16 +66,14 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 	public static void parseConf(final AbstractNodeConfig conf, final Element configure) throws PubSubException {
 		Element x = configure.getChild("x", "jabber:x:data");
+		Form foo = new Form(x);
+		System.out.println(foo);
 		if (x != null && "submit".equals(x.getAttribute("type"))) {
-			for (Element field : x.getChildren()) {
-				if ("field".equals(field.getName())) {
-					final String var = field.getAttribute("var");
-					String val = null;
-					Element value = field.getChild("value");
-					if (value != null) {
-						val = value.getCData();
-					}
-					conf.setValue(var, val);
+			for (Field field : conf.getForm().getAllFields()) {
+				final String var = field.getVar();
+				Field cf = foo.get(var);
+				if (cf != null) {
+					field.setValues(cf.getValues());
 				}
 			}
 		}
@@ -126,6 +126,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			final Element configure = pubSub.getChild("configure");
 			final String nodeName = configure.getAttribute("node");
 			final String type = element.getAttribute("type");
+
+			final String id = element.getAttribute("id");
+			System.out.println(id);
 
 			if (nodeName == null) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
@@ -191,21 +194,21 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 					if (nodeConfig.getCollection().equals("")) {
 						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(collectionOld);
-												
+
 						if (colNodeConfig != null && colNodeConfig instanceof CollectionNodeConfig) {
 							((CollectionNodeConfig) colNodeConfig).removeChildren(nodeName);
 							repository.update(colNodeConfig.getNodeName(), colNodeConfig);
 						}
-						
+
 						repository.addToRootCollection(nodeName);
 
 						IAffiliations colNodeAffiliations = repository.getNodeAffiliations(colNodeConfig.getNodeName());
 						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(colNodeConfig.getNodeName());
-						
+
 						Element disassociateNotification = createDisassociateNotification(collectionOld, nodeName);
 						resultArray.addAll(publishModule.prepareNotification(disassociateNotification, element.getAttribute("to"),
 								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
-						
+
 					}
 
 				}
@@ -251,9 +254,11 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							nc.setCollection("");
 							repository.update(nc.getNodeName(), nc);
 						}
-						Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
-						resultArray.addAll(publishModule.prepareNotification(disassociateNotification, element.getAttribute("to"),
-								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+						if (rnn != null && rnn.length() != 0) {
+							Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
+							resultArray.addAll(publishModule.prepareNotification(disassociateNotification,
+									element.getAttribute("to"), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+						}
 					}
 
 				}
