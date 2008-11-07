@@ -149,6 +149,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			final Element result = createResultIQ(element);
 			final List<Element> resultArray = makeArray(result);
 
+			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
+
 			if ("get".equals(type)) {
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
 						new String[] { "http://jabber.org/protocol/pubsub#owner" });
@@ -178,16 +180,32 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 						repository.update(colNodeConfig.getNodeName(), colNodeConfig);
 						repository.removeFromRootCollection(nodeName);
+
+						IAffiliations colNodeAffiliations = repository.getNodeAffiliations(colNodeConfig.getNodeName());
+						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(colNodeConfig.getNodeName());
+
+						Element associateNotification = createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"),
+								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 					}
 
 					if (nodeConfig.getCollection().equals("")) {
 						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(collectionOld);
+												
 						if (colNodeConfig != null && colNodeConfig instanceof CollectionNodeConfig) {
 							((CollectionNodeConfig) colNodeConfig).removeChildren(nodeName);
 							repository.update(colNodeConfig.getNodeName(), colNodeConfig);
 						}
-
+						
 						repository.addToRootCollection(nodeName);
+
+						IAffiliations colNodeAffiliations = repository.getNodeAffiliations(colNodeConfig.getNodeName());
+						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(colNodeConfig.getNodeName());
+						
+						Element disassociateNotification = createDisassociateNotification(collectionOld, nodeName);
+						resultArray.addAll(publishModule.prepareNotification(disassociateNotification, element.getAttribute("to"),
+								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
+						
 					}
 
 				}
@@ -221,6 +239,10 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						nc.setCollection(nodeName);
 						repository.update(nc.getNodeName(), nc);
 
+						Element associateNotification = createAssociateNotification(nodeName, ann);
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"),
+								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+
 					}
 
 					for (String rnn : removedChildNodes) {
@@ -229,6 +251,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							nc.setCollection("");
 							repository.update(nc.getNodeName(), nc);
 						}
+						Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
+						resultArray.addAll(publishModule.prepareNotification(disassociateNotification, element.getAttribute("to"),
+								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 					}
 
 				}
@@ -236,7 +261,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				repository.update(nodeName, nodeConfig);
 
 				if (nodeConfig.isNotify_config()) {
-					ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
 					String pssJid = element.getAttribute("to");
 					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
 					resultArray.addAll(this.publishModule.prepareNotification(configuration, pssJid, nodeName, nodeConfig,
@@ -255,6 +279,18 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			throw new RuntimeException(e);
 		}
 
+	}
+
+	private Element createDisassociateNotification(final String collectionNodeName, String disassociatedNodeName) {
+		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
+		colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { disassociatedNodeName }));
+		return colE;
+	}
+
+	private Element createAssociateNotification(final String collectionNodeName, String associatedNodeName) {
+		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
+		colE.addChild(new Element("associate", new String[] { "node" }, new String[] { associatedNodeName }));
+		return colE;
 	}
 
 	public void removeNodeConfigListener(NodeConfigListener listener) {
