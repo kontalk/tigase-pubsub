@@ -33,7 +33,9 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -79,7 +81,9 @@ public class PurgeItemsModule extends AbstractModule {
 						"purge-nodes"));
 			}
 
-			NodeAffiliation affiliation = repository.getSubscriberAffiliation(nodeName, element.getAttribute("from"));
+			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
+
+			NodeAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(element.getAttribute("from"));
 
 			if (!affiliation.getAffiliation().isPurgeNode()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
@@ -96,8 +100,10 @@ public class PurgeItemsModule extends AbstractModule {
 			result.add(createResultIQ(element));
 
 			String[] itemsToDelete = this.repository.getItemsIds(nodeName);
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			result.addAll(publishModule.prepareNotification(
-					new Element("purge", new String[] { "node" }, new String[] { nodeName }), element.getAttribute("to"), nodeName));
+					new Element("purge", new String[] { "node" }, new String[] { nodeName }), element.getAttribute("to"), nodeName,
+					nodeConfig, nodeAffiliations, nodeSubscriptions));
 			log.info("Purging node " + nodeName);
 			for (String id : itemsToDelete) {
 				repository.deleteItem(nodeName, id);

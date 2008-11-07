@@ -58,8 +58,8 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.modules.commands.DatabaseCleanCommand;
 import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
@@ -391,12 +391,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		init();
 
 		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
-		final DatabaseCleanCommand databaseCleanCommand = new DatabaseCleanCommand(this.config, this.directPubSubRepository);
 		configCommand.addListener(this);
 
 		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
 		this.adHocCommandsModule.register(configCommand);
-		this.adHocCommandsModule.register(databaseCleanCommand);
+		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository, this.userRepository));
 
 		StringBuilder sb = new StringBuilder();
 

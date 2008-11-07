@@ -30,9 +30,8 @@ import java.util.logging.Logger;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
+import tigase.form.Form;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.AccessModel;
-import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.ElementCache;
 import tigase.pubsub.LeafNodeConfig;
@@ -40,8 +39,6 @@ import tigase.pubsub.ListCache;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
-import tigase.util.JIDUtils;
 import tigase.xml.DomBuilderHandler;
 import tigase.xml.Element;
 import tigase.xml.SimpleParser;
@@ -50,8 +47,6 @@ import tigase.xml.SingletonFactory;
 public class PubSubDAO implements IPubSubDAO {
 
 	private static final String ACCESS_MODEL_KEY = "pubsub#access_model";
-
-	static final String AFFILIATIONS_KEY = "affiliations";
 
 	private static final String ASSOCIATE_COLLECTION_KEY = "pubsub#collection";
 
@@ -63,7 +58,7 @@ public class PubSubDAO implements IPubSubDAO {
 
 	private static final String NODE_TYPE_KEY = "pubsub#node_type";
 
-	static final String NODES_KEY = "nodes/";
+	public static final String NODES_KEY = "nodes/";
 
 	private static final String ROOT_COLLECTION_KEY = "root-collection";
 
@@ -110,49 +105,11 @@ public class PubSubDAO implements IPubSubDAO {
 		throw new RuntimeException("Listeners are unsupported");
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#addSubscriberJid(java.lang.
-	 * String, java.lang.String, tigase.pubsub.Affiliation,
-	 * tigase.pubsub.Subscription)
-	 */
-	public String addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation,
-			final Subscription subscription) throws RepositoryException {
-		try {
-			final String subid = Utils.createUID();
-			final String bareJid = JIDUtils.getNodeID(jid);
-
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/" + bareJid,
-					"affiliation", affiliation.name());
-
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid, "subscription",
-					subscription.name());
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid, "subid", subid);
-			return subid;
-		} catch (Exception e) {
-			throw new RepositoryException("Subscriber adding error", e);
-		}
-
-	}
-
 	public void addToRootCollection(String nodeName) throws RepositoryException {
 		try {
 			repository.setData(config.getServiceName(), ROOT_COLLECTION_KEY, nodeName, "root");
 		} catch (Exception e) {
 			throw new RepositoryException("Adding to root collection error", e);
-		}
-	}
-
-	@Override
-	public void changeAffiliation(final String nodeName, final String jid, final Affiliation affiliation)
-			throws RepositoryException {
-		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/"
-					+ JIDUtils.getNodeID(jid), "affiliation", affiliation.name());
-		} catch (Exception e) {
-			throw new RepositoryException("Affiliation writing error", e);
 		}
 	}
 
@@ -184,14 +141,13 @@ public class PubSubDAO implements IPubSubDAO {
 	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		try {
+			nodeConfig.setNodeType(nodeType);
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY,
 					String.valueOf(System.currentTimeMillis()));
-			if (nodeConfig != null)
-				nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", NODE_TYPE_KEY, nodeType.name());
 
-			addSubscriberJid(nodeName, ownerJid, Affiliation.owner, Subscription.subscribed);
-			setNewNodeCollection(nodeName, collection);
+			if (nodeConfig != null)
+				update(nodeName, nodeConfig);
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RepositoryException("Node creation error", e);
@@ -232,14 +188,6 @@ public class PubSubDAO implements IPubSubDAO {
 	public void forgetConfiguration(String nodeName) {
 	}
 
-	public String[] getAffiliations(final String nodeName) throws RepositoryException {
-		try {
-			return repository.getSubnodes(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY);
-		} catch (Exception e) {
-			throw new RepositoryException("Affilitaions getting error", e);
-		}
-	}
-
 	@Override
 	public String[] getBuddyGroups(String owner, String buddy) throws RepositoryException {
 		try {
@@ -255,30 +203,6 @@ public class PubSubDAO implements IPubSubDAO {
 			return this.repository.getData(owner, "roster/" + buddy, "subscription");
 		} catch (Exception e) {
 			throw new RepositoryException("Getting buddy subscription status error", e);
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#getCollectionOf(java.lang.String
-	 * )
-	 */
-	public String getCollectionOf(final String nodeName) throws RepositoryException {
-		try {
-			String collection = collectionCache.get(nodeName);
-			if (collection == null) {
-				collection = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/",
-						ASSOCIATE_COLLECTION_KEY);
-				if (collection != null) {
-					collectionCache.put(nodeName, collection);
-				}
-			}
-			return collection;
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RepositoryException("Node collection getting error", e);
 		}
 	}
 
@@ -354,35 +278,22 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#getNodeAccessModel(java.lang
-	 * .String)
-	 */
-	public AccessModel getNodeAccessModel(String nodeName) throws RepositoryException {
+	@Override
+	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
 		try {
-			// name = repository.getData(config.getServiceName(),
-			// NODES_KEY + nodeName, NODE_TYPE_KEY);
-			String name = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", ACCESS_MODEL_KEY);
-
-			if (name != null) {
-				return AccessModel.valueOf(name);
-			} else {
-				return null;
-			}
+			String cnfData = repository.getData(config.getServiceName(), NODES_KEY + nodeName, "affiliations");
+			return Affiliations.create(cnfData);
 		} catch (Exception e) {
-			throw new RepositoryException("AccessModel getting error", e);
+			throw new RepositoryException("Node subscribers reading error", e);
 		}
 	}
 
-	public <T extends AbstractNodeConfig> T getNodeConfig(final Class<T> nodeConfigClass, final String nodeName)
-			throws RepositoryException {
+	public <T extends AbstractNodeConfig> T getNodeConfig(final Class<T> nodeConfigClass, final String nodeName,
+			final Form configForm) throws RepositoryException {
 		try {
 			Constructor<T> constructor = nodeConfigClass.getConstructor(String.class);
 			T nodeConfig = constructor.newInstance(nodeName);
-			nodeConfig.read(repository, config, NODES_KEY + nodeName + "/configuration");
+			nodeConfig.copyFromForm(configForm);
 			return nodeConfig;
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
@@ -396,9 +307,10 @@ public class PubSubDAO implements IPubSubDAO {
 			return nc;
 		}
 		try {
-			NodeType type = getNodeType(nodeName);
-			if (type == null)
+			Form cnfForm = readNodeConfigForm(nodeName);
+			if (cnfForm == null)
 				return null;
+			NodeType type = NodeType.valueOf(cnfForm.getAsString("pubsub#node_type"));
 			Class<? extends AbstractNodeConfig> cl = null;
 			switch (type) {
 			case collection:
@@ -410,7 +322,7 @@ public class PubSubDAO implements IPubSubDAO {
 			default:
 				throw new RepositoryException("Unknown node type " + type);
 			}
-			nc = getNodeConfig(cl, nodeName);
+			nc = getNodeConfig(cl, nodeName, cnfForm);
 			if (nc != null)
 				nodesConfigCache.put(nodeName, nc);
 			return nc;
@@ -454,25 +366,13 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#getNodeType(java.lang.String)
-	 */
-	public NodeType getNodeType(String nodeName) throws RepositoryException {
+	@Override
+	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
 		try {
-			// name = repository.getData(config.getServiceName(),
-			// NODES_KEY + nodeName, NODE_TYPE_KEY);
-			String name = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", NODE_TYPE_KEY);
-
-			if (name != null) {
-				return NodeType.valueOf(name);
-			} else {
-				return null;
-			}
+			String cnfData = repository.getData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions");
+			return Subscriptions.create(cnfData);
 		} catch (Exception e) {
-			throw new RepositoryException("Owner getting error", e);
+			throw new RepositoryException("Node subscribers reading error", e);
 		}
 	}
 
@@ -483,29 +383,6 @@ public class PubSubDAO implements IPubSubDAO {
 		} catch (Exception e) {
 			throw new RepositoryException("Getting root collection error", e);
 		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#getSubscriberAffiliation(java
-	 * .lang.String, java.lang.String)
-	 */
-	public Affiliation getSubscriberAffiliation(final String nodeName, final String jid) throws RepositoryException {
-		try {
-			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/"
-					+ JIDUtils.getNodeID(jid), "affiliation");
-			// NODES_KEY + nodeName + "/" + SUBSCRIBES_KEY, jid);
-			if (tmp != null) {
-				return Affiliation.valueOf(tmp);
-			} else {
-				return null;
-			}
-		} catch (Exception e) {
-			throw new RepositoryException("Affiliation getting error", e);
-		}
-
 	}
 
 	/*
@@ -572,6 +449,22 @@ public class PubSubDAO implements IPubSubDAO {
 	public void init() {
 	}
 
+	private Form readNodeConfigForm(final String nodeName) throws UserNotFoundException, TigaseDBException {
+		String cnfData = repository.getData(config.getServiceName(), NODES_KEY + nodeName, "configuration");
+		if (cnfData == null)
+			return null;
+		char[] data = cnfData.toCharArray();
+		DomBuilderHandler domHandler = new DomBuilderHandler();
+		parser.parse(domHandler, data, 0, data.length);
+		Queue<Element> q = domHandler.getParsedElements();
+
+		if (q != null && q.size() > 0) {
+			Form form = new Form(q.element());
+			return form;
+		}
+		return null;
+	}
+
 	public void removeAllFromRootCollection() throws RepositoryException {
 		try {
 			repository.removeSubnode(config.getServiceName(), ROOT_COLLECTION_KEY);
@@ -596,49 +489,37 @@ public class PubSubDAO implements IPubSubDAO {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#removeSubscriber(java.lang.
-	 * String, java.lang.String)
-	 */
-	public void removeSubscriber(final String nodeName, final String jid) throws RepositoryException {
-		try {
-			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + SUBSCRIPTIONS_KEY + "/" + jid);
-			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + AFFILIATIONS_KEY + "/"
-					+ JIDUtils.getNodeID(jid));
-		} catch (Exception e) {
-			throw new RepositoryException("Subscriber removing error", e);
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * tigase.pubsub.repository.PubSubRepository#setNewNodeCollection(java.lang
-	 * .String, java.lang.String)
-	 */
-	public void setNewNodeCollection(String nodeName, String collectionNew) throws RepositoryException {
-		try {
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName + "/configuration/", ASSOCIATE_COLLECTION_KEY,
-					collectionNew);
-		} catch (Exception e) {
-			throw new RepositoryException("Node collection writing error", e);
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
 	 * @see tigase.pubsub.repository.PubSubRepository#update(java.lang.String,
 	 * tigase.pubsub.LeafNodeConfig)
 	 */
 	public void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException {
 		try {
-			nodeConfig.write(repository, config, NODES_KEY + nodeName + "/configuration");
+			String cnf = nodeConfig.getFormElement().toString();
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "configuration", cnf);
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration writing error", e);
 		}
 
+	}
+
+	@Override
+	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
+		try {
+			String data = affiliations.serialize(true);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "affiliations", data);
+		} catch (Exception e) {
+			throw new RepositoryException("Node subscribers writing error", e);
+		}
+	}
+
+	@Override
+	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
+		try {
+			String data = subscriptions.serialize(true);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions", data);
+		} catch (Exception e) {
+			throw new RepositoryException("Node subscribers writing error", e);
+		}
 	}
 
 	/*

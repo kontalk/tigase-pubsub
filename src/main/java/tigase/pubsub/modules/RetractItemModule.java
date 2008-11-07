@@ -34,7 +34,9 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -87,7 +89,8 @@ public class RetractItemModule extends AbstractModule {
 						"retract-items"));
 			}
 
-			NodeAffiliation affiliation = repository.getSubscriberAffiliation(nodeName, element.getAttribute("from"));
+			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
+			NodeAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(element.getAttribute("from"));
 
 			if (!affiliation.getAffiliation().isDeleteItem()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
@@ -117,11 +120,13 @@ public class RetractItemModule extends AbstractModule {
 			List<Element> result = new ArrayList<Element>();
 			result.add(createResultIQ(element));
 
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			for (String id : itemsToDelete) {
 				Date date = repository.getItemCreationDate(nodeName, id);
 				if (date != null) {
 					Element notification = createNotification(leafNodeConfig, itemsToDelete, nodeName);
-					result.addAll(publishModule.prepareNotification(notification, element.getAttribute("to"), nodeName));
+					result.addAll(publishModule.prepareNotification(notification, element.getAttribute("to"), nodeName, nodeConfig,
+							nodeAffiliations, nodeSubscriptions));
 					repository.deleteItem(nodeName, id);
 				}
 			}

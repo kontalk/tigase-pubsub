@@ -33,7 +33,9 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.pubsub.repository.inmemory.Subscriber;
@@ -90,19 +92,26 @@ public class ManageSubscriptionModule extends AbstractModule {
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
+
+			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
+			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(nodeName);
+
 			String senderJid = element.getAttribute("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, senderJid);
+				NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
 			}
 
 			if (type.equals("get")) {
-				return processGet(element, subscriptions, nodeName);
+				return processGet(element, subscriptions, nodeName, nodeSubscriptions);
 			} else if (type.equals("set")) {
-				return processSet(element, subscriptions, nodeName);
+				return processSet(element, subscriptions, nodeName, nodeSubscriptions);
+			}
+			if (nodeSubscriptions.isChanged()) {
+				this.repository.update(nodeName, nodeSubscriptions);
 			}
 			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR);
 		} catch (PubSubException e1) {
@@ -113,7 +122,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 		}
 	}
 
-	private List<Element> processGet(Element element, Element subscriptions, String nodeName) throws RepositoryException {
+	private List<Element> processGet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions)
+			throws RepositoryException {
 		List<Element> result = new ArrayList<Element>();
 		Element iq = createResultIQ(element);
 		Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
@@ -121,7 +131,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 		Element afr = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
 		ps.addChild(afr);
 
-		Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
+		Subscriber[] subscribers = nodeSubscriptions.getSubscriptions();
 		if (subscribers != null) {
 			for (Subscriber subscriber : subscribers) {
 				if (subscriber.getSubscription() == Subscription.none) {
@@ -137,8 +147,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 		return result;
 	}
 
-	private List<Element> processSet(Element element, Element subscriptions, String nodeName) throws PubSubException,
-			RepositoryException {
+	private List<Element> processSet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions)
+			throws PubSubException, RepositoryException {
 		List<Element> result = new ArrayList<Element>();
 		Element iq = createResultIQ(element);
 		result.add(iq);
@@ -153,19 +163,15 @@ public class ManageSubscriptionModule extends AbstractModule {
 			if (strSubscription == null)
 				continue;
 			Subscription newSubscription = Subscription.valueOf(strSubscription);
-			Subscription oldSubscription = this.repository.getSubscription(nodeName, jid);
+			Subscription oldSubscription = nodeSubscriptions.getSubscription(jid);
 
 			oldSubscription = oldSubscription == null ? Subscription.none : oldSubscription;
 
 			if (oldSubscription == Subscription.none && newSubscription != Subscription.none) {
-				NodeAffiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
-				this.repository.addSubscriberJid(nodeName, jid, affiliation.getAffiliation(), newSubscription);
-				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
-			} else if (oldSubscription != Subscription.none && newSubscription == Subscription.none) {
-				this.repository.removeSubscriber(nodeName, jid);
+				nodeSubscriptions.addSubscriberJid(jid, newSubscription);
 				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
 			} else {
-				this.repository.changeSubscription(nodeName, jid, newSubscription);
+				nodeSubscriptions.changeSubscription(jid, newSubscription);
 				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
 			}
 

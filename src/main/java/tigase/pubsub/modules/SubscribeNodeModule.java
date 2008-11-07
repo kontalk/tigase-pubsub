@@ -35,7 +35,9 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -94,12 +96,15 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 
-			NodeAffiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, senderJid);
+			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
+			NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 
 			if (senderAffiliation.getAffiliation() != Affiliation.owner
 					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
+
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 
 			// TODO 6.1.3.2 Presence Subscription Required
 			// TODO 6.1.3.3 Not in Roster Group
@@ -109,7 +114,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			// TODO 6.1.3.9 Subscriptions Not Supported
 			// TODO 6.1.3.10 Node Has Moved
 
-			Subscription subscription = repository.getSubscription(nodeName, jid);
+			Subscription subscription = nodeSubscriptions.getSubscription(jid);
 
 			if (senderAffiliation != null) {
 				if (!senderAffiliation.getAffiliation().isSubscribe())
@@ -140,13 +145,13 @@ public class SubscribeNodeModule extends AbstractModule {
 				newSubscription = Subscription.pending;
 				affiliation = Affiliation.none;
 			} else if (accessModel == AccessModel.presence) {
-				boolean allowed = hasSenderSubscription(jid, nodeName);
+				boolean allowed = hasSenderSubscription(jid, nodeAffiliations, nodeSubscriptions);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
 				newSubscription = Subscription.subscribed;
 				affiliation = Affiliation.member;
 			} else if (accessModel == AccessModel.roster) {
-				boolean allowed = isSenderInRosterGroup(jid, nodeName);
+				boolean allowed = isSenderInRosterGroup(jid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
 				newSubscription = Subscription.subscribed;
@@ -156,16 +161,17 @@ public class SubscribeNodeModule extends AbstractModule {
 						+ "' is not implemented yet");
 			}
 
-			String subid = repository.getSubscriptionId(nodeName, jid);
+			String subid = nodeSubscriptions.getSubscriptionId(jid);
 			if (senderAffiliation == null) {
-				subid = repository.addSubscriberJid(nodeName, jid, affiliation, newSubscription);
+				subid = nodeSubscriptions.addSubscriberJid(jid, newSubscription);
+				nodeAffiliations.addAffiliation(jid, affiliation);
 				if (accessModel == AccessModel.authorize) {
 					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"),
-							subid, jid));
+							subid, jid, nodeAffiliations));
 				}
 
 			} else {
-				repository.changeSubscription(nodeName, jid, newSubscription);
+				nodeSubscriptions.changeSubscription(jid, newSubscription);
 			}
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
@@ -173,6 +179,12 @@ public class SubscribeNodeModule extends AbstractModule {
 
 			Element result = createResultIQ(element);
 
+			if (nodeSubscriptions.isChanged()) {
+				this.repository.update(nodeName, nodeSubscriptions);
+			}
+			if (nodeAffiliations.isChanged()) {
+				this.repository.update(nodeName, nodeAffiliations);
+			}
 			result.addChild(makeSubscription(nodeName, jid, newSubscription, subid));
 
 			results.add(result);

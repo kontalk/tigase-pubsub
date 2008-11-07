@@ -25,7 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.pubsub.repository.inmemory.Subscriber;
@@ -76,25 +78,26 @@ public abstract class AbstractModule implements Module {
 		return best;
 	}
 
-	public String[] getActiveSubscribers(final String nodeName) throws RepositoryException {
-		Subscriber[] subscribers = repository.getSubscriptions(nodeName);
+	public String[] getActiveSubscribers(final IAffiliations affiliations, final ISubscriptions subscriptions)
+			throws RepositoryException {
+		Subscriber[] subscribers = subscriptions.getSubscriptions();
 		if (subscribers == null)
 			return new String[] {};
 		String[] jids = new String[subscribers.length];
 		for (int i = 0; i < subscribers.length; i++) {
 			jids[i] = subscribers[i].getJid();
 		}
-		return getActiveSubscribers(jids, nodeName);
+		return getActiveSubscribers(jids, affiliations, subscriptions);
 	}
 
-	public String[] getActiveSubscribers(final String[] jids, final String nodeName) throws RepositoryException {
+	public String[] getActiveSubscribers(final String[] jids, final IAffiliations affiliations, final ISubscriptions subscriptions) {
 		List<String> result = new ArrayList<String>();
 		if (jids != null) {
 			for (String jid : jids) {
-				NodeAffiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
+				NodeAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
 				// /* && affiliation.getAffiliation() != Affiliation.none */
 				if (affiliation.getAffiliation() != Affiliation.outcast) {
-					Subscription subscription = repository.getSubscription(nodeName, jid);
+					Subscription subscription = subscriptions.getSubscription(jid);
 					if (subscription == Subscription.subscribed) {
 						result.add(jid);
 					}
@@ -105,11 +108,12 @@ public abstract class AbstractModule implements Module {
 		return result.toArray(new String[] {});
 	}
 
-	protected boolean hasSenderSubscription(final String jid, final String nodeName) throws RepositoryException {
-		final Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
+	protected boolean hasSenderSubscription(final String jid, final IAffiliations affiliations, final ISubscriptions subscriptions)
+			throws RepositoryException {
+		final Subscriber[] subscribers = subscriptions.getSubscriptions();
 		final String bareJid = JIDUtils.getNodeID(jid);
 		for (Subscriber owner : subscribers) {
-			NodeAffiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, owner.getJid());
+			NodeAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
 			if (affiliation.getAffiliation() != Affiliation.owner)
 				continue;
 			if (bareJid.equals(owner))
@@ -127,14 +131,15 @@ public abstract class AbstractModule implements Module {
 		return false;
 	}
 
-	protected boolean isSenderInRosterGroup(String jid, String nodeName) throws RepositoryException {
-		final Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
+	protected boolean isSenderInRosterGroup(String jid, AbstractNodeConfig nodeConfig, IAffiliations affiliations,
+			final ISubscriptions subscriptions) throws RepositoryException {
+		final Subscriber[] subscribers = subscriptions.getSubscriptions();
 		final String bareJid = JIDUtils.getNodeID(jid);
-		final String[] groupsAllowed = this.repository.getNodeConfig(nodeName).getRosterGroupsAllowed();
+		final String[] groupsAllowed = nodeConfig.getRosterGroupsAllowed();
 		if (groupsAllowed == null || groupsAllowed.length == 0)
 			return true;
 		for (Subscriber owner : subscribers) {
-			NodeAffiliation affiliation = this.repository.getSubscriberAffiliation(nodeName, owner.getJid());
+			NodeAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
 			if (affiliation.getAffiliation() != Affiliation.owner)
 				continue;
 			if (bareJid.equals(owner))

@@ -21,13 +21,14 @@
  */
 package tigase.pubsub;
 
-import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.logging.Logger;
 
 import tigase.util.JIDUtils;
 
 public class Utils {
+
+	private final static String CHARSET = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 	protected static Logger log = Logger.getLogger(Utils.class.getName());
 
@@ -62,13 +63,12 @@ public class Utils {
 		if (ng == null) {
 			numberGenerator = ng = new SecureRandom();
 		}
-		byte[] rnd = new byte[20];
-		ng.nextBytes(rnd);
-		byte[] tmp = new byte[rnd.length + 1];
-		System.arraycopy(rnd, 0, tmp, 1, rnd.length);
-		tmp[0] = 0x00;
-		BigInteger bi = new BigInteger(tmp);
-		return bi.toString(36);
+		String result = "";
+		for (int i = 0; i < 16; i++) {
+			int a = ng.nextInt(CHARSET.length());
+			result += CHARSET.charAt(a);
+		}
+		return result;
 	}
 
 	public static boolean isAllowedDomain(final String jid, final String... domains) {

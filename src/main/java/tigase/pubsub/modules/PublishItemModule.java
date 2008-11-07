@@ -42,7 +42,9 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.util.JIDUtils;
@@ -152,20 +154,16 @@ public class PublishItemModule extends AbstractModule {
 		return result;
 	}
 
-	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName)
-			throws RepositoryException {
-		AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(publisherNodeName);
-		return prepareNotification(itemToSend, jidFrom, publisherNodeName, nodeConfig);
-	}
-
 	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName,
-			AbstractNodeConfig nodeConfig) throws RepositoryException {
-		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig);
+			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
+			throws RepositoryException {
+		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations, nodesSubscriptions);
 	}
 
 	public List<Element> prepareNotification(final Element itemToSend, final String jidFrom, final String publisherNodeName,
-			final Map<String, String> headers, AbstractNodeConfig nodeConfig) throws RepositoryException {
-		String[] subscribers = getActiveSubscribers(publisherNodeName);
+			final Map<String, String> headers, AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations,
+			ISubscriptions nodesSubscriptions) throws RepositoryException {
+		String[] subscribers = getActiveSubscribers(nodeAffiliations, nodesSubscriptions);
 		if (nodeConfig.isDeliverPresenceBased()) {
 			List<String> s = new ArrayList<String>();
 			for (String jid : subscribers) {
@@ -239,8 +237,9 @@ public class PublishItemModule extends AbstractModule {
 			} else if (nodeConfig.getNodeType() == NodeType.collection) {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported", "publish"));
 			}
+			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
 
-			final NodeAffiliation senderAffiliation = repository.getSubscriberAffiliation(nodeName, element.getAttribute("from"));
+			final NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(element.getAttribute("from"));
 
 			if (!senderAffiliation.getAffiliation().isPublishItem()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
@@ -272,14 +271,20 @@ public class PublishItemModule extends AbstractModule {
 			final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
 			items.addChildren(itemsToSend);
 
-			result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, this.repository.getNodeConfig(nodeName)));
+			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+
+			result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, this.repository.getNodeConfig(nodeName),
+					nodeAffiliations, nodeSubscriptions));
 			List<String> parents = getParents(nodeName);
 			if (parents != null && parents.size() > 0) {
 				for (String collection : parents) {
 					Map<String, String> headers = new HashMap<String, String>();
 					headers.put("Collection", collection);
-					AbstractNodeConfig colNodeConfig = this.repository.getNodeConfig(nodeName);
-					result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, headers, colNodeConfig));
+					AbstractNodeConfig colNodeConfig = this.repository.getNodeConfig(collection);
+					ISubscriptions colNodeSubscriptions = this.repository.getNodeSubscriptions(collection);
+					IAffiliations colNodeAffiliations = this.repository.getNodeAffiliations(collection);
+					result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, headers, colNodeConfig,
+							colNodeAffiliations, colNodeSubscriptions));
 				}
 			}
 

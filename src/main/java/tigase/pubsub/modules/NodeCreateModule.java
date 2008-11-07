@@ -28,12 +28,16 @@ import java.util.UUID;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -144,6 +148,14 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
 					collection == null ? "" : collection);
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(nodeName);
+
+			nodeSubscriptions.addSubscriberJid(element.getAttribute("from"), Subscription.subscribed);
+			nodeaAffiliations.addAffiliation(element.getAttribute("from"), Affiliation.owner);
+
+			repository.update(nodeName, nodeaAffiliations);
+			repository.update(nodeName, nodeSubscriptions);
 
 			if (colNodeConfig == null) {
 				repository.addToRootCollection(nodeName);
@@ -159,10 +171,13 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			notifications.add(result);
 
 			if (collection != null) {
+				ISubscriptions colNodeSubscriptions = this.repository.getNodeSubscriptions(collection);
+				IAffiliations colNodeAffiliations = this.repository.getNodeAffiliations(collection);
 
 				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
 				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
-				notifications.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collection));
+				notifications.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collection, nodeConfig,
+						colNodeAffiliations, colNodeSubscriptions));
 
 			}
 

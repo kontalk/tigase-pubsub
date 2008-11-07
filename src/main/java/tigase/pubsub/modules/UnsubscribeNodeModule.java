@@ -32,7 +32,9 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -72,7 +74,9 @@ public class UnsubscribeNodeModule extends AbstractModule {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			NodeAffiliation affiliation = repository.getSubscriberAffiliation(nodeName, jid);
+			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
+
+			NodeAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 			if (affiliation.getAffiliation() != Affiliation.owner
 					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(element.getAttribute("from")))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
@@ -82,23 +86,25 @@ public class UnsubscribeNodeModule extends AbstractModule {
 					throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
+			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
+
 			if (subid != null) {
-				String s = repository.getSubscriptionId(nodeName, jid);
+				String s = nodeSubscriptions.getSubscriptionId(jid);
 				if (!subid.equals(s)) {
 					throw new PubSubException(element, Authorization.NOT_ACCEPTABLE, PubSubErrorCondition.INVALID_SUBID);
 				}
 			}
 
-			Subscription subscription = repository.getSubscription(nodeName, jid);
+			Subscription subscription = nodeSubscriptions.getSubscription(jid);
 
 			if (subscription == null) {
 				throw new PubSubException(Authorization.UNEXPECTED_REQUEST, PubSubErrorCondition.NOT_SUBSCRIBED);
 			}
 
-			if (affiliation.getAffiliation() == Affiliation.none) {
-				repository.removeSubscriber(nodeName, jid);
-			} else {
-				repository.changeSubscription(nodeName, jid, Subscription.none);
+			nodeSubscriptions.changeSubscription(jid, Subscription.none);
+
+			if (nodeSubscriptions.isChanged()) {
+				this.repository.update(nodeName, nodeSubscriptions);
 			}
 
 			return makeArray(createResultIQ(element));

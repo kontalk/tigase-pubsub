@@ -31,6 +31,7 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.inmemory.Subscriber;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -88,8 +89,9 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 					}
 				}
 			} else {
+				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 				subscriptionsResult.addAttribute("node", nodeName);
-				Subscriber[] subscribers = this.repository.getSubscriptions(nodeName);
+				Subscriber[] subscribers = nodeSubscriptions.getSubscriptions();
 				for (final Subscriber subscriber : subscribers) {
 					Element s = new Element("subscription", new String[] { "jid", "subscription", "subid" }, new String[] {
 							subscriber.getJid(), subscriber.getSubscription().name(), subscriber.getSubid() });

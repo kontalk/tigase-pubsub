@@ -24,8 +24,6 @@ package tigase.pubsub.repository;
 import java.util.Date;
 
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.AccessModel;
-import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.Subscription;
 import tigase.xml.Element;
@@ -34,12 +32,7 @@ public interface IPubSubDAO {
 
 	void addListener(PubSubRepositoryListener listener);
 
-	public abstract String addSubscriberJid(final String nodeName, final String jid, final Affiliation affiliation,
-			final Subscription subscription) throws RepositoryException;
-
 	public void addToRootCollection(String nodeName) throws RepositoryException;
-
-	void changeAffiliation(String node, String subscriberJid, Affiliation affiliation) throws RepositoryException;
 
 	public abstract void changeSubscription(final String nodeName, final String jid, final Subscription subscription)
 			throws RepositoryException;
@@ -53,13 +46,9 @@ public interface IPubSubDAO {
 
 	void forgetConfiguration(final String nodeName) throws RepositoryException;
 
-	public String[] getAffiliations(final String nodeName) throws RepositoryException;
-
 	String[] getBuddyGroups(String owner, String bareJid) throws RepositoryException;
 
 	String getBuddySubscription(String owner, String buddy) throws RepositoryException;
-
-	public abstract String getCollectionOf(String nodeName) throws RepositoryException;
 
 	IPubSubDAO getDirectRepository();
 
@@ -74,17 +63,15 @@ public interface IPubSubDAO {
 	// public abstract void readNodeConfig(LeafNodeConfig nodeConfig, String
 	// nodeName) throws RepositoryException;
 
-	public abstract AccessModel getNodeAccessModel(String nodeName) throws RepositoryException;
+	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
 
 	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException;
 
 	public abstract String[] getNodesList() throws RepositoryException;
 
-	public abstract NodeType getNodeType(String nodeName) throws RepositoryException;
+	ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
 
 	public String[] getRootNodes() throws RepositoryException;
-
-	public abstract Affiliation getSubscriberAffiliation(final String nodeName, final String jid) throws RepositoryException;
 
 	public abstract Subscription getSubscription(String nodeName, String jid) throws RepositoryException;
 
@@ -100,11 +87,11 @@ public interface IPubSubDAO {
 
 	void removeListener(PubSubRepositoryListener listener);
 
-	public abstract void removeSubscriber(final String nodeName, final String jid) throws RepositoryException;
-
-	public abstract void setNewNodeCollection(String nodeName, String collectionNew) throws RepositoryException;
-
 	public abstract void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException;
+
+	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException;
+
+	void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException;
 
 	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher,
 			final Element item) throws RepositoryException;

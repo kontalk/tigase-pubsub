@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.cluster.ClusterElement;
@@ -47,6 +46,16 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	private static final String METHOD_PRESENCE_COLLECTION = "presenceCollection";
 
 	private static Random random = new SecureRandom();
+
+	protected static String[] getParameters(final String name, final Map<String, String> allMethodParams) {
+		List<String> nodesNames = new ArrayList<String>();
+		for (Map.Entry<String, String> pps : allMethodParams.entrySet()) {
+			if (pps.getKey().startsWith(name)) {
+				nodesNames.add(pps.getValue());
+			}
+		}
+		return nodesNames.toArray(new String[] {});
+	}
 
 	private final Set<String> cluster_nodes = new LinkedHashSet<String>();
 
@@ -123,38 +132,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		}
 	}
 
-	protected static String[] getParameters(final String name, final Map<String, String> allMethodParams) {
-		List<String> nodesNames = new ArrayList<String>();
-		for (Map.Entry<String, String> pps : allMethodParams.entrySet()) {
-			if (pps.getKey().startsWith(name)) {
-				nodesNames.add(pps.getValue());
-			}
-		}
-		return nodesNames.toArray(new String[] {});
-	}
-
-	protected void sendAvailableJidsToNode(final String node) {
-		Map<String, String> params = new HashMap<String, String>();
-		int counter = 0;
-		for (String jid : presenceCollectorModule.getAllAvailableJids()) {
-			++counter;
-			params.put("jid." + counter, jid);
-			if (params.size() > 99) {
-				ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
-						METHOD_PRESENCE_COLLECTION, params);
-				addOutPacket(new Packet(call.getClusterElement()));
-
-				params = new HashMap<String, String>();
-			}
-
-		}
-		if (params.size() != 0) {
-			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
-					METHOD_PRESENCE_COLLECTION, params);
-			addOutPacket(new Packet(call.getClusterElement()));
-		}
-	}
-
 	protected void processMethodCall(String methodName, Map<String, String> allMethodParams) throws RepositoryException {
 		if (METHOD_PRESENCE_COLLECTION.equals(methodName)) {
 			String[] jids = getParameters("jid", allMethodParams);
@@ -166,6 +143,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	public void processPacket(final Packet packet) {
+		log.finest("Received by " + getComponentId() + ": " + packet.getElement().toString());
 		if (packet.getElemName() == ClusterElement.CLUSTER_EL_NAME || packet.getElemName() == ClusterElement.CLUSTER_EL_NAME
 				&& packet.getElement().getXMLNS() == ClusterElement.XMLNS) {
 			log.finest("Handling as internal cluster message");
@@ -213,6 +191,35 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		}
 	}
 
+	protected void sendAvailableJidsToNode(final String node) {
+		Map<String, String> params = new HashMap<String, String>();
+		int counter = 0;
+		for (String jid : presenceCollectorModule.getAllAvailableJids()) {
+			++counter;
+			params.put("jid." + counter, jid);
+			if (params.size() > 99) {
+				ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
+						METHOD_PRESENCE_COLLECTION, params);
+				addOutPacket(new Packet(call.getClusterElement()));
+
+				params = new HashMap<String, String>();
+			}
+
+		}
+		if (params.size() != 0) {
+			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
+					METHOD_PRESENCE_COLLECTION, params);
+			addOutPacket(new Packet(call.getClusterElement()));
+		}
+	}
+
+	protected void sentBroadcast(final Packet packet) {
+		log.finest("Send broadcast with: " + packet.toString());
+		for (String cNN : this.cluster_nodes) {
+			sentToNode(packet, cNN);
+		}
+	}
+
 	protected boolean sentToNextNode(ClusterElement clel) {
 		ClusterElement next_clel = ClusterElement.createForNextNode(clel, cluster_nodes, getComponentId());
 		if (next_clel != null) {
@@ -236,13 +243,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			}
 		}
 		return false;
-	}
-
-	protected void sentBroadcast(final Packet packet) {
-		log.finest("Send broadcast with: " + packet.toString());
-		for (String cNN : this.cluster_nodes) {
-			sentToNode(packet, cNN);
-		}
 	}
 
 	protected boolean sentToNode(final Packet packet, final String cluster_node) {

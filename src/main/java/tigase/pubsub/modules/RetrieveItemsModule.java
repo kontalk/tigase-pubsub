@@ -38,7 +38,9 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -101,22 +103,26 @@ public class RetrieveItemsModule extends AbstractModule {
 			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
 				throw new PubSubException(Authorization.FORBIDDEN);
 
-			Subscription senderSubscription = this.repository.getSubscription(nodeName, senderJid);
-			NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, senderJid);
+			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(nodeName);
+
+			NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 			if (senderAffiliation.getAffiliation() == Affiliation.outcast) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+			Subscription senderSubscription = nodeSubscriptions.getSubscription(senderJid);
+
 			if (nodeConfig.getNodeAccessModel() == AccessModel.whitelist && !senderAffiliation.getAffiliation().isRetrieveItem()) {
 				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.authorize
 					&& (senderSubscription != Subscription.subscribed || !senderAffiliation.getAffiliation().isRetrieveItem())) {
 				throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_SUBSCRIBED);
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.presence) {
-				boolean allowed = hasSenderSubscription(senderJid, nodeName);
+				boolean allowed = hasSenderSubscription(senderJid, nodeAffiliations, nodeSubscriptions);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.roster) {
-				boolean allowed = isSenderInRosterGroup(senderJid, nodeName);
+				boolean allowed = isSenderInRosterGroup(senderJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
 			}

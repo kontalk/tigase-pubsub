@@ -21,10 +21,6 @@
  */
 package tigase.pubsub;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
@@ -40,7 +36,6 @@ public class AbstractNodeConfig {
 	/**
 	 * List with do-not-write elements
 	 */
-	protected final Set<String> blacklist = new HashSet<String>();
 
 	protected final Form form = new Form("form", null, null);
 
@@ -74,6 +69,10 @@ public class AbstractNodeConfig {
 		form.copyValuesFrom(c.form);
 	}
 
+	public void copyFromForm(Form f) {
+		form.copyValuesFrom(f);
+	}
+
 	public String getBodyXslt() {
 		return form.getAsString("pubsub#body_xslt");
 	}
@@ -94,7 +93,8 @@ public class AbstractNodeConfig {
 	}
 
 	public String getCollection() {
-		return form.getAsString("pubsub#collection");
+		String d = form.getAsString("pubsub#collection");
+		return d == null ? "" : d;
 	}
 
 	public String[] getDomains() {
@@ -137,8 +137,6 @@ public class AbstractNodeConfig {
 	}
 
 	protected void init() {
-		blacklist.add("pubsub#node_type");
-
 		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, new String[] { NodeType.leaf.name(),
 				NodeType.collection.name() }));
 		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));
@@ -216,6 +214,10 @@ public class AbstractNodeConfig {
 		setValues(PUBSUB + "domains", domains);
 	}
 
+	public void setNodeType(NodeType nodeType) {
+		form.get("pubsub#node_type").setValues(new String[] { nodeType.name() });
+	}
+
 	public void setValue(String var, boolean data) {
 		setValue(var, new Boolean(data));
 	}
@@ -257,20 +259,7 @@ public class AbstractNodeConfig {
 
 	public void write(final UserRepository repo, final PubSubConfig config, final String subnode) throws UserNotFoundException,
 			TigaseDBException {
-		List<Field> fields = form.getAllFields();
-		for (Field field : fields) {
-			if (field.getVar() != null && !this.blacklist.contains(field.getVar())) {
-				String[] values = field.getValues();
-				String value = field.getValue();
-				if (values == null || values.length == 0) {
-					repo.removeData(config.getServiceName(), subnode, field.getVar());
-				} else if (values.length == 1) {
-					repo.setData(config.getServiceName(), subnode, field.getVar(), value);
-				} else {
-					repo.setDataList(config.getServiceName(), subnode, field.getVar(), values);
-				}
-			}
-		}
+		repo.setData(config.getServiceName(), subnode, "configuration", form.getElement().toString());
 	}
 
 }

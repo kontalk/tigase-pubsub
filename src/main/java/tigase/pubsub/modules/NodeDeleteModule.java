@@ -31,7 +31,9 @@ import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -85,10 +87,11 @@ public class NodeDeleteModule extends AbstractModule {
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
+			final IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(nodeName);
 
 			String jid = element.getAttribute("from");
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(nodeName, jid);
+				NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 				if (!senderAffiliation.getAffiliation().isDeleteNode()) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
@@ -96,9 +99,11 @@ public class NodeDeleteModule extends AbstractModule {
 			List<Element> resultArray = makeArray(createResultIQ(element));
 
 			if (nodeConfig.isNotify_config()) {
+				ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
 				String pssJid = element.getAttribute("to");
 				Element del = new Element("delete", new String[] { "node" }, new String[] { nodeName });
-				resultArray.addAll(this.publishModule.prepareNotification(del, pssJid, nodeName));
+				resultArray.addAll(this.publishModule.prepareNotification(del, pssJid, nodeName, nodeConfig, nodeAffiliations,
+						nodeSubscriptions));
 			}
 
 			final String parentNodeName = nodeConfig.getCollection();

@@ -36,7 +36,9 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.inmemory.NodeAffiliation;
 import tigase.util.JIDUtils;
@@ -80,30 +82,38 @@ public class PendingSubscriptionModule extends AbstractModule {
 			if (nodeConfig == null) {
 				throw new PubSubException(message, Authorization.ITEM_NOT_FOUND);
 			}
+			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(node);
+			final IAffiliations nodeAffiliations = repository.getNodeAffiliations(node);
 			String jid = message.getAttribute("from");
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				NodeAffiliation senderAffiliation = this.repository.getSubscriberAffiliation(node, jid);
+				NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(message, Authorization.FORBIDDEN);
 				}
 			}
-			String userSubId = this.repository.getSubscriptionId(node, subscriberJid);
+			String userSubId = nodeSubscriptions.getSubscriptionId(subscriberJid);
 			if (subId != null && !subId.equals(userSubId)) {
 				throw new PubSubException(message, Authorization.NOT_ACCEPTABLE, PubSubErrorCondition.INVALID_SUBID);
 			}
 
-			Subscription subscription = this.repository.getSubscription(node, subscriberJid);
+			Subscription subscription = nodeSubscriptions.getSubscription(subscriberJid);
 			if (subscription != Subscription.pending)
 				return null;
-			Affiliation affiliation = this.repository.getSubscriberAffiliation(node, jid).getAffiliation();
+			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
 			if (allow) {
 				subscription = Subscription.subscribed;
 				affiliation = Affiliation.member;
-				this.repository.changeSubscription(node, subscriberJid, subscription);
-				this.repository.changeAffiliation(node, subscriberJid, affiliation);
+				nodeSubscriptions.changeSubscription(subscriberJid, subscription);
+				nodeAffiliations.changeAffiliation(subscriberJid, affiliation);
 			} else {
 				subscription = Subscription.none;
-				this.repository.removeSubscriber(node, subscriberJid);
+				nodeSubscriptions.changeSubscription(subscriberJid, subscription);
+			}
+			if (nodeSubscriptions.isChanged()) {
+				this.repository.update(node, nodeSubscriptions);
+			}
+			if (nodeAffiliations.isChanged()) {
+				this.repository.update(node, nodeAffiliations);
 			}
 
 			Element msg = new Element("message", new String[] { "from", "to", "id" }, new String[] { message.getAttribute("to"),
@@ -119,7 +129,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 	}
 
 	public List<Element> sendAuthorizationRequest(final String nodeName, final String fromJid, final String subID,
-			final String subscriberJid) throws RepositoryException {
+			final String subscriberJid, IAffiliations nodeAffiliations) throws RepositoryException {
 		Form x = new Form("form", "PubSub subscriber request",
 				"To approve this entity's subscription request, click the OK button. To deny the request, click the cancel button.");
 		x.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#subscribe_authorization"));
@@ -129,7 +139,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
 
 		List<Element> result = new ArrayList<Element>();
-		NodeAffiliation[] affiliations = this.repository.getAffiliations(nodeName);
+		NodeAffiliation[] affiliations = nodeAffiliations.getAffiliations();
 		if (affiliations != null) {
 			for (NodeAffiliation affiliation : affiliations) {
 				if (affiliation.getAffiliation() == Affiliation.owner) {

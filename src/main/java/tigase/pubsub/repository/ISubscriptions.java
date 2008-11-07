@@ -1,0 +1,22 @@
+package tigase.pubsub.repository;
+
+import tigase.pubsub.Subscription;
+import tigase.pubsub.repository.inmemory.Subscriber;
+
+public interface ISubscriptions {
+
+	public abstract String addSubscriberJid(String jid, Subscription subscription);
+
+	public abstract void changeSubscription(String jid, Subscription subscription);
+
+	public abstract Subscription getSubscription(String jid);
+
+	public abstract String getSubscriptionId(String jid);
+
+	public abstract Subscriber[] getSubscriptions();
+
+	public boolean isChanged();
+
+	public abstract String serialize(boolean b);
+
+}
