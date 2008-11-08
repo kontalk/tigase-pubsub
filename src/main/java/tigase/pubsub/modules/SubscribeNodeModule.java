@@ -172,6 +172,7 @@ public class SubscribeNodeModule extends AbstractModule {
 
 			} else {
 				nodeSubscriptions.changeSubscription(jid, newSubscription);
+				nodeAffiliations.changeAffiliation(jid, affiliation);
 			}
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
