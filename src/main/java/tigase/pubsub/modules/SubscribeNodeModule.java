@@ -162,7 +162,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			}
 
 			String subid = nodeSubscriptions.getSubscriptionId(jid);
-			if (senderAffiliation == null) {
+			if (subid == null) {
 				subid = nodeSubscriptions.addSubscriberJid(jid, newSubscription);
 				nodeAffiliations.addAffiliation(jid, affiliation);
 				if (accessModel == AccessModel.authorize) {
