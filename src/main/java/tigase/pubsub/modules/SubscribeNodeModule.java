@@ -48,6 +48,14 @@ public class SubscribeNodeModule extends AbstractModule {
 	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
 
+	private static Affiliation calculateNewOwnerAffiliation(final Affiliation ownerAffiliation, final Affiliation newAffiliation) {
+		if (ownerAffiliation.getWeight() > newAffiliation.getWeight()) {
+			return ownerAffiliation;
+		} else {
+			return newAffiliation;
+		}
+	}
+
 	public static Element makeSubscription(String nodeName, String subscriberJid, Subscription newSubscription, String subid) {
 		Element resPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
 		Element resSubscription = new Element("subscription");
@@ -136,26 +144,26 @@ public class SubscribeNodeModule extends AbstractModule {
 
 			List<Element> results = new ArrayList<Element>();
 			Subscription newSubscription;
-			Affiliation affiliation;
+			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
 
 			if (accessModel == AccessModel.open) {
 				newSubscription = Subscription.subscribed;
-				affiliation = Affiliation.member;
+				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
 			} else if (accessModel == AccessModel.authorize) {
 				newSubscription = Subscription.pending;
-				affiliation = Affiliation.none;
+				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.none);
 			} else if (accessModel == AccessModel.presence) {
 				boolean allowed = hasSenderSubscription(jid, nodeAffiliations, nodeSubscriptions);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
 				newSubscription = Subscription.subscribed;
-				affiliation = Affiliation.member;
+				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
 			} else if (accessModel == AccessModel.roster) {
 				boolean allowed = isSenderInRosterGroup(jid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 				if (!allowed)
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
 				newSubscription = Subscription.subscribed;
-				affiliation = Affiliation.member;
+				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
 			} else {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, "AccessModel '" + accessModel.name()
 						+ "' is not implemented yet");

@@ -23,18 +23,18 @@ package tigase.pubsub;
 
 public enum Affiliation {
 	/** */
-	member(true, true, false, false, false, false, false),
+	member(2, true, true, false, false, false, false, false),
 	/** */
-	none(true, false, false, false, false, false, false),
+	none(1, true, false, false, false, false, false, false),
 	/** An entity that is disallowed from subscribing or publishing to a node. */
-	outcast(false, false, false, false, false, false, false),
+	outcast(0, false, false, false, false, false, false, false),
 	/**
 	 * The manager of a node, of which there may be more than one; often but not
 	 * necessarily the node creator.
 	 */
-	owner(true, true, true, true, true, true, true),
+	owner(4, true, true, true, true, true, true, true),
 	/** An entity that is allowed to publish items to a node. */
-	publisher(true, true, true, true, false, false, false);
+	publisher(3, true, true, true, true, false, false, false);
 
 	private final boolean configureNode;
 
@@ -50,15 +50,22 @@ public enum Affiliation {
 
 	private final boolean subscribe;
 
-	private Affiliation(boolean subscribe, boolean retrieveItem, boolean publishItem, boolean deleteItem, boolean configureNode,
-			boolean deleteNode, boolean purgeNode) {
+	private final int weight;
+
+	private Affiliation(int weight, boolean subscribe, boolean retrieveItem, boolean publishItem, boolean deleteItem,
+			boolean configureNode, boolean deleteNode, boolean purgeNode) {
 		this.subscribe = subscribe;
+		this.weight = weight;
 		this.retrieveItem = retrieveItem;
 		this.publishItem = publishItem;
 		this.deleteItem = deleteItem;
 		this.configureNode = configureNode;
 		this.deleteNode = deleteNode;
 		this.purgeNode = purgeNode;
+	}
+
+	public int getWeight() {
+		return weight;
 	}
 
 	public boolean isConfigureNode() {
