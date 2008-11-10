@@ -99,15 +99,16 @@ public class ManageAffiliationsModule extends AbstractModule {
 				}
 			}
 
+			List<Element> result = new ArrayList<Element>();
 			if (type.equals("get")) {
-				return processGet(element, affiliations, nodeName, nodeAffiliations);
+				result = processGet(element, affiliations, nodeName, nodeAffiliations);
 			} else if (type.equals("set")) {
-				return processSet(element, affiliations, nodeName, nodeAffiliations);
+				result = processSet(element, affiliations, nodeName, nodeAffiliations);
 			}
 			if (nodeAffiliations.isChanged()) {
 				repository.update(nodeName, nodeAffiliations);
 			}
-			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR);
+			return result;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

@@ -105,15 +105,16 @@ public class ManageSubscriptionModule extends AbstractModule {
 				}
 			}
 
+			List<Element> result = new ArrayList<Element>();
 			if (type.equals("get")) {
-				return processGet(element, subscriptions, nodeName, nodeSubscriptions);
+				result = processGet(element, subscriptions, nodeName, nodeSubscriptions);
 			} else if (type.equals("set")) {
-				return processSet(element, subscriptions, nodeName, nodeSubscriptions);
+				result = processSet(element, subscriptions, nodeName, nodeSubscriptions);
 			}
 			if (nodeSubscriptions.isChanged()) {
 				this.repository.update(nodeName, nodeSubscriptions);
 			}
-			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR);
+			return result;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
