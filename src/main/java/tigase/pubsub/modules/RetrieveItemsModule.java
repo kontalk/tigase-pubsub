@@ -41,7 +41,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -105,7 +105,7 @@ public class RetrieveItemsModule extends AbstractModule {
 
 			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(nodeName);
 
-			NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 			if (senderAffiliation.getAffiliation() == Affiliation.outcast) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}

@@ -40,7 +40,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -93,6 +93,18 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		this.nodeConfigListeners.add(listener);
 	}
 
+	private Element createAssociateNotification(final String collectionNodeName, String associatedNodeName) {
+		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
+		colE.addChild(new Element("associate", new String[] { "node" }, new String[] { associatedNodeName }));
+		return colE;
+	}
+
+	private Element createDisassociateNotification(final String collectionNodeName, String disassociatedNodeName) {
+		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
+		colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { disassociatedNodeName }));
+		return colE;
+	}
+
 	protected void fireOnNodeConfigChange(final String nodeName) {
 		for (NodeConfigListener listener : this.nodeConfigListeners) {
 			listener.onNodeConfigChanged(nodeName);
@@ -142,7 +154,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 			String jid = element.getAttribute("from");
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
@@ -284,18 +296,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			throw new RuntimeException(e);
 		}
 
-	}
-
-	private Element createDisassociateNotification(final String collectionNodeName, String disassociatedNodeName) {
-		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
-		colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { disassociatedNodeName }));
-		return colE;
-	}
-
-	private Element createAssociateNotification(final String collectionNodeName, String associatedNodeName) {
-		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
-		colE.addChild(new Element("associate", new String[] { "node" }, new String[] { associatedNodeName }));
-		return colE;
 	}
 
 	public void removeNodeConfigListener(NodeConfigListener listener) {

@@ -38,7 +38,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -105,7 +105,7 @@ public class SubscribeNodeModule extends AbstractModule {
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
-			NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 
 			if (senderAffiliation.getAffiliation() != Affiliation.owner
 					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
@@ -118,8 +118,8 @@ public class SubscribeNodeModule extends AbstractModule {
 			// TODO 6.1.3.3 Not in Roster Group
 			// TODO 6.1.3.4 Not on Whitelist
 			// TODO 6.1.3.5 Payment Required
-			// TODO 6.1.3.6 Anonymous Subscriptions Not Allowed
-			// TODO 6.1.3.9 Subscriptions Not Supported
+			// TODO 6.1.3.6 Anonymous NodeSubscriptions Not Allowed
+			// TODO 6.1.3.9 NodeSubscriptions Not Supported
 			// TODO 6.1.3.10 Node Has Moved
 
 			Subscription subscription = nodeSubscriptions.getSubscription(jid);

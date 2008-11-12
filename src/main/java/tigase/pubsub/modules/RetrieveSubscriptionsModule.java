@@ -32,7 +32,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.inmemory.Subscriber;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
@@ -75,13 +75,14 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 				String[] nodes = directRepo.getNodesList();
 				if (nodes != null) {
 					for (String node : nodes) {
-						String[] subscribers = directRepo.getSubscriptions(node);
+						final ISubscriptions subscribers = directRepo.getNodeSubscriptions(node);
 						if (subscribers != null) {
-							for (String subscriber : subscribers) {
-								if (senderBareJid.equals(JIDUtils.getNodeID(subscriber))) {
-									Subscription subscription = directRepo.getSubscription(nodeName, subscriber);
+							for (UsersSubscription usersSubscription : subscribers.getSubscriptions()) {
+								if (senderBareJid.equals(JIDUtils.getNodeID(usersSubscription.getJid()))) {
+									ISubscriptions ns = directRepo.getNodeSubscriptions(nodeName);
+									Subscription subscription = ns.getSubscription(usersSubscription.getJid());
 									Element a = new Element("subscription", new String[] { "node", "jid", "subscription" },
-											new String[] { node, subscriber, subscription.name() });
+											new String[] { node, usersSubscription.getJid(), subscription.name() });
 									subscriptionsResult.addChild(a);
 								}
 							}
@@ -91,10 +92,10 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 			} else {
 				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 				subscriptionsResult.addAttribute("node", nodeName);
-				Subscriber[] subscribers = nodeSubscriptions.getSubscriptions();
-				for (final Subscriber subscriber : subscribers) {
+				UsersSubscription[] subscribers = nodeSubscriptions.getSubscriptions();
+				for (final UsersSubscription usersSubscription : subscribers) {
 					Element s = new Element("subscription", new String[] { "jid", "subscription", "subid" }, new String[] {
-							subscriber.getJid(), subscriber.getSubscription().name(), subscriber.getSubid() });
+							usersSubscription.getJid(), usersSubscription.getSubscription().name(), usersSubscription.getSubid() });
 					subscriptionsResult.addChild(s);
 				}
 			}

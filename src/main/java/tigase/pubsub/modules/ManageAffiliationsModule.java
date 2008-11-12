@@ -35,7 +35,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -93,7 +93,7 @@ public class ManageAffiliationsModule extends AbstractModule {
 			String senderJid = element.getAttribute("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
@@ -126,9 +126,9 @@ public class ManageAffiliationsModule extends AbstractModule {
 		Element afr = new Element("affiliations", new String[] { "node" }, new String[] { nodeName });
 		ps.addChild(afr);
 
-		NodeAffiliation[] affiliationsList = nodeAffiliations.getAffiliations();
+		UsersAffiliation[] affiliationsList = nodeAffiliations.getAffiliations();
 		if (affiliationsList != null) {
-			for (NodeAffiliation affi : affiliationsList) {
+			for (UsersAffiliation affi : affiliationsList) {
 				if (affi.getAffiliation() == Affiliation.none) {
 					continue;
 				}

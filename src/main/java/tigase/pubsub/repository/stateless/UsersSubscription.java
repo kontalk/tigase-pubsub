@@ -19,59 +19,39 @@
  * Last modified by $Author$
  * $Date$
  */
-package tigase.pubsub.repository.inmemory;
+package tigase.pubsub.repository.stateless;
 
-import java.util.Date;
+import tigase.pubsub.Subscription;
 
-import tigase.xml.Element;
+public class UsersSubscription {
 
-public class Item {
+	private final String jid;
 
-	private final Date creationDate;
+	private final String subid;
 
-	private Element data;
+	private Subscription subscription;
 
-	private final String id;
-
-	private final String publisher;
-
-	private Date updateDate;
-
-	Item(String id, Element data, Date creationDate, Date updateDate, String publisher) {
+	public UsersSubscription(String jid, String subid, Subscription subscriptionType) {
 		super();
-		this.data = data;
-		this.creationDate = creationDate;
-		this.updateDate = updateDate;
-		this.publisher = publisher;
-		this.id = id;
+		this.jid = jid;
+		this.subid = subid;
+		this.subscription = subscriptionType;
 	}
 
-	public Date getCreationDate() {
-		return creationDate;
+	public String getJid() {
+		return jid;
 	}
 
-	public Element getData() {
-		return data;
+	public String getSubid() {
+		return subid;
 	}
 
-	public String getId() {
-		return id;
+	public Subscription getSubscription() {
+		return subscription;
 	}
 
-	public String getPublisher() {
-		return publisher;
-	}
-
-	public Date getUpdateDate() {
-		return updateDate;
-	}
-
-	public void setData(Element data) {
-		this.data = data;
-	}
-
-	public void setUpdateDate(Date updateDate) {
-		this.updateDate = updateDate;
+	public void setSubscription(Subscription subscriptionType) {
+		this.subscription = subscriptionType;
 	}
 
 }

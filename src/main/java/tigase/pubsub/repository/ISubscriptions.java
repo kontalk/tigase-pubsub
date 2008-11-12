@@ -1,7 +1,7 @@
 package tigase.pubsub.repository;
 
 import tigase.pubsub.Subscription;
-import tigase.pubsub.repository.inmemory.Subscriber;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 
 public interface ISubscriptions {
 
@@ -13,7 +13,7 @@ public interface ISubscriptions {
 
 	public abstract String getSubscriptionId(String jid);
 
-	public abstract Subscriber[] getSubscriptions();
+	public abstract UsersSubscription[] getSubscriptions();
 
 	public boolean isChanged();
 

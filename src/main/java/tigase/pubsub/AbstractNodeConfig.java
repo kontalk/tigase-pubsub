@@ -39,10 +39,6 @@ public class AbstractNodeConfig {
 
 	protected final Form form = new Form("form", null, null);
 
-	public Form getForm() {
-		return form;
-	}
-
 	private final String nodeName;
 
 	public AbstractNodeConfig(final String nodeName) {
@@ -104,6 +100,10 @@ public class AbstractNodeConfig {
 	public String[] getDomains() {
 		String[] v = form.getAsStrings(PUBSUB + "domains");
 		return v == null ? new String[] {} : v;
+	}
+
+	public Form getForm() {
+		return form;
 	}
 
 	public Element getFormElement() {

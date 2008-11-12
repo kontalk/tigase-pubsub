@@ -37,8 +37,8 @@ import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
-import tigase.pubsub.repository.inmemory.Subscriber;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -99,7 +99,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 			String senderJid = element.getAttribute("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
@@ -132,14 +132,14 @@ public class ManageSubscriptionModule extends AbstractModule {
 		Element afr = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
 		ps.addChild(afr);
 
-		Subscriber[] subscribers = nodeSubscriptions.getSubscriptions();
+		UsersSubscription[] subscribers = nodeSubscriptions.getSubscriptions();
 		if (subscribers != null) {
-			for (Subscriber subscriber : subscribers) {
-				if (subscriber.getSubscription() == Subscription.none) {
+			for (UsersSubscription usersSubscription : subscribers) {
+				if (usersSubscription.getSubscription() == Subscription.none) {
 					continue;
 				}
 				Element subscription = new Element("subscription", new String[] { "jid", "subscription" }, new String[] {
-						subscriber.getJid(), subscriber.getSubscription().name() });
+						usersSubscription.getJid(), usersSubscription.getSubscription().name() });
 				afr.addChild(subscription);
 			}
 		}

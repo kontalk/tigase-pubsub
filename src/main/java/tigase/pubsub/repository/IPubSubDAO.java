@@ -25,7 +25,6 @@ import java.util.Date;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
-import tigase.pubsub.Subscription;
 import tigase.xml.Element;
 
 public interface IPubSubDAO {
@@ -34,9 +33,6 @@ public interface IPubSubDAO {
 
 	public void addToRootCollection(String nodeName) throws RepositoryException;
 
-	public abstract void changeSubscription(final String nodeName, final String jid, final Subscription subscription)
-			throws RepositoryException;
-
 	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
 			String collection) throws RepositoryException;
 
@@ -44,13 +40,9 @@ public interface IPubSubDAO {
 
 	public abstract void deleteNode(String nodeName) throws RepositoryException;
 
-	void forgetConfiguration(final String nodeName) throws RepositoryException;
-
 	String[] getBuddyGroups(String owner, String bareJid) throws RepositoryException;
 
 	String getBuddySubscription(String owner, String buddy) throws RepositoryException;
-
-	IPubSubDAO getDirectRepository();
 
 	Element getItem(String nodeName, String id) throws RepositoryException;
 
@@ -60,24 +52,15 @@ public interface IPubSubDAO {
 
 	public abstract Date getItemUpdateDate(final String nodeName, final String id) throws RepositoryException;
 
-	// public abstract void readNodeConfig(LeafNodeConfig nodeConfig, String
-	// nodeName) throws RepositoryException;
-
-	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
+	public NodeAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
 
 	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException;
 
 	public abstract String[] getNodesList() throws RepositoryException;
 
-	ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
+	NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
 
 	public String[] getRootNodes() throws RepositoryException;
-
-	public abstract Subscription getSubscription(String nodeName, String jid) throws RepositoryException;
-
-	public abstract String getSubscriptionId(String nodeName, String jid) throws RepositoryException;
-
-	public abstract String[] getSubscriptions(String nodeName) throws RepositoryException;
 
 	String[] getUserRoster(String owner) throws RepositoryException;
 

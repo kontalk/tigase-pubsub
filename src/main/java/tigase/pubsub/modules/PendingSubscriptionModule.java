@@ -40,7 +40,7 @@ import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -86,7 +86,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 			final IAffiliations nodeAffiliations = repository.getNodeAffiliations(node);
 			String jid = message.getAttribute("from");
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				NodeAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(message, Authorization.FORBIDDEN);
 				}
@@ -135,13 +135,13 @@ public class PendingSubscriptionModule extends AbstractModule {
 		x.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#subscribe_authorization"));
 		x.addField(Field.fieldHidden("pubsub#subid", subID));
 		x.addField(Field.fieldTextSingle("pubsub#node", nodeName, "Node ID"));
-		x.addField(Field.fieldJidSingle("pusub#subscriber_jid", subscriberJid, "Subscriber Address"));
+		x.addField(Field.fieldJidSingle("pusub#subscriber_jid", subscriberJid, "UsersSubscription Address"));
 		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
 
 		List<Element> result = new ArrayList<Element>();
-		NodeAffiliation[] affiliations = nodeAffiliations.getAffiliations();
+		UsersAffiliation[] affiliations = nodeAffiliations.getAffiliations();
 		if (affiliations != null) {
-			for (NodeAffiliation affiliation : affiliations) {
+			for (UsersAffiliation affiliation : affiliations) {
 				if (affiliation.getAffiliation() == Affiliation.owner) {
 					Element message = new Element("message", new String[] { "id", "to", "from" }, new String[] { Utils.createUID(),
 							affiliation.getJid(), fromJid });

@@ -31,7 +31,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
@@ -75,11 +75,11 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 			String[] nodes = directRepo.getNodesList();
 			if (nodes != null) {
 				for (String node : nodes) {
-					NodeAffiliation[] affilitaions = directRepo.getNodeAffiliations(node).getAffiliations();
+					UsersAffiliation[] affilitaions = directRepo.getNodeAffiliations(node).getAffiliations();
 					if (affiliations != null) {
-						for (NodeAffiliation nodeAffiliation : affilitaions) {
-							if (senderBareJid.equals(nodeAffiliation.getJid())) {
-								Affiliation affiliation = nodeAffiliation.getAffiliation();
+						for (UsersAffiliation usersAffiliation : affilitaions) {
+							if (senderBareJid.equals(usersAffiliation.getJid())) {
+								Affiliation affiliation = usersAffiliation.getAffiliation();
 								Element a = new Element("affiliation", new String[] { "node", "affiliation" }, new String[] { node,
 										affiliation.name() });
 								affiliationsResult.addChild(a);

@@ -29,8 +29,8 @@ import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
-import tigase.pubsub.repository.inmemory.Subscriber;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
@@ -80,7 +80,7 @@ public abstract class AbstractModule implements Module {
 
 	public String[] getActiveSubscribers(final IAffiliations affiliations, final ISubscriptions subscriptions)
 			throws RepositoryException {
-		Subscriber[] subscribers = subscriptions.getSubscriptions();
+		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
 		if (subscribers == null)
 			return new String[] {};
 		String[] jids = new String[subscribers.length];
@@ -94,7 +94,7 @@ public abstract class AbstractModule implements Module {
 		List<String> result = new ArrayList<String>();
 		if (jids != null) {
 			for (String jid : jids) {
-				NodeAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
+				UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
 				// /* && affiliation.getAffiliation() != Affiliation.none */
 				if (affiliation.getAffiliation() != Affiliation.outcast) {
 					Subscription subscription = subscriptions.getSubscription(jid);
@@ -110,10 +110,10 @@ public abstract class AbstractModule implements Module {
 
 	protected boolean hasSenderSubscription(final String jid, final IAffiliations affiliations, final ISubscriptions subscriptions)
 			throws RepositoryException {
-		final Subscriber[] subscribers = subscriptions.getSubscriptions();
+		final UsersSubscription[] subscribers = subscriptions.getSubscriptions();
 		final String bareJid = JIDUtils.getNodeID(jid);
-		for (Subscriber owner : subscribers) {
-			NodeAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
+		for (UsersSubscription owner : subscribers) {
+			UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
 			if (affiliation.getAffiliation() != Affiliation.owner)
 				continue;
 			if (bareJid.equals(owner))
@@ -133,13 +133,13 @@ public abstract class AbstractModule implements Module {
 
 	protected boolean isSenderInRosterGroup(String jid, AbstractNodeConfig nodeConfig, IAffiliations affiliations,
 			final ISubscriptions subscriptions) throws RepositoryException {
-		final Subscriber[] subscribers = subscriptions.getSubscriptions();
+		final UsersSubscription[] subscribers = subscriptions.getSubscriptions();
 		final String bareJid = JIDUtils.getNodeID(jid);
 		final String[] groupsAllowed = nodeConfig.getRosterGroupsAllowed();
 		if (groupsAllowed == null || groupsAllowed.length == 0)
 			return true;
-		for (Subscriber owner : subscribers) {
-			NodeAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
+		for (UsersSubscription owner : subscribers) {
+			UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
 			if (affiliation.getAffiliation() != Affiliation.owner)
 				continue;
 			if (bareJid.equals(owner))

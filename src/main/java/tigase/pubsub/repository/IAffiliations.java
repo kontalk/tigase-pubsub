@@ -1,7 +1,7 @@
 package tigase.pubsub.repository;
 
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 
 public interface IAffiliations {
 
@@ -9,9 +9,9 @@ public interface IAffiliations {
 
 	public abstract void changeAffiliation(String jid, Affiliation affiliation);
 
-	public abstract NodeAffiliation[] getAffiliations();
+	public abstract UsersAffiliation[] getAffiliations();
 
-	public abstract NodeAffiliation getSubscriberAffiliation(String jid);
+	public abstract UsersAffiliation getSubscriberAffiliation(String jid);
 
 	public boolean isChanged();
 

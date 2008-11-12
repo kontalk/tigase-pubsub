@@ -37,7 +37,7 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.inmemory.NodeAffiliation;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -90,7 +90,7 @@ public class RetractItemModule extends AbstractModule {
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
-			NodeAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(element.getAttribute("from"));
+			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(element.getAttribute("from"));
 
 			if (!affiliation.getAffiliation().isDeleteItem()) {
 				throw new PubSubException(Authorization.FORBIDDEN);

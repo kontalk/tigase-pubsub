@@ -5,15 +5,15 @@ import java.util.Map;
 
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
-import tigase.pubsub.repository.inmemory.Subscriber;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.util.JIDUtils;
 
-class Subscriptions implements ISubscriptions {
+public class NodeSubscriptions implements ISubscriptions {
 
 	private final static String DELIMITER = ";";
 
-	public static Subscriptions create(String data) {
-		Subscriptions s = new Subscriptions();
+	static NodeSubscriptions create(String data) {
+		NodeSubscriptions s = new NodeSubscriptions();
 		try {
 			String[] tokens = data.split(DELIMITER);
 
@@ -33,7 +33,7 @@ class Subscriptions implements ISubscriptions {
 					++c;
 				}
 				if (c == 3) {
-					Subscriber b = new Subscriber(jid, subid, Subscription.valueOf(state));
+					UsersSubscription b = new UsersSubscription(jid, subid, Subscription.valueOf(state));
 					s.subs.put(jid, b);
 					jid = null;
 					subid = null;
@@ -43,34 +43,21 @@ class Subscriptions implements ISubscriptions {
 			}
 			return s;
 		} catch (Exception e) {
-			return new Subscriptions();
+			return new NodeSubscriptions();
 		}
-	}
-
-	public static void main(String[] args) {
-		Subscriptions sss = new Subscriptions();
-		sss.addSubscriberJid("bmalkow@malkowscy.net", Subscription.pending);
-		sss.addSubscriberJid("alice@sphere", Subscription.subscribed);
-		sss.addSubscriberJid("bob@sphere", Subscription.none);
-		sss.addSubscriberJid("carol@sphere", Subscription.unconfigured);
-
-		String data = sss.serialize();
-		Subscriptions sss2 = create(data);
-		System.out.println(data);
-		System.out.println(sss2.serialize());
 	}
 
 	private boolean changed = false;
 
-	private final Map<String, Subscriber> subs = new HashMap<String, Subscriber>();
+	private final Map<String, UsersSubscription> subs = new HashMap<String, UsersSubscription>();
 
-	private Subscriptions() {
+	private NodeSubscriptions() {
 	}
 
 	public String addSubscriberJid(final String jid, final Subscription subscription) {
 		final String subid = Utils.createUID();
 		final String bareJid = JIDUtils.getNodeID(jid);
-		Subscriber s = new Subscriber(bareJid, subid, subscription);
+		UsersSubscription s = new UsersSubscription(bareJid, subid, subscription);
 		subs.put(bareJid, s);
 		changed = true;
 		return subid;
@@ -78,7 +65,7 @@ class Subscriptions implements ISubscriptions {
 
 	public void changeSubscription(String jid, Subscription subscription) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		Subscriber s = subs.get(bareJid);
+		UsersSubscription s = subs.get(bareJid);
 		if (s != null) {
 			s.setSubscription(subscription);
 			changed = true;
@@ -87,7 +74,7 @@ class Subscriptions implements ISubscriptions {
 
 	public Subscription getSubscription(String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		Subscriber s = subs.get(bareJid);
+		UsersSubscription s = subs.get(bareJid);
 		if (s != null) {
 			return s.getSubscription();
 		}
@@ -96,15 +83,15 @@ class Subscriptions implements ISubscriptions {
 
 	public String getSubscriptionId(String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		Subscriber s = subs.get(bareJid);
+		UsersSubscription s = subs.get(bareJid);
 		if (s != null) {
 			return s.getSubid();
 		}
 		return null;
 	}
 
-	public Subscriber[] getSubscriptions() {
-		return this.subs.values().toArray(new Subscriber[] {});
+	public UsersSubscription[] getSubscriptions() {
+		return this.subs.values().toArray(new UsersSubscription[] {});
 	}
 
 	public boolean isChanged() {
@@ -117,7 +104,7 @@ class Subscriptions implements ISubscriptions {
 
 	public String serialize(boolean resetChangeFlag) {
 		StringBuilder sb = new StringBuilder();
-		for (Subscriber s : this.subs.values()) {
+		for (UsersSubscription s : this.subs.values()) {
 			if (s.getSubscription() != Subscription.none) {
 				sb.append(s.getJid());
 				sb.append(DELIMITER);
