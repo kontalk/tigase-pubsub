@@ -384,7 +384,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
 			e.printStackTrace();
-			System.exit(1);
 		}
 
 		StringBuilder sb = new StringBuilder();
@@ -414,6 +413,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.pubsubRepository = createPubSubRepository;
 		this.defaultNodeConfig = defaultNodeConfig;
 
+		this.pubsubRepository.init();
+		
 		this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 		this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 

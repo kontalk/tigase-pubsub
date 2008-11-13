@@ -1,4 +1,4 @@
-send: {
+send(creating node): {
 <iq type='set'
     from='hamlet@denmark.lit/elsinore'
     to='pubsub.shakespeare.lit'
@@ -9,11 +9,11 @@ send: {
 </iq>
 }
 
-expect: {
+expect(creting node result): {
 <iq type='result'
     from='pubsub.shakespeare.lit'
     to='hamlet@denmark.lit/elsinore'
-    id='create1'>
+    id='create1'/>
 }
 
 send: {
@@ -79,6 +79,7 @@ expect: {
     to='hamlet@denmark.lit/blogbot'
     id='publish1'/>
 }
+
 expect: {
 <message id="1" from="pubsub.shakespeare.lit" to="hamlet@denmark.lit">
 	<event xmlns="http://jabber.org/protocol/pubsub#event">

@@ -3,7 +3,11 @@ send: {
 }
 
 expect: {
-<iq to='alice@localhost/test' type='result' id='1'/>
+<iq to='alice@localhost/test' type='result' id='1'>
+	<query xmlns='jabber:iq:version'>
+	    <name>Tigase PubSub</name>
+	</query>
+</iq>
 }
 
 send: {
