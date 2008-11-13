@@ -23,6 +23,7 @@ package tigase.pubsub;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -285,24 +286,34 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 	};
 
-	@Override
-	public void processPacket(final Packet packet) {
-		log.finest("Received by " + getComponentId() + ": " + packet.getElement().toString());
+	public Collection<Element> process(final Element element) throws PacketErrorTypeException {
+		List<Element> result = new ArrayList<Element>();
 		try {
-			final Element element = packet.getElement();
-			boolean handled = runModules(element);
+			boolean handled = runModules(element, result);
 
 			if (!handled) {
-				final StanzaType type = packet.getType();
+				final String t = element.getAttribute("type");
+				final StanzaType type = t == null ? null : StanzaType.valueof(t);
 				if (type != StanzaType.error) {
-					addOutPacket(Authorization.FEATURE_NOT_IMPLEMENTED.getResponseMessage(packet, "Stanza is not processed", true));
+					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED);
 				} else {
-					log.finer(packet.getElemName() + " stanza with type='error' ignored");
+					log.finer(element.getName() + " stanza with type='error' ignored");
 				}
 			}
 		} catch (PubSubException e) {
-			Element result = e.makeElement(packet.getElement());
-			addOutPacket(new Packet(result));
+			Element r = e.makeElement(element);
+			result.add(r);
+		}
+		return result;
+	}
+
+	@Override
+	public void processPacket(final Packet packet) {
+		try {
+			Collection<Element> result = process(packet.getElement());
+			for (Element element : result) {
+				addOutPacket(new Packet(element));
+			}
 		} catch (Exception e) {
 			log.log(Level.WARNING, "Unexpected exception: internal-server-error", e);
 			e.printStackTrace();
@@ -321,7 +332,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return module;
 	}
 
-	protected boolean runModules(final Element element) throws PubSubException {
+	protected boolean runModules(final Element element, Collection<Element> sendCollection) throws PubSubException {
 		boolean handled = false;
 		log.finest("Processing packet: " + element.toString());
 
@@ -332,9 +343,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				log.finest("Handled by module " + module.getClass());
 				List<Element> result = module.process(element);
 				if (result != null) {
-					for (Element e : result) {
-						addOutPacket(new Packet(e));
-					}
+					sendCollection.addAll(result);
 					return true;
 				}
 			}
