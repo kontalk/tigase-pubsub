@@ -275,9 +275,39 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.pubsubRepository.init();
 	}
 
+	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
+			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
+		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
+		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
+		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
+		this.config.setAdmins(admins);
+		this.config.setServiceName("tigase-pubsub");
+
+		// XXX remove ASAP
+		if (pubSubDAO != null)
+			pubSubDAO.init();
+
+		this.directPubSubRepository = pubSubDAO;
+		this.pubsubRepository = createPubSubRepository;
+		this.defaultNodeConfig = defaultNodeConfig;
+
+		this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+
+		init();
+
+		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
+		configCommand.addListener(this);
+
+		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
+		this.adHocCommandsModule.register(configCommand);
+		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository, this.userRepository));
+
+	}
+
 	public String myDomain() {
 		return getName() + "." + getDefHostName();
-	}
+	};
 
 	@Override
 	public void onChangeDefaultNodeConfig() {
@@ -287,7 +317,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Reading default config error", e);
 		}
-	};
+	}
 
 	public Collection<Element> process(final Element element) throws PacketErrorTypeException {
 		List<Element> result = new ArrayList<Element>();
@@ -378,8 +408,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			this.userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 			userRepository.initRepository(res_uri, null);
 
-			initialize((String[]) props.get(ADMINS_KEY), new PubSubDAO(userRepository, this.config),
-					createPubSubRepository(directPubSubRepository), new LeafNodeConfig("default"));
+			PubSubDAO dao = new PubSubDAO(userRepository, this.config);
+
+			initialize((String[]) props.get(ADMINS_KEY), dao, createPubSubRepository(dao), new LeafNodeConfig("default"));
 
 			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 		} catch (Exception e) {
@@ -400,35 +431,5 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 		log.config("Supported features: " + sb.toString());
-	}
-
-	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
-			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
-		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
-		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
-		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
-		this.config.setAdmins(admins);
-		this.config.setServiceName("tigase-pubsub");
-
-		// XXX remove ASAP
-		if (pubSubDAO != null)
-			pubSubDAO.init();
-
-		this.directPubSubRepository = pubSubDAO;
-		this.pubsubRepository = createPubSubRepository;
-		this.defaultNodeConfig = defaultNodeConfig;
-
-		this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-		this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-
-		init();
-
-		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
-		configCommand.addListener(this);
-
-		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
-		this.adHocCommandsModule.register(configCommand);
-		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository, this.userRepository));
-
 	}
 }
