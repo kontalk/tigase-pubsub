@@ -12,24 +12,23 @@ import tigase.xmpp.PacketErrorTypeException;
 
 public class Test extends XMPPTestCase {
 
+	private JUnitXMLIO xmlio;
+
 	private PubSubComponent pubsub;
 
 	@Before
 	public void init() {
+		System.out.println("Init test enviroment");
 		pubsub = new PubSubComponent();
 		Map<String, Object> props = new HashMap<String, Object>();
 		props.put("admin", new String[] { "alice@localhost" });
 		props.put("pubsub-repo-class", "tigase.db.xml.XMLRepository");
 		props.put("pubsub-repo-url", "user-repository.xml");
 		props.put("max-queue-size", new Integer(1000));
-		
+
 		pubsub.setProperties(props);
 
-	}
-
-	@org.junit.Test
-	public void test_pings() {
-		JUnitXMLIO xmlio = new JUnitXMLIO() {
+		xmlio = new JUnitXMLIO() {
 
 			@Override
 			public void write(Element data) throws IOException {
@@ -46,6 +45,11 @@ public class Test extends XMPPTestCase {
 
 			}
 		};
+
+	}
+
+	@org.junit.Test
+	public void test_pings() {
 		test("src/test/scripts/ping.cor", xmlio);
 	}
 
