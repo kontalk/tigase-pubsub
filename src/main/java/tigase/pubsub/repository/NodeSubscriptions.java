@@ -12,7 +12,7 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	private final static String DELIMITER = ";";
 
-	static NodeSubscriptions create(String data) {
+	public static NodeSubscriptions create(String data) {
 		NodeSubscriptions s = new NodeSubscriptions();
 		try {
 			String[] tokens = data.split(DELIMITER);

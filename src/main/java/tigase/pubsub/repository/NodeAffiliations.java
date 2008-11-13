@@ -11,7 +11,7 @@ public class NodeAffiliations implements IAffiliations {
 
 	private final static String DELIMITER = ";";
 
-	static NodeAffiliations create(String data) {
+	public static NodeAffiliations create(String data) {
 		NodeAffiliations a = new NodeAffiliations();
 		try {
 			String[] tokens = data.split(DELIMITER);

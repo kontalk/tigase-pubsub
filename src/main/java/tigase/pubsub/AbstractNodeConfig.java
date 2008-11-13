@@ -141,6 +141,8 @@ public class AbstractNodeConfig {
 	}
 
 	protected void init() {
+		form.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#node_config"));
+		
 		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, new String[] { NodeType.leaf.name(),
 				NodeType.collection.name() }));
 		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));
@@ -193,6 +195,8 @@ public class AbstractNodeConfig {
 
 	public void read(final UserRepository repository, final PubSubConfig config, final String subnode)
 			throws UserNotFoundException, TigaseDBException {
+		if (repository == null)
+			return;
 		String[] keys = repository.getKeys(config.getServiceName(), subnode);
 		if (keys != null)
 			for (String key : keys) {
@@ -263,6 +267,8 @@ public class AbstractNodeConfig {
 
 	public void write(final UserRepository repo, final PubSubConfig config, final String subnode) throws UserNotFoundException,
 			TigaseDBException {
+		if (repo == null)
+			return;
 		repo.setData(config.getServiceName(), subnode, "configuration", form.getElement().toString());
 	}
 

@@ -64,7 +64,7 @@ public interface IPubSubDAO {
 
 	String[] getUserRoster(String owner) throws RepositoryException;
 
-	public void init();
+	public void init() throws RepositoryException;
 
 	public void removeFromRootCollection(String nodeName) throws RepositoryException;
 

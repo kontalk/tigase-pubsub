@@ -59,25 +59,9 @@ public class PubSubDAO implements IPubSubDAO {
 
 	final UserRepository repository;
 
-	public PubSubDAO(UserRepository repository, PubSubConfig pubSubConfig) throws RepositoryException {
+	public PubSubDAO(UserRepository repository, PubSubConfig pubSubConfig)  {
 		this.repository = repository;
 		this.config = pubSubConfig;
-
-		try {
-			this.repository.setData(this.config.getServiceName(), "last-start", String.valueOf(System.currentTimeMillis()));
-		} catch (UserNotFoundException e) {
-			try {
-				this.repository.addUser(this.config.getServiceName());
-				this.repository.setData(this.config.getServiceName(), "last-start", String.valueOf(System.currentTimeMillis()));
-			} catch (Exception e1) {
-				log.log(Level.SEVERE, "PubSub repository initialization problem", e1);
-				throw new RepositoryException("Cannot initialize PubSUb repository", e);
-			}
-		} catch (TigaseDBException e) {
-			log.log(Level.SEVERE, "PubSub repository initialization problem", e);
-			throw new RepositoryException("Cannot initialize PubSUb repository", e);
-		}
-
 	}
 
 	@Override
@@ -338,7 +322,21 @@ public class PubSubDAO implements IPubSubDAO {
 	}
 
 	@Override
-	public void init() {
+	public void init() throws RepositoryException {
+		try {
+			this.repository.setData(this.config.getServiceName(), "last-start", String.valueOf(System.currentTimeMillis()));
+		} catch (UserNotFoundException e) {
+			try {
+				this.repository.addUser(this.config.getServiceName());
+				this.repository.setData(this.config.getServiceName(), "last-start", String.valueOf(System.currentTimeMillis()));
+			} catch (Exception e1) {
+				log.log(Level.SEVERE, "PubSub repository initialization problem", e1);
+				throw new RepositoryException("Cannot initialize PubSUb repository", e);
+			}
+		} catch (TigaseDBException e) {
+			log.log(Level.SEVERE, "PubSub repository initialization problem", e);
+			throw new RepositoryException("Cannot initialize PubSUb repository", e);
+		}
 	}
 
 	private Form readNodeConfigForm(final String nodeName) throws UserNotFoundException, TigaseDBException {

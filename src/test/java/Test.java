@@ -2,8 +2,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Assert;
 import org.junit.Before;
 
+import tigase.db.TigaseDBException;
+import tigase.db.UserNotFoundException;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubComponent;
 import tigase.test.junit.JUnitXMLIO;
 import tigase.test.junit.XMPPTestCase;
@@ -18,16 +22,16 @@ public class Test extends XMPPTestCase {
 
 	@Before
 	public void init() {
+		MockRepository repo = new MockRepository();
+
 		System.out.println("Init test enviroment");
 		pubsub = new PubSubComponent();
-		Map<String, Object> props = new HashMap<String, Object>();
-		props.put("admin", new String[] { "alice@localhost" });
-		props.put("pubsub-repo-class", "tigase.db.xml.XMLRepository");
-		props.put("pubsub-repo-url", "user-repository.xml");
-		props.put("max-queue-size", new Integer(1000));
 
-		pubsub.setProperties(props);
-
+		try {
+			pubsub.initialize(new String[] { "alice@localhost" }, null, repo, new LeafNodeConfig("default"));
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
 		xmlio = new JUnitXMLIO() {
 
 			@Override
@@ -53,4 +57,9 @@ public class Test extends XMPPTestCase {
 		test("src/test/scripts/ping.cor", xmlio);
 	}
 
+
+	@org.junit.Test
+	public void test_createNode() {
+		test("src/test/scripts/createNode.cor", xmlio);
+	}
 }

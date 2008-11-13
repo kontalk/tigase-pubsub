@@ -32,6 +32,8 @@ import java.util.logging.Logger;
 import tigase.conf.Configurable;
 import tigase.criteria.Criteria;
 import tigase.db.RepositoryFactory;
+import tigase.db.TigaseDBException;
+import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
 import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
@@ -364,14 +366,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		for (String host : hostnames) {
 			addRouting(host);
 		}
-		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
-		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
-
-		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
-
-		this.config.setAdmins((String[]) props.get(ADMINS_KEY));
-
-		this.config.setServiceName("tigase-pubsub");
 
 		try {
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
@@ -383,12 +377,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			this.userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 			userRepository.initRepository(res_uri, null);
 
-			directPubSubRepository = new PubSubDAO(userRepository, this.config);
-
-			this.pubsubRepository = createPubSubRepository(directPubSubRepository);
-			this.defaultNodeConfig = new LeafNodeConfig("default");
-			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-			this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+			initialize((String[]) props.get(ADMINS_KEY), new PubSubDAO(userRepository, this.config),
+					createPubSubRepository(directPubSubRepository), new LeafNodeConfig("default"));
 
 			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 		} catch (Exception e) {
@@ -396,15 +386,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			e.printStackTrace();
 			System.exit(1);
 		}
-
-		init();
-
-		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
-		configCommand.addListener(this);
-
-		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
-		this.adHocCommandsModule.register(configCommand);
-		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository, this.userRepository));
 
 		StringBuilder sb = new StringBuilder();
 
@@ -419,5 +400,31 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 		log.config("Supported features: " + sb.toString());
+	}
+
+	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
+			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException {
+		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
+		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
+		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
+		this.config.setAdmins(admins);
+		this.config.setServiceName("tigase-pubsub");
+
+		this.directPubSubRepository = pubSubDAO;
+		this.pubsubRepository = createPubSubRepository;
+		this.defaultNodeConfig = defaultNodeConfig;
+
+		this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+
+		init();
+
+		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
+		configCommand.addListener(this);
+
+		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
+		this.adHocCommandsModule.register(configCommand);
+		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository, this.userRepository));
+
 	}
 }

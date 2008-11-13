@@ -1,0 +1,106 @@
+send: {
+<iq type='set'
+    from='hamlet@denmark.lit/elsinore'
+    to='pubsub.shakespeare.lit'
+    id='create1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+    <create node='princely_musings'/>
+  </pubsub>
+</iq>
+}
+
+expect: {
+<iq type='result'
+    from='pubsub.shakespeare.lit'
+    to='hamlet@denmark.lit/elsinore'
+    id='create1'>
+}
+
+send: {
+<iq type='get'
+    from='hamlet@denmark.lit/elsinore'
+    to='pubsub.shakespeare.lit'
+    id='config1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+    <configure node='princely_musings'/>
+  </pubsub>
+</iq>
+}
+
+expect: {
+<iq type='result'
+    from='pubsub.shakespeare.lit'
+    to='hamlet@denmark.lit/elsinore'
+    id='config1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub#owner'>
+    <configure node='princely_musings'>
+      <x xmlns='jabber:x:data' type='form'>
+        <field var='FORM_TYPE' type='hidden'>
+          <value>http://jabber.org/protocol/pubsub#node_config</value>
+        </field>
+      </x>
+    </configure>
+  </pubsub>
+</iq>
+}
+
+send: {
+<iq type='set'
+    from='hamlet@denmark.lit/blogbot'
+    to='pubsub.shakespeare.lit'
+    id='publish1'>
+  <pubsub xmlns='http://jabber.org/protocol/pubsub'>
+    <publish node='princely_musings'>
+      <item id='1'>
+        <entry xmlns='http://www.w3.org/2005/Atom'>
+          <title>Soliloquy</title>
+          <summary>
+To be, or not to be: that is the question:
+Whether 'tis nobler in the mind to suffer
+The slings and arrows of outrageous fortune,
+Or to take arms against a sea of troubles,
+And by opposing end them?
+          </summary>
+          <link rel='alternate' type='text/html'
+                href='http://denmark.lit/2003/12/13/atom03'/>
+          <id>tag:denmark.lit,2003:entry-32397</id>
+          <published>2003-12-13T18:30:02Z</published>
+          <updated>2003-12-13T18:30:02Z</updated>
+        </entry>
+      </item>
+    </publish>
+  </pubsub>
+</iq>
+}
+
+expect: {
+<iq type='result'
+    from='pubsub.shakespeare.lit'
+    to='hamlet@denmark.lit/blogbot'
+    id='publish1'/>
+}
+expect: {
+<message id="1" from="pubsub.shakespeare.lit" to="hamlet@denmark.lit">
+	<event xmlns="http://jabber.org/protocol/pubsub#event">
+		<items node="princely_musings">
+			<item id="1">
+		        <entry xmlns='http://www.w3.org/2005/Atom'>
+		          <title>Soliloquy</title>
+		          <summary>
+To be, or not to be: that is the question:
+Whether 'tis nobler in the mind to suffer
+The slings and arrows of outrageous fortune,
+Or to take arms against a sea of troubles,
+And by opposing end them?
+		          </summary>
+		          <link rel='alternate' type='text/html'
+		                href='http://denmark.lit/2003/12/13/atom03'/>
+		          <id>tag:denmark.lit,2003:entry-32397</id>
+		          <published>2003-12-13T18:30:02Z</published>
+		          <updated>2003-12-13T18:30:02Z</updated>
+		        </entry>
+			</item>
+		</items>
+	</event>
+</message>
+}
