@@ -410,7 +410,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.config.setAdmins(admins);
 		this.config.setServiceName("tigase-pubsub");
 
-		pubSubDAO.init();
+		// XXX remove ASAP
+		if (pubSubDAO != null)
+			pubSubDAO.init();
 
 		this.directPubSubRepository = pubSubDAO;
 		this.pubsubRepository = createPubSubRepository;
