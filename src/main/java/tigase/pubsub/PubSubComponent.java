@@ -185,8 +185,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		props.put(HOSTNAMES_PROP_KEY, hostnames);
 
 		// By default use the same repository as all other components:
-		String repo_class = XML_REPO_CLASS_PROP_VAL;
-		String repo_uri = XML_REPO_URL_PROP_VAL;
+		String repo_class = DERBY_REPO_CLASS_PROP_VAL;
+		String repo_uri = DERBY_REPO_URL_PROP_VAL;
 		String conf_db = null;
 		if (params.get(GEN_USER_DB) != null) {
 			conf_db = (String) params.get(GEN_USER_DB);
