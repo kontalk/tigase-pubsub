@@ -43,7 +43,7 @@ import tigase.xmpp.Authorization;
 public class PurgeItemsModule extends AbstractModule {
 
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "set").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("purge"));
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("purge"));
 
 	private final PublishItemModule publishModule;
 
@@ -64,7 +64,7 @@ public class PurgeItemsModule extends AbstractModule {
 
 	@Override
 	public List<Element> process(Element element) throws PubSubException {
-		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
+		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
 		final Element purge = pubSub.getChild("purge");
 		final String nodeName = purge.getAttribute("node");
 
@@ -105,9 +105,10 @@ public class PurgeItemsModule extends AbstractModule {
 					new Element("purge", new String[] { "node" }, new String[] { nodeName }), element.getAttribute("to"), nodeName,
 					nodeConfig, nodeAffiliations, nodeSubscriptions));
 			log.info("Purging node " + nodeName);
-			for (String id : itemsToDelete) {
-				repository.deleteItem(nodeName, id);
-			}
+			if (itemsToDelete != null)
+				for (String id : itemsToDelete) {
+					repository.deleteItem(nodeName, id);
+				}
 
 			return result;
 		} catch (PubSubException e1) {

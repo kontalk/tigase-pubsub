@@ -96,17 +96,17 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected LeafNodeConfig defaultNodeConfig;
 
-	private PubSubDAO directPubSubRepository;
+	protected PubSubDAO directPubSubRepository;
 
 	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
-	private ManageAffiliationsModule manageAffiliationsModule;
+	protected ManageAffiliationsModule manageAffiliationsModule;
 
-	private ManageSubscriptionModule manageSubscriptionModule;
+	protected ManageSubscriptionModule manageSubscriptionModule;
 
-	private final ArrayList<Module> modules = new ArrayList<Module>();
+	protected final ArrayList<Module> modules = new ArrayList<Module>();
 
 	protected NodeConfigModule nodeConfigModule;
 
@@ -114,7 +114,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected NodeDeleteModule nodeDeleteModule;
 
-	private PendingSubscriptionModule pendingSubscriptionModule;
+	protected PendingSubscriptionModule pendingSubscriptionModule;
 
 	protected PresenceCollectorModule presenceCollectorModule;
 
@@ -122,11 +122,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected IPubSubRepository pubsubRepository;
 
-	private PurgeItemsModule purgeItemsModule;
+	protected PurgeItemsModule purgeItemsModule;
 
 	protected RetractItemModule retractItemModule;
 
-	private RetrieveItemsModule retrirveItemsModule;
+	protected RetrieveItemsModule retrirveItemsModule;
 
 	protected ServiceEntity serviceEntity;
 
@@ -134,7 +134,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected UnsubscribeNodeModule unsubscribeNodeModule;
 
-	private UserRepository userRepository;
+	protected UserRepository userRepository;
 
 	protected XsltTool xslTransformer;
 
