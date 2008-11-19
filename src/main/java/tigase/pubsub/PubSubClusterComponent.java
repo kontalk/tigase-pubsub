@@ -49,11 +49,11 @@ import tigase.xmpp.StanzaType;
 
 public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponent {
 
-	private static final String METHOD_PRESENCE_COLLECTION = "muc:presenceCollection";
+	private static final String METHOD_PRESENCE_COLLECTION = "pubsub.presenceCollection";
 
-	private static final String METHOD_SET_OWNERSHIP = "muc:setOwnership";
+	private static final String METHOD_SET_OWNERSHIP = "pubsub.setOwnership";
 
-	private static final String METHOD_RESULT = "muc:result";
+	private static final String METHOD_RESULT = "pubsub.result";
 
 	protected static String[] getParameters(final String name, final Map<String, String> allMethodParams) {
 		List<String> nodesNames = new ArrayList<String>();
