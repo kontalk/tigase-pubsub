@@ -31,6 +31,11 @@ public class LeafNodeConfig extends AbstractNodeConfig {
 		super(nodeName, config);
 	}
 
+	@Override
+	protected AbstractNodeConfig getInstance(String nodeName) {
+		return new LeafNodeConfig(nodeName);
+	}
+
 	public Integer getMaxItems() {
 		Integer x = form.getAsInteger("pubsub#max_items");
 		return x;

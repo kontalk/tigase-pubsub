@@ -31,6 +31,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -117,7 +118,8 @@ public class DiscoverItemsModule extends AbstractModule {
 					if (!allowed)
 						throw new PubSubException(Authorization.FORBIDDEN);
 					resultQuery.addAttribute("node", nodeName);
-					String[] itemsId = repository.getItemsIds(nodeName);
+					IItems items = repository.getNodeItems(nodeName);
+					String[] itemsId = items.getItemsIds();
 					if (itemsId != null) {
 						for (String itemId : itemsId) {
 							resultQuery.addChild(new Element("item", new String[] { "jid", "name" }, new String[] {

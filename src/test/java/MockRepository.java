@@ -9,12 +9,12 @@ import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.NodeAffiliations;
 import tigase.pubsub.repository.NodeSubscriptions;
-import tigase.pubsub.repository.PubSubRepositoryListener;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.xml.Element;
 
@@ -37,12 +37,6 @@ public class MockRepository implements IPubSubRepository {
 		private Map<String, Item> items = new HashMap<String, Item>();
 	}
 
-	@Override
-	public void addListener(PubSubRepositoryListener listener) {
-		// TODO Auto-generated method stub
-
-	}
-
 	private final Map<String, Node> nodes = new HashMap<String, Node>();
 
 	private final Set<String> rootCollection = new HashSet<String>();
@@ -63,14 +57,6 @@ public class MockRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void deleteItem(String nodeName, String id) throws RepositoryException {
-		Node n = this.nodes.get(nodeName);
-		if (n != null) {
-			n.items.remove(id);
-		}
-	}
-
-	@Override
 	public void deleteNode(String nodeName) throws RepositoryException {
 		this.nodes.remove(nodeName);
 	}
@@ -88,51 +74,6 @@ public class MockRepository implements IPubSubRepository {
 	@Override
 	public String getBuddySubscription(String owner, String buddy) throws RepositoryException {
 		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Element getItem(String nodeName, String id) throws RepositoryException {
-		Node n = this.nodes.get(nodeName);
-		if (n != null) {
-			Item i = n.items.get(id);
-			if (i != null) {
-				return i.data;
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public Date getItemCreationDate(String nodeName, String id) throws RepositoryException {
-		Node n = this.nodes.get(nodeName);
-		if (n != null) {
-			Item i = n.items.get(id);
-			if (i != null) {
-				return i.creationDate;
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
-		Node n = this.nodes.get(nodeName);
-		if (n != null) {
-			Item i = n.items.get(id);
-			if (i != null) {
-				return i.updateDate;
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public String[] getItemsIds(String nodeName) throws RepositoryException {
-		Node n = this.nodes.get(nodeName);
-		if (n != null) {
-			return n.items.keySet().toArray(new String[] {});
-		}
 		return null;
 	}
 
@@ -191,12 +132,6 @@ public class MockRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void removeListener(PubSubRepositoryListener listener) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
 		Node n = this.nodes.get(nodeName);
 		if (n != null) {
@@ -221,16 +156,9 @@ public class MockRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void writeItem(String nodeName, long timeInMilis, String id, String publisher, Element item) throws RepositoryException {
-		Node n = this.nodes.get(nodeName);
-		if (n != null) {
-			Item i = new Item();
-			i.id = id;
-			i.creationDate = new Date(timeInMilis);
-			i.data = item;
-			i.publisher = publisher;
-			n.items.put(id, i);
-		}
+	public IItems getNodeItems(String nodeName) throws RepositoryException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

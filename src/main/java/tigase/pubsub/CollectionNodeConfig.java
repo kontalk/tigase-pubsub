@@ -45,6 +45,11 @@ public class CollectionNodeConfig extends AbstractNodeConfig {
 	}
 
 	@Override
+	protected AbstractNodeConfig getInstance(String nodeName) {
+		return new CollectionNodeConfig(nodeName);
+	}
+
+	@Override
 	protected void init() {
 		super.init();
 		Field f = Field.fieldTextMulti("pubsub#children", "", null);

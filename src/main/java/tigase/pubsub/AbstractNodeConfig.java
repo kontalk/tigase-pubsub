@@ -29,7 +29,7 @@ import tigase.form.Form;
 import tigase.form.Field.FieldType;
 import tigase.xml.Element;
 
-public class AbstractNodeConfig {
+public abstract class AbstractNodeConfig {
 
 	public static final String PUBSUB = "pubsub#";
 
@@ -63,6 +63,13 @@ public class AbstractNodeConfig {
 			result[i++] = v.name();
 		}
 		return result;
+	}
+
+	@Override
+	public AbstractNodeConfig clone() throws CloneNotSupportedException {
+		AbstractNodeConfig clone = getInstance(nodeName);
+		clone.copyFrom(this);
+		return clone;
 	}
 
 	public void copyFrom(AbstractNodeConfig c) {
@@ -110,6 +117,8 @@ public class AbstractNodeConfig {
 		return form.getElement();
 	}
 
+	protected abstract AbstractNodeConfig getInstance(String nodeName);
+
 	public AccessModel getNodeAccessModel() {
 		String tmp = form.getAsString("pubsub#access_model");
 		if (tmp == null) {
@@ -142,7 +151,7 @@ public class AbstractNodeConfig {
 
 	protected void init() {
 		form.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#node_config"));
-		
+
 		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, new String[] { NodeType.leaf.name(),
 				NodeType.collection.name() }));
 		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));

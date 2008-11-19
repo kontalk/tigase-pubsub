@@ -35,6 +35,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -121,13 +122,14 @@ public class RetractItemModule extends AbstractModule {
 			result.add(createResultIQ(element));
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+			IItems nodeItems = this.repository.getNodeItems(nodeName);
 			for (String id : itemsToDelete) {
-				Date date = repository.getItemCreationDate(nodeName, id);
+				Date date = nodeItems.getItemCreationDate(id);
 				if (date != null) {
 					Element notification = createNotification(leafNodeConfig, itemsToDelete, nodeName);
 					result.addAll(publishModule.prepareNotification(notification, element.getAttribute("to"), nodeName, nodeConfig,
 							nodeAffiliations, nodeSubscriptions));
-					repository.deleteItem(nodeName, id);
+					nodeItems.deleteItem(id);
 				}
 			}
 

@@ -21,18 +21,16 @@
  */
 package tigase.pubsub.repository.stateless;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.PubSubRepositoryListener;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.xml.Element;
 
@@ -40,15 +38,8 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 
 	private final IPubSubDAO dao;
 
-	private final List<PubSubRepositoryListener> listeners = new ArrayList<PubSubRepositoryListener>();
-
 	public StatelessPubSubRepository(IPubSubDAO pubSubDB, PubSubConfig pubSubConfig) {
 		this.dao = pubSubDB;
-	}
-
-	@Override
-	public void addListener(PubSubRepositoryListener listener) {
-		this.listeners.add(listener);
 	}
 
 	public void addToRootCollection(String nodeName) throws RepositoryException {
@@ -59,25 +50,11 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
-		if (!"".equals(nodeConfig.getCollection())) {
-			fireNewNodeCollection(nodeName, null, collection);
-		}
-	}
-
-	@Override
-	public void deleteItem(String nodeName, String id) throws RepositoryException {
-		this.dao.deleteItem(nodeName, id);
 	}
 
 	@Override
 	public void deleteNode(String nodeName) throws RepositoryException {
 		this.dao.deleteNode(nodeName);
-	}
-
-	private void fireNewNodeCollection(String nodeName, String oldCollectionName, String newCollectionName) {
-		for (PubSubRepositoryListener listener : this.listeners) {
-			listener.onChangeCollection(nodeName, oldCollectionName, newCollectionName);
-		}
 	}
 
 	@Override
@@ -92,26 +69,6 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	@Override
 	public String getBuddySubscription(String owner, String buddy) throws RepositoryException {
 		return this.dao.getBuddySubscription(owner, buddy);
-	}
-
-	@Override
-	public Element getItem(String nodeName, String id) throws RepositoryException {
-		return this.dao.getItem(nodeName, id);
-	}
-
-	@Override
-	public Date getItemCreationDate(String nodeName, String id) throws RepositoryException {
-		return this.dao.getItemCreationDate(nodeName, id);
-	}
-
-	@Override
-	public String[] getItemsIds(String nodeName) throws RepositoryException {
-		return this.dao.getItemsIds(nodeName);
-	}
-
-	@Override
-	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
-		return this.dao.getItemUpdateDate(nodeName, id);
 	}
 
 	@Override
@@ -154,11 +111,6 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void removeListener(PubSubRepositoryListener listener) {
-		this.listeners.remove(listener);
-	}
-
-	@Override
 	public void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
 		this.dao.update(nodeName, nodeConfig);
 	}
@@ -174,8 +126,8 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void writeItem(String nodeName, long timeInMilis, String id, String publisher, Element item) throws RepositoryException {
-		this.dao.writeItem(nodeName, timeInMilis, id, publisher, item);
+	public IItems getNodeItems(String nodeName) throws RepositoryException {
+		return new Items(nodeName, this.dao);
 	}
 
 }

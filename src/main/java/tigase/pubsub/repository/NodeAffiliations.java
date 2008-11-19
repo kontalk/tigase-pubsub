@@ -14,27 +14,7 @@ public class NodeAffiliations implements IAffiliations {
 	public static NodeAffiliations create(String data) {
 		NodeAffiliations a = new NodeAffiliations();
 		try {
-			String[] tokens = data.split(DELIMITER);
-
-			int c = 0;
-			String jid = null;
-			String state = null;
-			for (String t : tokens) {
-				if (c == 1) {
-					state = t;
-					++c;
-				} else if (c == 0) {
-					jid = t;
-					++c;
-				}
-				if (c == 2) {
-					UsersAffiliation b = new UsersAffiliation(jid, Affiliation.valueOf(state));
-					a.affs.put(jid, b);
-					jid = null;
-					state = null;
-					c = 0;
-				}
-			}
+			a.parse(data);
 			return a;
 		} catch (Exception e) {
 			return new NodeAffiliations();
@@ -67,6 +47,13 @@ public class NodeAffiliations implements IAffiliations {
 		}
 	}
 
+	public NodeAffiliations clone() throws CloneNotSupportedException {
+		String s = serialize();
+		NodeAffiliations clone = NodeAffiliations.create(s);
+		clone.changed = changed;
+		return clone;
+	}
+
 	@Override
 	public UsersAffiliation[] getAffiliations() {
 		return this.affs.values().toArray(new UsersAffiliation[] {});
@@ -84,6 +71,31 @@ public class NodeAffiliations implements IAffiliations {
 
 	public boolean isChanged() {
 		return changed;
+	}
+
+	public void parse(String data) {
+		String[] tokens = data.split(DELIMITER);
+		affs.clear();
+		int c = 0;
+		String jid = null;
+		String state = null;
+		for (String t : tokens) {
+			if (c == 1) {
+				state = t;
+				++c;
+			} else if (c == 0) {
+				jid = t;
+				++c;
+			}
+			if (c == 2) {
+				UsersAffiliation b = new UsersAffiliation(jid, Affiliation.valueOf(state));
+				affs.put(jid, b);
+				jid = null;
+				state = null;
+				c = 0;
+			}
+		}
+
 	}
 
 	public String serialize() {

@@ -34,6 +34,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -99,7 +100,9 @@ public class PurgeItemsModule extends AbstractModule {
 			List<Element> result = new ArrayList<Element>();
 			result.add(createResultIQ(element));
 
-			String[] itemsToDelete = this.repository.getItemsIds(nodeName);
+			final IItems nodeItems = this.repository.getNodeItems(nodeName);
+
+			String[] itemsToDelete = nodeItems.getItemsIds();
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			result.addAll(publishModule.prepareNotification(
 					new Element("purge", new String[] { "node" }, new String[] { nodeName }), element.getAttribute("to"), nodeName,
@@ -107,7 +110,7 @@ public class PurgeItemsModule extends AbstractModule {
 			log.info("Purging node " + nodeName);
 			if (itemsToDelete != null)
 				for (String id : itemsToDelete) {
-					repository.deleteItem(nodeName, id);
+					nodeItems.deleteItem(id);
 				}
 
 			return result;

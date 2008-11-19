@@ -59,14 +59,9 @@ public class PubSubDAO implements IPubSubDAO {
 
 	final UserRepository repository;
 
-	public PubSubDAO(UserRepository repository, PubSubConfig pubSubConfig)  {
+	public PubSubDAO(UserRepository repository, PubSubConfig pubSubConfig) {
 		this.repository = repository;
 		this.config = pubSubConfig;
-	}
-
-	@Override
-	public void addListener(PubSubRepositoryListener listener) {
-		throw new RuntimeException("Listeners are unsupported");
 	}
 
 	public void addToRootCollection(String nodeName) throws RepositoryException {
@@ -371,11 +366,6 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	@Override
-	public void removeListener(PubSubRepositoryListener listener) {
-		throw new RuntimeException("Listeners are unsupported");
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -384,6 +374,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 */
 	public void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException {
 		try {
+			log.fine("Writing node '" + nodeName + "' configuration...");
 			String cnf = nodeConfig.getFormElement().toString();
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "configuration", cnf);
 		} catch (Exception e) {
@@ -395,6 +386,7 @@ public class PubSubDAO implements IPubSubDAO {
 	@Override
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
 		try {
+			log.fine("Writing node '" + nodeName + "' affiliations...");
 			String data = affiliations.serialize(true);
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "affiliations", data);
 		} catch (Exception e) {
@@ -405,6 +397,7 @@ public class PubSubDAO implements IPubSubDAO {
 	@Override
 	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
 		try {
+			log.fine("Writing node '" + nodeName + "' subscriptions...");
 			String data = subscriptions.serialize(true);
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions", data);
 		} catch (Exception e) {

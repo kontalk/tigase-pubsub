@@ -43,6 +43,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
@@ -289,12 +290,13 @@ public class PublishItemModule extends AbstractModule {
 			}
 
 			if (leafNodeConfig.isPersistItem()) {
+				IItems nodeItems = repository.getNodeItems(nodeName);
 				for (Element item : itemsToSend) {
 					final String id = item.getAttribute("id");
-					repository.writeItem(nodeName, System.currentTimeMillis(), id, element.getAttribute("from"), item);
+					nodeItems.writeItem(System.currentTimeMillis(), id, element.getAttribute("from"), item);
 				}
 				if (leafNodeConfig.getMaxItems() != null) {
-					trimItems(nodeName, leafNodeConfig.getMaxItems());
+					trimItems(nodeItems, leafNodeConfig.getMaxItems());
 				}
 			}
 
@@ -308,13 +310,13 @@ public class PublishItemModule extends AbstractModule {
 
 	}
 
-	public void trimItems(final String nodeName, final Integer maxItems) throws RepositoryException {
-		final String[] ids = this.repository.getItemsIds(nodeName);
+	public void trimItems(final IItems nodeItems, final Integer maxItems) throws RepositoryException {
+		final String[] ids = nodeItems.getItemsIds();
 		if (ids == null || ids.length <= maxItems)
 			return;
 		final ArrayList<Item> items = new ArrayList<Item>();
 		for (String id : ids) {
-			Date updateDate = this.repository.getItemUpdateDate(nodeName, id);
+			Date updateDate = nodeItems.getItemUpdateDate(id);
 			if (updateDate != null) {
 				Item i = new Item(id, updateDate);
 				items.add(i);
@@ -328,7 +330,7 @@ public class PublishItemModule extends AbstractModule {
 		});
 		for (int i = maxItems; i < items.size(); i++) {
 			Item it = items.get(i);
-			this.repository.deleteItem(nodeName, it.id);
+			nodeItems.deleteItem(it.id);
 		}
 	}
 

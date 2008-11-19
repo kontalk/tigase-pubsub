@@ -29,7 +29,6 @@ import tigase.xml.Element;
 
 public interface IPubSubDAO {
 
-	void addListener(PubSubRepositoryListener listener);
 
 	public void addToRootCollection(String nodeName) throws RepositoryException;
 
@@ -68,7 +67,6 @@ public interface IPubSubDAO {
 
 	public void removeFromRootCollection(String nodeName) throws RepositoryException;
 
-	void removeListener(PubSubRepositoryListener listener);
 
 	public abstract void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException;
 

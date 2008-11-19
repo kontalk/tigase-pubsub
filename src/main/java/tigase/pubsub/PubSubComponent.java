@@ -67,6 +67,7 @@ import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.pubsub.repository.stateless.StatelessPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
@@ -120,7 +121,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected PublishItemModule publishNodeModule;
 
-	protected IPubSubRepository pubsubRepository;
+	protected CachedPubSubRepository pubsubRepository;
 
 	protected PurgeItemsModule purgeItemsModule;
 
@@ -142,8 +143,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		setName("pubsub");
 	}
 
-	protected IPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
-		return new StatelessPubSubRepository(directRepository, this.config);
+	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
+		// return new StatelessPubSubRepository(directRepository, this.config);
+		return new CachedPubSubRepository(directRepository);
 	}
 
 	protected String extractNodeName(Element element) {
@@ -288,7 +290,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			pubSubDAO.init();
 
 		this.directPubSubRepository = pubSubDAO;
-		this.pubsubRepository = createPubSubRepository;
+		this.pubsubRepository = createPubSubRepository(pubSubDAO);
 		this.defaultNodeConfig = defaultNodeConfig;
 
 		this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
@@ -382,6 +384,16 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 		return handled;
+	}
+
+	@Override
+	public void everySecond() {
+		super.everySecond();
+		try {
+			this.pubsubRepository.doLazyWrite();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override

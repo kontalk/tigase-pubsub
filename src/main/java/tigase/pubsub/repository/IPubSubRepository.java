@@ -8,14 +8,10 @@ import tigase.xml.Element;
 
 public interface IPubSubRepository {
 
-	public abstract void addListener(PubSubRepositoryListener listener);
-
 	public void addToRootCollection(String nodeName) throws RepositoryException;
 
 	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
 			String collection) throws RepositoryException;
-
-	public abstract void deleteItem(String nodeName, String id) throws RepositoryException;
 
 	public abstract void deleteNode(String nodeName) throws RepositoryException;
 
@@ -25,15 +21,9 @@ public interface IPubSubRepository {
 
 	public abstract String getBuddySubscription(String owner, String buddy) throws RepositoryException;
 
-	public abstract Element getItem(String nodeName, String id) throws RepositoryException;
-
-	public abstract Date getItemCreationDate(String nodeName, String id) throws RepositoryException;
-
-	public abstract String[] getItemsIds(String nodeName) throws RepositoryException;
-
-	public abstract Date getItemUpdateDate(String nodeName, String id) throws RepositoryException;
-
 	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
+
+	public IItems getNodeItems(String nodeName) throws RepositoryException;
 
 	public abstract AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException;
 
@@ -49,14 +39,10 @@ public interface IPubSubRepository {
 
 	public void removeFromRootCollection(String nodeName) throws RepositoryException;
 
-	public abstract void removeListener(PubSubRepositoryListener listener);
-
 	public abstract void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException;
 
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException;
 
 	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException;
 
-	public abstract void writeItem(String nodeName, long timeInMilis, String id, String publisher, Element item)
-			throws RepositoryException;
 }

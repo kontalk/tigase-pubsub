@@ -39,6 +39,7 @@ import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -142,15 +143,16 @@ public class RetrieveItemsModule extends AbstractModule {
 			final Element ritems = new Element("items", new String[] { "node" }, new String[] { nodeName });
 			rpubsub.addChild(ritems);
 			iq.addChild(rpubsub);
+			IItems nodeItems = this.repository.getNodeItems(nodeName);
 			if (requestedId == null) {
-				String[] ids = this.repository.getItemsIds(nodeName);
+				String[] ids = nodeItems.getItemsIds();
 				if (ids != null)
 					requestedId = Arrays.asList(ids);
 			}
 			if (requestedId != null) {
 				int c = 0;
 				for (String id : requestedId) {
-					Element item = this.repository.getItem(nodeName, id);
+					Element item = nodeItems.getItem(id);
 					if (item != null) {
 						if (maxItems != null && (++c) > maxItems)
 							break;

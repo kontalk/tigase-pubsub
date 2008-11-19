@@ -15,38 +15,13 @@ public class NodeSubscriptions implements ISubscriptions {
 	public static NodeSubscriptions create(String data) {
 		NodeSubscriptions s = new NodeSubscriptions();
 		try {
-			String[] tokens = data.split(DELIMITER);
-
-			int c = 0;
-			String jid = null;
-			String subid = null;
-			String state = null;
-			for (String t : tokens) {
-				if (c == 2) {
-					state = t;
-					++c;
-				} else if (c == 1) {
-					subid = t;
-					++c;
-				} else if (c == 0) {
-					jid = t;
-					++c;
-				}
-				if (c == 3) {
-					UsersSubscription b = new UsersSubscription(jid, subid, Subscription.valueOf(state));
-					s.subs.put(jid, b);
-					jid = null;
-					subid = null;
-					state = null;
-					c = 0;
-				}
-			}
+			s.parse(data);
 			return s;
 		} catch (Exception e) {
 			return new NodeSubscriptions();
 		}
 	}
-
+	
 	private boolean changed = false;
 
 	private final Map<String, UsersSubscription> subs = new HashMap<String, UsersSubscription>();
@@ -70,6 +45,13 @@ public class NodeSubscriptions implements ISubscriptions {
 			s.setSubscription(subscription);
 			changed = true;
 		}
+	}
+
+	public NodeSubscriptions clone() throws CloneNotSupportedException {
+		String s = serialize();
+		NodeSubscriptions clone = NodeSubscriptions.create(s);
+		clone.changed = changed;
+		return clone;
 	}
 
 	public Subscription getSubscription(String jid) {
@@ -96,6 +78,36 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	public boolean isChanged() {
 		return changed;
+	}
+
+	public void parse(String data) {
+		String[] tokens = data.split(DELIMITER);
+		subs.clear();
+		int c = 0;
+		String jid = null;
+		String subid = null;
+		String state = null;
+		for (String t : tokens) {
+			if (c == 2) {
+				state = t;
+				++c;
+			} else if (c == 1) {
+				subid = t;
+				++c;
+			} else if (c == 0) {
+				jid = t;
+				++c;
+			}
+			if (c == 3) {
+				UsersSubscription b = new UsersSubscription(jid, subid, Subscription.valueOf(state));
+				subs.put(jid, b);
+				jid = null;
+				subid = null;
+				state = null;
+				c = 0;
+			}
+		}
+
 	}
 
 	public String serialize() {
