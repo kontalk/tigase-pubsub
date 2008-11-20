@@ -21,8 +21,6 @@
  */
 package tigase.pubsub.repository.stateless;
 
-import java.util.Date;
-
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
@@ -32,7 +30,6 @@ import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.xml.Element;
 
 public class StatelessPubSubRepository implements IPubSubRepository {
 
@@ -82,6 +79,11 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
+	public IItems getNodeItems(String nodeName) throws RepositoryException {
+		return new Items(nodeName, this.dao);
+	}
+
+	@Override
 	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
 		return dao.getNodeSubscriptions(nodeName);
 	}
@@ -123,11 +125,6 @@ public class StatelessPubSubRepository implements IPubSubRepository {
 	@Override
 	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
 		dao.update(nodeName, subscriptions);
-	}
-
-	@Override
-	public IItems getNodeItems(String nodeName) throws RepositoryException {
-		return new Items(nodeName, this.dao);
 	}
 
 }

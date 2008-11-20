@@ -68,7 +68,6 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
-import tigase.pubsub.repository.stateless.StatelessPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
@@ -146,6 +145,17 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
 		// return new StatelessPubSubRepository(directRepository, this.config);
 		return new CachedPubSubRepository(directRepository);
+	}
+
+	@Override
+	public void everySecond() {
+		super.everySecond();
+		try {
+			if (this.pubsubRepository != null)
+				this.pubsubRepository.doLazyWrite();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		}
 	}
 
 	protected String extractNodeName(Element element) {
@@ -305,11 +315,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.adHocCommandsModule.register(configCommand);
 		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository, this.userRepository));
 
-	}
+	};
 
 	public String myDomain() {
 		return getName() + "." + getDefHostName();
-	};
+	}
 
 	@Override
 	public void onChangeDefaultNodeConfig() {
@@ -384,16 +394,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 		return handled;
-	}
-
-	@Override
-	public void everySecond() {
-		super.everySecond();
-		try {
-			this.pubsubRepository.doLazyWrite();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		}
 	}
 
 	@Override

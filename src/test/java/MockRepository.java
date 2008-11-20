@@ -21,20 +21,20 @@ import tigase.xml.Element;
 public class MockRepository implements IPubSubRepository {
 
 	private static class Item {
-		private String id;
-		public Element data;
 		public Date creationDate;
-		public Date updateDate;
+		public Element data;
+		private String id;
 		public String publisher;
+		public Date updateDate;
 
 	}
 
 	private static class Node {
-		private String name;
-		private AbstractNodeConfig nodeConfig;
-		private NodeAffiliations nodeAffiliations = NodeAffiliations.create("");
-		private NodeSubscriptions nodeSubscriptions = NodeSubscriptions.create("");
 		private Map<String, Item> items = new HashMap<String, Item>();
+		private String name;
+		private NodeAffiliations nodeAffiliations = NodeAffiliations.create("");
+		private AbstractNodeConfig nodeConfig;
+		private NodeSubscriptions nodeSubscriptions = NodeSubscriptions.create("");
 	}
 
 	private final Map<String, Node> nodes = new HashMap<String, Node>();
@@ -100,6 +100,12 @@ public class MockRepository implements IPubSubRepository {
 	}
 
 	@Override
+	public IItems getNodeItems(String nodeName) throws RepositoryException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
 	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
 		Node n = this.nodes.get(nodeName);
 		return n != null ? NodeSubscriptions.create(n.nodeSubscriptions.serialize()) : null;
@@ -143,7 +149,7 @@ public class MockRepository implements IPubSubRepository {
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
 		Node n = this.nodes.get(nodeName);
 		if (n != null) {
-			n.nodeAffiliations = NodeAffiliations.create(affiliations.serialize(true));
+			n.nodeAffiliations = NodeAffiliations.create(affiliations.serialize());
 		}
 	}
 
@@ -151,14 +157,8 @@ public class MockRepository implements IPubSubRepository {
 	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
 		Node n = this.nodes.get(nodeName);
 		if (n != null) {
-			n.nodeSubscriptions = NodeSubscriptions.create(subscriptions.serialize(true));
+			n.nodeSubscriptions = NodeSubscriptions.create(subscriptions.serialize());
 		}
-	}
-
-	@Override
-	public IItems getNodeItems(String nodeName) throws RepositoryException {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

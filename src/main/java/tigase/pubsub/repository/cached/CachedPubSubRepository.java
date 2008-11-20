@@ -202,7 +202,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
 		Node node = getNode(nodeName);
 		if (node != null) {
-			node.getNodeAffiliations().parse(affiliations.serialize(true));
+			node.getNodeAffiliations().replaceBy((NodeAffiliations) affiliations);
+			((NodeAffiliations) affiliations).resetChangedFlag();
 			node.setNodeAffiliationsChangeTimestamp();
 			synchronized (mutex) {
 				this.nodesToSave.add(node);
@@ -214,7 +215,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
 		Node node = getNode(nodeName);
 		if (node != null) {
-			node.getNodeSubscriptions().parse(subscriptions.serialize(true));
+			node.getNodeSubscriptions().replaceBy((NodeSubscriptions) subscriptions);
+			((NodeSubscriptions) subscriptions).resetChangedFlag();
 			node.setNodeSubscriptionsChangeTimestamp();
 			synchronized (mutex) {
 				this.nodesToSave.add(node);

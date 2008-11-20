@@ -15,6 +15,6 @@ public interface IAffiliations {
 
 	public boolean isChanged();
 
-	public abstract String serialize(boolean b);
+	public abstract String serialize();
 
 }

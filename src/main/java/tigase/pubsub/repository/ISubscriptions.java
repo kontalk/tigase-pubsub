@@ -17,6 +17,6 @@ public interface ISubscriptions {
 
 	public boolean isChanged();
 
-	public abstract String serialize(boolean b);
+	public abstract String serialize();
 
 }

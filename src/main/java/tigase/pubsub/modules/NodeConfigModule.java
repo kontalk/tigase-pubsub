@@ -170,7 +170,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
 						new String[] { "http://jabber.org/protocol/pubsub#owner" });
 				Element rConfigure = new Element("configure", new String[] { "node" }, new String[] { nodeName });
-				Element f=nodeConfig.getFormElement();
+				Element f = nodeConfig.getFormElement();
 				rConfigure.addChild(f);
 				rPubSub.addChild(rConfigure);
 

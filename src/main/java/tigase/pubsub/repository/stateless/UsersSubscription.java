@@ -23,7 +23,7 @@ package tigase.pubsub.repository.stateless;
 
 import tigase.pubsub.Subscription;
 
-public class UsersSubscription {
+public class UsersSubscription implements Cloneable {
 
 	private final String jid;
 
@@ -36,6 +36,12 @@ public class UsersSubscription {
 		this.jid = jid;
 		this.subid = subid;
 		this.subscription = subscriptionType;
+	}
+
+	@Override
+	public UsersSubscription clone() throws CloneNotSupportedException {
+		UsersSubscription a = new UsersSubscription(jid, subid, subscription);
+		return a;
 	}
 
 	public String getJid() {

@@ -21,7 +21,7 @@ public class NodeSubscriptions implements ISubscriptions {
 			return new NodeSubscriptions();
 		}
 	}
-	
+
 	private boolean changed = false;
 
 	private final Map<String, UsersSubscription> subs = new HashMap<String, UsersSubscription>();
@@ -47,9 +47,12 @@ public class NodeSubscriptions implements ISubscriptions {
 		}
 	}
 
+	@Override
 	public NodeSubscriptions clone() throws CloneNotSupportedException {
-		String s = serialize();
-		NodeSubscriptions clone = NodeSubscriptions.create(s);
+		NodeSubscriptions clone = new NodeSubscriptions();
+		for (UsersSubscription a : this.subs.values()) {
+			clone.subs.put(a.getJid(), a.clone());
+		}
 		clone.changed = changed;
 		return clone;
 	}
@@ -110,11 +113,19 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	}
 
-	public String serialize() {
-		return serialize(false);
+	public void replaceBy(final NodeSubscriptions nodeSubscriptions) {
+		this.changed = true;
+		subs.clear();
+		for (UsersSubscription a : nodeSubscriptions.subs.values()) {
+			subs.put(a.getJid(), a);
+		}
 	}
 
-	public String serialize(boolean resetChangeFlag) {
+	public void resetChangedFlag() {
+		this.changed = false;
+	}
+
+	public String serialize() {
 		StringBuilder sb = new StringBuilder();
 		for (UsersSubscription s : this.subs.values()) {
 			if (s.getSubscription() != Subscription.none) {
@@ -126,9 +137,7 @@ public class NodeSubscriptions implements ISubscriptions {
 				sb.append(DELIMITER);
 			}
 		}
-		if (resetChangeFlag) {
-			changed = false;
-		}
+
 		return sb.toString();
 	}
 

@@ -14,9 +14,9 @@ import tigase.xmpp.Authorization;
 
 public class ViewNodeLoadCommand implements AdHocCommand {
 
-	private final ClusterNodeMap nodeMap;
-
 	private final PubSubConfig config;
+
+	private final ClusterNodeMap nodeMap;
 
 	public ViewNodeLoadCommand(PubSubConfig config, ClusterNodeMap nodeMap) {
 		this.config = config;

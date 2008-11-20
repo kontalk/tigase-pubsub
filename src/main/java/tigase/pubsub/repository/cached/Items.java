@@ -34,13 +34,13 @@ class Items implements IItems {
 	}
 
 	@Override
-	public Date getItemUpdateDate(String id) throws RepositoryException {
-		return this.dao.getItemUpdateDate(nodeName, id);
+	public String[] getItemsIds() throws RepositoryException {
+		return this.dao.getItemsIds(nodeName);
 	}
 
 	@Override
-	public String[] getItemsIds() throws RepositoryException {
-		return this.dao.getItemsIds(nodeName);
+	public Date getItemUpdateDate(String id) throws RepositoryException {
+		return this.dao.getItemUpdateDate(nodeName, id);
 	}
 
 	@Override

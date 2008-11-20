@@ -12,15 +12,29 @@ import java.util.Map.Entry;
 
 public class ClusterNodeMap {
 
-	private final Random random = new SecureRandom();
-
 	private class NodeInfo {
 		private String clusterNodeId;
 	}
 
-	private final Map<String, NodeInfo> nodesMap = new HashMap<String, NodeInfo>();
+	public static void main(String[] args) {
+		Set<String> cluster = new HashSet<String>();
+		cluster.add("cluster_node_1");
+		cluster.add("cluster_node_2");
+		ClusterNodeMap c = new ClusterNodeMap(cluster);
+
+		c.assign("cluster_node_1", "001");
+		c.assign("cluster_node_2", "002");
+		c.assign("cluster_node_1", "003");
+
+		System.out.println(c.getClusterNodeId("004"));
+
+	}
 
 	private final Set<String> clusterNodes;
+
+	private final Map<String, NodeInfo> nodesMap = new HashMap<String, NodeInfo>();
+
+	private final Random random = new SecureRandom();
 
 	public ClusterNodeMap(Set<String> cluster_nodes) {
 		this.clusterNodes = cluster_nodes;
@@ -28,6 +42,22 @@ public class ClusterNodeMap {
 
 	public void addPubSubNode(final String nodeName) {
 		nodesMap.put(nodeName, new NodeInfo());
+	}
+
+	public void addPubSubNode(final String[] nodeNames) {
+		if (nodeNames != null)
+			for (String string : nodeNames) {
+				addPubSubNode(string);
+			}
+	}
+
+	public void assign(final String clusterNodeId, final String pubSubNodeName) {
+		NodeInfo i = this.nodesMap.get(pubSubNodeName);
+		if (i == null) {
+			i = new NodeInfo();
+			this.nodesMap.put(pubSubNodeName, i);
+		}
+		i.clusterNodeId = clusterNodeId;
 	}
 
 	public String getClusterNodeId(final String pubsubNodeName) {
@@ -82,37 +112,6 @@ public class ClusterNodeMap {
 		int r = this.random.nextInt(shortList.size());
 
 		return shortList.get(r);
-	}
-
-	public void assign(final String clusterNodeId, final String pubSubNodeName) {
-		NodeInfo i = this.nodesMap.get(pubSubNodeName);
-		if (i == null) {
-			i = new NodeInfo();
-			this.nodesMap.put(pubSubNodeName, i);
-		}
-		i.clusterNodeId = clusterNodeId;
-	}
-
-	public static void main(String[] args) {
-		Set<String> cluster = new HashSet<String>();
-		cluster.add("cluster_node_1");
-		cluster.add("cluster_node_2");
-		ClusterNodeMap c = new ClusterNodeMap(cluster);
-
-		c.assign("cluster_node_1", "001");
-		c.assign("cluster_node_2", "002");
-		c.assign("cluster_node_1", "003");
-
-		
-		System.out.println(c.getClusterNodeId("004"));
-		
-	}
-
-	public void addPubSubNode(final String[] nodeNames) {
-		if (nodeNames != null)
-			for (String string : nodeNames) {
-				addPubSubNode(string);
-			}
 	}
 
 }

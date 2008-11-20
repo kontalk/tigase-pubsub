@@ -1,10 +1,7 @@
 package tigase.pubsub.repository;
 
-import java.util.Date;
-
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
-import tigase.xml.Element;
 
 public interface IPubSubRepository {
 
@@ -23,9 +20,9 @@ public interface IPubSubRepository {
 
 	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
 
-	public IItems getNodeItems(String nodeName) throws RepositoryException;
-
 	public abstract AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException;
+
+	public IItems getNodeItems(String nodeName) throws RepositoryException;
 
 	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
 

@@ -16,7 +16,6 @@ public interface IItems {
 
 	public abstract Date getItemUpdateDate(String id) throws RepositoryException;
 
-	public abstract void writeItem(long timeInMilis, String id, String publisher, Element item)
-	throws RepositoryException;
+	public abstract void writeItem(long timeInMilis, String id, String publisher, Element item) throws RepositoryException;
 
 }

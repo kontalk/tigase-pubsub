@@ -387,7 +387,7 @@ public class PubSubDAO implements IPubSubDAO {
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' affiliations...");
-			String data = affiliations.serialize(true);
+			String data = affiliations.serialize();
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "affiliations", data);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers writing error", e);
@@ -398,7 +398,7 @@ public class PubSubDAO implements IPubSubDAO {
 	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' subscriptions...");
-			String data = subscriptions.serialize(true);
+			String data = subscriptions.serialize();
 			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions", data);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers writing error", e);

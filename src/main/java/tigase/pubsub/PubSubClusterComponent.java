@@ -51,9 +51,9 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	private static final String METHOD_PRESENCE_COLLECTION = "pubsub.presenceCollection";
 
-	private static final String METHOD_SET_OWNERSHIP = "pubsub.setOwnership";
-
 	private static final String METHOD_RESULT = "pubsub.result";
+
+	private static final String METHOD_SET_OWNERSHIP = "pubsub.setOwnership";
 
 	protected static String[] getParameters(final String name, final Map<String, String> allMethodParams) {
 		List<String> nodesNames = new ArrayList<String>();
@@ -69,11 +69,30 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	protected final ClusterNodeMap nodeMap;
 
+	// sprawić by zapominało po iluśtam sekundach
+	protected final ListCache<String, Command> waitingsCommands = new ListCache<String, Command>(1000, 1000 * 60);
+
 	public PubSubClusterComponent() {
 		super();
 		this.log = Logger.getLogger(this.getClass().getName());
 		log.config("PubSubCluster Component starting");
 		nodeMap = new ClusterNodeMap(cluster_nodes);
+	}
+
+	private String findNextUnvisitedNode(final ClusterElement clel) {
+		final String comp_id = getComponentId();
+		if (cluster_nodes.size() > 0) {
+			String next_node = null;
+			for (String cluster_node : cluster_nodes) {
+				if (!clel.isVisitedNode(cluster_node) && !cluster_node.equals(comp_id)) {
+					next_node = cluster_node;
+					log.finest("Found next cluster node: " + next_node);
+					break;
+				}
+			}
+			return next_node;
+		}
+		return null;
 	}
 
 	@Override
@@ -131,6 +150,15 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		this.adHocCommandsModule.register(new ViewNodeLoadCommand(this.config, this.nodeMap));
 	}
 
+	private boolean isProcessedLocally(final String node) {
+		if (this.publishNodeModule.isPEPNodeName(node)) {
+			return true;
+		} else if ("http://jabber.org/protocol/commands".equals(node)) {
+			return true;
+		}
+		return false;
+	}
+
 	public void nodesConnected(Set<String> node_hostnames) {
 		for (String node : node_hostnames) {
 			log.finest("Node connected: " + node + " (" + getName() + "@" + node + ")");
@@ -174,15 +202,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		} else {
 			throw new RuntimeException("Unsupported method " + methodName);
 		}
-	}
-
-	private void sendResult(String firstNode, String uuid) {
-		Map<String, String> params = new HashMap<String, String>();
-		params.put("uuid", uuid);
-
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), firstNode, StanzaType.result, METHOD_RESULT,
-				params);
-		addOutPacket(new Packet(call.getClusterElement()));
 	}
 
 	@Override
@@ -256,18 +275,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		}
 	}
 
-	private boolean isProcessedLocally(final String node) {
-		if (this.publishNodeModule.isPEPNodeName(node)) {
-			return true;
-		} else if ("http://jabber.org/protocol/commands".equals(node)) {
-			return true;
-		}
-		return false;
-	}
-
-	// sprawić by zapominało po iluśtam sekundach
-	protected final ListCache<String, Command> waitingsCommands = new ListCache<String, Command>(1000, 1000 * 60);
-
 	protected void sendAvailableJidsToNode(final String node) {
 		Map<String, String> params = new HashMap<String, String>();
 		int counter = 0;
@@ -290,27 +297,33 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		}
 	}
 
+	private void sendOwnershipInformation(final String uuid, final String clusterNode, final String pubsubNode) {
+		String cluster_node = getFirstClusterNode();
+
+		Map<String, String> params = new HashMap<String, String>();
+		params.put("uuid", uuid);
+		params.put("clusterNodeId", clusterNode);
+		params.put("pubsubNodeName", pubsubNode);
+
+		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), cluster_node, StanzaType.set,
+				METHOD_SET_OWNERSHIP, params);
+		sentToNextNode(call);
+	}
+
+	private void sendResult(String firstNode, String uuid) {
+		Map<String, String> params = new HashMap<String, String>();
+		params.put("uuid", uuid);
+
+		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), firstNode, StanzaType.result, METHOD_RESULT,
+				params);
+		addOutPacket(new Packet(call.getClusterElement()));
+	}
+
 	protected void sentBroadcast(final Packet packet) {
 		log.finest("Send broadcast with: " + packet.toString());
 		for (String cNN : this.cluster_nodes) {
 			sentToNode(packet, cNN);
 		}
-	}
-
-	private String findNextUnvisitedNode(final ClusterElement clel) {
-		final String comp_id = getComponentId();
-		if (cluster_nodes.size() > 0) {
-			String next_node = null;
-			for (String cluster_node : cluster_nodes) {
-				if (!clel.isVisitedNode(cluster_node) && !cluster_node.equals(comp_id)) {
-					next_node = cluster_node;
-					log.finest("Found next cluster node: " + next_node);
-					break;
-				}
-			}
-			return next_node;
-		}
-		return null;
 	}
 
 	protected boolean sentToNextNode(ClusterElement clel) {
@@ -325,19 +338,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		} else {
 			return false;
 		}
-	}
-
-	private void sendOwnershipInformation(final String uuid, final String clusterNode, final String pubsubNode) {
-		String cluster_node = getFirstClusterNode();
-
-		Map<String, String> params = new HashMap<String, String>();
-		params.put("uuid", uuid);
-		params.put("clusterNodeId", clusterNode);
-		params.put("pubsubNodeName", pubsubNode);
-
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), cluster_node, StanzaType.set,
-				METHOD_SET_OWNERSHIP, params);
-		sentToNextNode(call);
 	}
 
 	protected boolean sentToNextNode(Packet packet) {

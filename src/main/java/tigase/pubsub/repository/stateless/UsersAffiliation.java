@@ -3,7 +3,7 @@ package tigase.pubsub.repository.stateless;
 import tigase.pubsub.Affiliation;
 import tigase.util.JIDUtils;
 
-public class UsersAffiliation {
+public class UsersAffiliation implements Cloneable {
 
 	private Affiliation affiliation;
 
@@ -17,6 +17,12 @@ public class UsersAffiliation {
 	public UsersAffiliation(final String jid, final Affiliation affiliation) {
 		this.affiliation = affiliation == null ? Affiliation.none : affiliation;
 		this.jid = jid == null ? null : JIDUtils.getNodeID(jid);
+	}
+
+	@Override
+	public UsersAffiliation clone() throws CloneNotSupportedException {
+		UsersAffiliation a = new UsersAffiliation(jid, affiliation);
+		return a;
 	}
 
 	public Affiliation getAffiliation() {

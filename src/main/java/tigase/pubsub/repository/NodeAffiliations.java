@@ -47,9 +47,12 @@ public class NodeAffiliations implements IAffiliations {
 		}
 	}
 
+	@Override
 	public NodeAffiliations clone() throws CloneNotSupportedException {
-		String s = serialize();
-		NodeAffiliations clone = NodeAffiliations.create(s);
+		NodeAffiliations clone = new NodeAffiliations();
+		for (UsersAffiliation a : this.affs.values()) {
+			clone.affs.put(a.getJid(), a.clone());
+		}
 		clone.changed = changed;
 		return clone;
 	}
@@ -98,11 +101,19 @@ public class NodeAffiliations implements IAffiliations {
 
 	}
 
-	public String serialize() {
-		return serialize(false);
+	public void replaceBy(final NodeAffiliations nodeAffiliations) {
+		this.changed = true;
+		affs.clear();
+		for (UsersAffiliation a : nodeAffiliations.affs.values()) {
+			affs.put(a.getJid(), a);
+		}
 	}
 
-	public String serialize(boolean resetChangeFlag) {
+	public void resetChangedFlag() {
+		this.changed = false;
+	}
+
+	public String serialize() {
 		StringBuilder sb = new StringBuilder();
 		for (UsersAffiliation a : this.affs.values()) {
 			if (a.getAffiliation() != Affiliation.none) {
