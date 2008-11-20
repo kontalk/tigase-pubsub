@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
@@ -18,28 +19,34 @@ import tigase.pubsub.repository.RepositoryException;
 
 public class CachedPubSubRepository implements IPubSubRepository {
 
+	public final static long MAX_WRITE_DELAY = 1000l * 15l;
+
 	private final IPubSubDAO dao;
 
-	public CachedPubSubRepository(final IPubSubDAO dao) {
-		this.dao = dao;
-	}
+	protected Logger log = Logger.getLogger(this.getClass().getName());
 
-	private final Set<Node> nodesToSave = new HashSet<Node>();
+	private final Object mutex = new Object();
 
 	private final Map<String, Node> nodes = new HashMap<String, Node>();
 
+	private final Set<Node> nodesToSave = new HashSet<Node>();
+
 	private final Set<String> rootCollection = new HashSet<String>();
 
-	@Override
-	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException {
-		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
+	public CachedPubSubRepository(final IPubSubDAO dao) {
+		this.dao = dao;
 	}
 
 	@Override
 	public void addToRootCollection(String nodeName) throws RepositoryException {
 		this.dao.addToRootCollection(nodeName);
 		this.rootCollection.add(nodeName);
+	}
+
+	@Override
+	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
+			throws RepositoryException {
+		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
 	}
 
 	@Override
@@ -50,6 +57,32 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			node.setDeleted(true);
 		}
 		this.nodes.remove(nodeName);
+	}
+
+	public void doLazyWrite() throws RepositoryException {
+		final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
+		synchronized (mutex) {
+			for (Node node : this.nodesToSave) {
+				if (node.isDeleted())
+					continue;
+				if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
+					node.resetNodeAffiliationsChangeTimestamp();
+					this.dao.update(node.getName(), node.getNodeAffiliations());
+				}
+				if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
+					node.resetNodeSubscriptionsChangeTimestamp();
+					this.dao.update(node.getName(), node.getNodeSubscriptions());
+				}
+				if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
+					node.resetNodeConfigChangeTimestamp();
+					this.dao.update(node.getName(), node.getNodeConfig());
+				}
+				if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
+						&& node.getNodeAffiliationsChangeTimestamp() == null) {
+					this.nodesToSave.remove(node);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -144,8 +177,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	@Override
 	public void init() {
-		// TODO Auto-generated method stub
-
+		log.config("Cached PubSubRepository initialising...");
 	}
 
 	@Override
@@ -186,36 +218,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			node.setNodeSubscriptionsChangeTimestamp();
 			synchronized (mutex) {
 				this.nodesToSave.add(node);
-			}
-		}
-	}
-
-	private final Object mutex = new Object();
-
-	public final static long MAX_WRITE_DELAY = 1000l * 15l;
-
-	public void doLazyWrite() throws RepositoryException {
-		final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
-		synchronized (mutex) {
-			for (Node node : this.nodesToSave) {
-				if (node.isDeleted())
-					continue;
-				if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
-					node.resetNodeAffiliationsChangeTimestamp();
-					this.dao.update(node.getName(), node.getNodeAffiliations());
-				}
-				if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
-					node.resetNodeSubscriptionsChangeTimestamp();
-					this.dao.update(node.getName(), node.getNodeSubscriptions());
-				}
-				if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
-					node.resetNodeConfigChangeTimestamp();
-					this.dao.update(node.getName(), node.getNodeConfig());
-				}
-				if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
-						&& node.getNodeAffiliationsChangeTimestamp() == null) {
-					this.nodesToSave.remove(node);
-				}
 			}
 		}
 	}

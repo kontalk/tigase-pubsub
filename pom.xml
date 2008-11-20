@@ -4,7 +4,7 @@
 	<groupId>tigase</groupId>
 	<artifactId>tigase-pubsub</artifactId>
 	<name>tigase-pubsub</name>
-	<version>0.5.1-SNAPSHOT</version>
+	<version>0.5.2-SNAPSHOT</version>
 	<description>Publish Subscribe component for Tigase</description>
 	<url>http://www.tigase.org</url>
 	<inceptionYear>2008</inceptionYear>
