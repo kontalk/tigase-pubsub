@@ -23,7 +23,7 @@ public class NodeAffiliations implements IAffiliations {
 
 	protected final Map<String, UsersAffiliation> affs = new HashMap<String, UsersAffiliation>();
 
-	protected boolean changed = false;
+	private boolean changed = false;
 
 	protected NodeAffiliations() {
 	}
@@ -39,7 +39,7 @@ public class NodeAffiliations implements IAffiliations {
 	@Override
 	public void changeAffiliation(String jid, Affiliation affiliation) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		UsersAffiliation a = this.affs.get(bareJid);
+		UsersAffiliation a = this.get(bareJid);
 		if (a != null) {
 			a.setAffiliation(affiliation);
 			changed = true;
@@ -60,6 +60,12 @@ public class NodeAffiliations implements IAffiliations {
 		return clone;
 	}
 
+	protected UsersAffiliation get(final String jid) {
+		final String bareJid = JIDUtils.getNodeID(jid);
+		UsersAffiliation s = this.affs.get(bareJid);
+		return s;
+	}
+
 	@Override
 	public UsersAffiliation[] getAffiliations() {
 		return this.affs.values().toArray(new UsersAffiliation[] {});
@@ -72,7 +78,7 @@ public class NodeAffiliations implements IAffiliations {
 	@Override
 	public UsersAffiliation getSubscriberAffiliation(String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		UsersAffiliation a = this.affs.get(bareJid);
+		UsersAffiliation a = this.get(bareJid);
 		if (a == null) {
 			a = new UsersAffiliation(bareJid, Affiliation.none);
 		}

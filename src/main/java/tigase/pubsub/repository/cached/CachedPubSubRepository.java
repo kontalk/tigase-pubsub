@@ -120,12 +120,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
 		Node node = getNode(nodeName);
-		try {
-			return node == null ? null : node.getNodeAffiliations().clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return node == null ? null : node.getNodeAffiliations();
 	}
 
 	@Override
@@ -195,15 +190,23 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
-		Node node = getNode(nodeName);
-		if (node != null) {
-			node.getNodeAffiliations().replaceBy(affiliations);
-			((NodeAffiliations) affiliations).resetChangedFlag();
-			node.setNodeAffiliationsChangeTimestamp();
-			synchronized (mutex) {
-				this.nodesToSave.add(node);
+	public void update(String nodeName, IAffiliations nodeAffiliations) throws RepositoryException {
+		if (nodeAffiliations instanceof NodeAffiliations) {
+			NodeAffiliations affiliations = (NodeAffiliations) nodeAffiliations;
+
+			Node node = getNode(nodeName);
+			if (node != null) {
+				if (node.getNodeAffiliations() != nodeAffiliations) {
+					throw new RuntimeException("INCORRECT");
+				}
+				affiliations.merge();
+				node.setNodeAffiliationsChangeTimestamp();
+				synchronized (mutex) {
+					this.nodesToSave.add(node);
+				}
 			}
+		} else {
+			throw new RuntimeException("Wrong class");
 		}
 	}
 

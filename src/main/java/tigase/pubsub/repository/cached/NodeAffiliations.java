@@ -1,11 +1,13 @@
 package tigase.pubsub.repository.cached;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.util.JIDUtils;
 
 class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
 
@@ -20,14 +22,22 @@ class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
 
 	@Override
 	public void addAffiliation(String jid, Affiliation affiliation) {
-		// TODO Auto-generated method stub
-		super.addAffiliation(jid, affiliation);
+		final String bareJid = JIDUtils.getNodeID(jid);
+		UsersAffiliation a = new UsersAffiliation(bareJid, affiliation);
+		changedAffs.put(bareJid, a);
 	}
 
 	@Override
 	public void changeAffiliation(String jid, Affiliation affiliation) {
-		// TODO Auto-generated method stub
-		super.changeAffiliation(jid, affiliation);
+		final String bareJid = JIDUtils.getNodeID(jid);
+		UsersAffiliation a = this.get(bareJid);
+		if (a != null) {
+			a.setAffiliation(affiliation);
+			changedAffs.put(bareJid, a);
+		} else {
+			a = new UsersAffiliation(bareJid, affiliation);
+			changedAffs.put(bareJid, a);
+		}
 	}
 
 	@Override
@@ -36,56 +46,49 @@ class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
 		for (UsersAffiliation a : this.affs.values()) {
 			clone.affs.put(a.getJid(), a.clone());
 		}
-		clone.changed = changed;
+		for (UsersAffiliation a : this.changedAffs.values()) {
+			clone.changedAffs.put(a.getJid(), a.clone());
+		}
 		return clone;
 	}
 
 	@Override
+	protected UsersAffiliation get(String bareJid) {
+		UsersAffiliation us = changedAffs.get(bareJid);
+		if (us == null) {
+			us = affs.get(bareJid);
+			if (us != null)
+				try {
+					return us.clone();
+				} catch (Exception e) {
+					e.printStackTrace();
+					return null;
+				}
+		}
+		return us;
+	}
+
+	@Override
 	public UsersAffiliation[] getAffiliations() {
-		// TODO Auto-generated method stub
-		return super.getAffiliations();
-	}
-
-	@Override
-	public Map<String, UsersAffiliation> getAffiliationsMap() {
-		// TODO Auto-generated method stub
-		return super.getAffiliationsMap();
-	}
-
-	@Override
-	public UsersAffiliation getSubscriberAffiliation(String jid) {
-		// TODO Auto-generated method stub
-		return super.getSubscriberAffiliation(jid);
+		final Set<UsersAffiliation> result = new HashSet<UsersAffiliation>();
+		result.addAll(this.affs.values());
+		result.addAll(this.changedAffs.values());
+		return result.toArray(new UsersAffiliation[] {});
 	}
 
 	@Override
 	public boolean isChanged() {
-		// TODO Auto-generated method stub
-		return super.isChanged();
+		return changedAffs.size() > 0;
 	}
 
-	@Override
-	public void parse(String data) {
-		// TODO Auto-generated method stub
-		super.parse(data);
-	}
-
-	@Override
-	public void replaceBy(IAffiliations nodeAffiliations) {
-		// TODO Auto-generated method stub
-		super.replaceBy(nodeAffiliations);
+	public void merge() {
+		affs.putAll(changedAffs);
+		changedAffs.clear();
 	}
 
 	@Override
 	public void resetChangedFlag() {
-		// TODO Auto-generated method stub
-		super.resetChangedFlag();
-	}
-
-	@Override
-	public String serialize() {
-		// TODO Auto-generated method stub
-		return super.serialize();
+		changedAffs.clear();
 	}
 
 }

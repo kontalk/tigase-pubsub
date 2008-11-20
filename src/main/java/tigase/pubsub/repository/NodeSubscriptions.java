@@ -59,7 +59,7 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	protected UsersSubscription get(final String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		UsersSubscription s = get(bareJid);
+		UsersSubscription s = this.subs.get(bareJid);
 		return s;
 	}
 
