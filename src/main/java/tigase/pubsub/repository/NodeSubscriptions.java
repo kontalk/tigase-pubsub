@@ -10,7 +10,7 @@ import tigase.util.JIDUtils;
 
 public class NodeSubscriptions implements ISubscriptions {
 
-	private final static String DELIMITER = ";";
+	protected final static String DELIMITER = ";";
 
 	public static NodeSubscriptions create(String data) {
 		NodeSubscriptions s = new NodeSubscriptions();
@@ -24,9 +24,9 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	private boolean changed = false;
 
-	private final Map<String, UsersSubscription> subs = new HashMap<String, UsersSubscription>();
+	protected final Map<String, UsersSubscription> subs = new HashMap<String, UsersSubscription>();
 
-	private NodeSubscriptions() {
+	protected NodeSubscriptions() {
 	}
 
 	public String addSubscriberJid(final String jid, final Subscription subscription) {
@@ -40,7 +40,7 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	public void changeSubscription(String jid, Subscription subscription) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		UsersSubscription s = subs.get(bareJid);
+		UsersSubscription s = get(bareJid);
 		if (s != null) {
 			s.setSubscription(subscription);
 			changed = true;
@@ -57,9 +57,15 @@ public class NodeSubscriptions implements ISubscriptions {
 		return clone;
 	}
 
+	protected UsersSubscription get(final String jid) {
+		final String bareJid = JIDUtils.getNodeID(jid);
+		UsersSubscription s = get(bareJid);
+		return s;
+	}
+
 	public Subscription getSubscription(String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		UsersSubscription s = subs.get(bareJid);
+		UsersSubscription s = get(bareJid);
 		if (s != null) {
 			return s.getSubscription();
 		}
@@ -68,7 +74,7 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	public String getSubscriptionId(String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
-		UsersSubscription s = subs.get(bareJid);
+		UsersSubscription s = get(bareJid);
 		if (s != null) {
 			return s.getSubid();
 		}
@@ -77,6 +83,10 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	public UsersSubscription[] getSubscriptions() {
 		return this.subs.values().toArray(new UsersSubscription[] {});
+	}
+
+	public Map<String, UsersSubscription> getSubscriptionsMap() {
+		return subs;
 	}
 
 	public boolean isChanged() {
@@ -113,11 +123,18 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	}
 
-	public void replaceBy(final NodeSubscriptions nodeSubscriptions) {
-		this.changed = true;
-		subs.clear();
-		for (UsersSubscription a : nodeSubscriptions.subs.values()) {
-			subs.put(a.getJid(), a);
+	public void replaceBy(final ISubscriptions nodeSubscriptions) {
+
+		if (nodeSubscriptions instanceof NodeSubscriptions) {
+			NodeSubscriptions ns = (NodeSubscriptions) nodeSubscriptions;
+			this.changed = true;
+			subs.clear();
+			for (UsersSubscription a : ns.subs.values()) {
+				subs.put(a.getJid(), a);
+			}
+		} else {
+			System.out.println("!!!!!!!!!!!!!!!!!!!" + nodeSubscriptions.getClass());
+			throw new RuntimeException("!!!!!!!!!!!!!!!!!!!" + nodeSubscriptions.getClass());
 		}
 	}
 

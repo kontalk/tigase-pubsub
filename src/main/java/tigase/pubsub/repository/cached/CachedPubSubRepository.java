@@ -2,6 +2,7 @@ package tigase.pubsub.repository.cached;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -13,8 +14,6 @@ import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.NodeAffiliations;
-import tigase.pubsub.repository.NodeSubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 
 public class CachedPubSubRepository implements IPubSubRepository {
@@ -62,7 +61,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void doLazyWrite() throws RepositoryException {
 		final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
 		synchronized (mutex) {
-			for (Node node : this.nodesToSave) {
+			Iterator<Node> nodes = this.nodesToSave.iterator();
+			while (nodes.hasNext()) {
+				Node node = nodes.next();
 				if (node.isDeleted())
 					continue;
 				if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
@@ -79,7 +80,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				}
 				if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
 						&& node.getNodeAffiliationsChangeTimestamp() == null) {
-					this.nodesToSave.remove(node);
+					nodes.remove();
 				}
 			}
 		}
@@ -106,8 +107,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			AbstractNodeConfig nodeConfig = this.dao.getNodeConfig(nodeName);
 			if (nodeConfig == null)
 				return null;
-			NodeAffiliations nodeAffiliations = this.dao.getNodeAffiliations(nodeName);
-			NodeSubscriptions nodeSubscriptions = this.dao.getNodeSubscriptions(nodeName);
+			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(nodeName));
+			NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(this.dao.getNodeSubscriptions(nodeName));
 
 			node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
 			this.nodes.put(nodeName, node);
@@ -146,12 +147,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
 		Node node = getNode(nodeName);
-		try {
-			return node == null ? null : node.getNodeSubscriptions().clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return node == null ? null : node.getNodeSubscriptions();
 	}
 
 	@Override
@@ -202,7 +198,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
 		Node node = getNode(nodeName);
 		if (node != null) {
-			node.getNodeAffiliations().replaceBy((NodeAffiliations) affiliations);
+			node.getNodeAffiliations().replaceBy(affiliations);
 			((NodeAffiliations) affiliations).resetChangedFlag();
 			node.setNodeAffiliationsChangeTimestamp();
 			synchronized (mutex) {
@@ -212,15 +208,23 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
-		Node node = getNode(nodeName);
-		if (node != null) {
-			node.getNodeSubscriptions().replaceBy((NodeSubscriptions) subscriptions);
-			((NodeSubscriptions) subscriptions).resetChangedFlag();
-			node.setNodeSubscriptionsChangeTimestamp();
-			synchronized (mutex) {
-				this.nodesToSave.add(node);
+	public void update(String nodeName, ISubscriptions nodeSubscriptions) throws RepositoryException {
+		if (nodeSubscriptions instanceof NodeSubscriptions) {
+			NodeSubscriptions subscriptions = (NodeSubscriptions) nodeSubscriptions;
+
+			Node node = getNode(nodeName);
+			if (node != null) {
+				if (node.getNodeSubscriptions() != nodeSubscriptions) {
+					throw new RuntimeException("INCORRECT");
+				}
+				subscriptions.merge();
+				node.setNodeSubscriptionsChangeTimestamp();
+				synchronized (mutex) {
+					this.nodesToSave.add(node);
+				}
 			}
+		} else {
+			throw new RuntimeException("Wrong class");
 		}
 	}
 }

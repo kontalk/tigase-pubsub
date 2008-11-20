@@ -1,8 +1,6 @@
 package tigase.pubsub.repository.cached;
 
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.repository.NodeAffiliations;
-import tigase.pubsub.repository.NodeSubscriptions;
 
 class Node {
 

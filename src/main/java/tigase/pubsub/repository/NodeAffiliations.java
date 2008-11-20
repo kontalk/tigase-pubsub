@@ -9,7 +9,7 @@ import tigase.util.JIDUtils;
 
 public class NodeAffiliations implements IAffiliations {
 
-	private final static String DELIMITER = ";";
+	protected final static String DELIMITER = ";";
 
 	public static NodeAffiliations create(String data) {
 		NodeAffiliations a = new NodeAffiliations();
@@ -21,9 +21,12 @@ public class NodeAffiliations implements IAffiliations {
 		}
 	}
 
-	private final Map<String, UsersAffiliation> affs = new HashMap<String, UsersAffiliation>();
+	protected final Map<String, UsersAffiliation> affs = new HashMap<String, UsersAffiliation>();
 
-	private boolean changed = false;
+	protected boolean changed = false;
+
+	protected NodeAffiliations() {
+	}
 
 	@Override
 	public void addAffiliation(String jid, Affiliation affiliation) {
@@ -60,6 +63,10 @@ public class NodeAffiliations implements IAffiliations {
 	@Override
 	public UsersAffiliation[] getAffiliations() {
 		return this.affs.values().toArray(new UsersAffiliation[] {});
+	}
+
+	public Map<String, UsersAffiliation> getAffiliationsMap() {
+		return affs;
 	}
 
 	@Override
@@ -101,11 +108,15 @@ public class NodeAffiliations implements IAffiliations {
 
 	}
 
-	public void replaceBy(final NodeAffiliations nodeAffiliations) {
-		this.changed = true;
-		affs.clear();
-		for (UsersAffiliation a : nodeAffiliations.affs.values()) {
-			affs.put(a.getJid(), a);
+	public void replaceBy(final IAffiliations nodeAffiliations) {
+		if (nodeAffiliations instanceof NodeAffiliations) {
+			NodeAffiliations na = (NodeAffiliations) nodeAffiliations;
+
+			this.changed = true;
+			affs.clear();
+			for (UsersAffiliation a : na.affs.values()) {
+				affs.put(a.getJid(), a);
+			}
 		}
 	}
 

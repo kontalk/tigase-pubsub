@@ -1,3 +1,5 @@
+package tigase.pubsub.repository;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,14 +10,6 @@ import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
-import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubDAO;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.NodeAffiliations;
-import tigase.pubsub.repository.NodeSubscriptions;
-import tigase.pubsub.repository.RepositoryException;
 import tigase.xml.Element;
 
 public class MockRepository implements IPubSubRepository {
