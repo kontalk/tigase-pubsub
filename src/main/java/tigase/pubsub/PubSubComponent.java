@@ -400,15 +400,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	public void setProperties(Map<String, Object> props) {
 		super.setProperties(props);
 
-		String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
-		if (hostnames == null || hostnames.length == 0) {
-			log.warning("Hostnames definition is empty, setting 'localhost'");
-			hostnames = new String[] { getName() + ".localhost" };
-		}
-		clearRoutings();
-		for (String host : hostnames) {
-			addRouting(host);
-		}
+//		String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
+//		if (hostnames == null || hostnames.length == 0) {
+//			log.warning("Hostnames definition is empty, setting 'localhost'");
+//			hostnames = new String[] { getName() + ".localhost" };
+//		}
+//		clearRoutings();
+//		for (String host : hostnames) {
+//			addRouting(host);
+//		}
 
 		try {
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
