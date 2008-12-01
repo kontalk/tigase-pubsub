@@ -154,9 +154,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public String[] getRootCollection() throws RepositoryException {
 		if (rootCollection.size() == 0) {
 			String[] x = dao.getRootNodes();
-			for (String string : x) {
-				rootCollection.add(string);
-			}
+			if (x != null)
+				for (String string : x) {
+					rootCollection.add(string);
+				}
 		}
 		return this.rootCollection.toArray(new String[] {});
 	}
