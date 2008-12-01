@@ -94,36 +94,17 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 		return CRIT_CREATE;
 	}
 
-	private final void addLog(OutputStream logStream, String message) {
-		try {
-			if (logStream == null) {
-				System.out.println(message);
-			} else {
-				logStream.write(message.getBytes());
-				logStream.write('\n');
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
 	@Override
 	public List<Element> process(Element element) throws PubSubException {
-		FileOutputStream logOut;
-		try {
-			logOut = new FileOutputStream("pubsub-time-log.log", true);
-		} catch (FileNotFoundException e2) {
-			logOut = null;
-			e2.printStackTrace();
-		}
+		StringBuilder logsb = new StringBuilder();
 
-		addLog(logOut, "CHECKPOINT 1; entering; " + System.currentTimeMillis());
+		logsb.append("CHECKPOINT 1; entering; " + System.currentTimeMillis() + ";\n");
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element create = pubSub.getChild("create");
 		final Element configure = pubSub.getChild("configure");
 
 		String nodeName = create.getAttribute("node");
-		addLog(logOut, "CHECKPOINT 2; getting node name '" + nodeName + "'; " + System.currentTimeMillis());
+		logsb.append("CHECKPOINT 2; getting node name '" + nodeName + "'; " + System.currentTimeMillis() + ";\n");
 		try {
 			boolean instantNode = nodeName == null;
 			if (instantNode) {
@@ -134,7 +115,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
 
-			addLog(logOut, "CHECKPOINT 3; potential conflict checked'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 3; potential conflict checked'; " + System.currentTimeMillis() + ";\n");
 
 			NodeType nodeType = NodeType.leaf;
 			String collection = null;
@@ -161,7 +142,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				}
 			}
 
-			addLog(logOut, "CHECKPOINT 4; configuration processed'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 4; configuration processed'; " + System.currentTimeMillis() + ";\n");
 
 			CollectionNodeConfig colNodeConfig = null;
 			if (collection != null) {
@@ -174,40 +155,40 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				colNodeConfig = (CollectionNodeConfig) absNodeConfig;
 			}
 
-			addLog(logOut, "CHECKPOINT 5; collections checked'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 5; collections checked'; " + System.currentTimeMillis() + ";\n");
 
 			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 
-			addLog(logOut, "CHECKPOINT 6; ready to create'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 6; ready to create'; " + System.currentTimeMillis() + ";\n");
 
 			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
 					collection == null ? "" : collection);
 
-			addLog(logOut, "CHECKPOINT 7; node created'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 7; node created'; " + System.currentTimeMillis() + ";\n");
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(nodeName);
 
-			addLog(logOut, "CHECKPOINT 8; ready to add subscriptions and affilitaions'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 8; ready to add subscriptions and affilitaions'; " + System.currentTimeMillis() + ";\n");
 
 			nodeSubscriptions.addSubscriberJid(element.getAttribute("from"), Subscription.subscribed);
 			nodeaAffiliations.addAffiliation(element.getAttribute("from"), Affiliation.owner);
 
-			addLog(logOut, "CHECKPOINT 9; subscriptions and affilitaions added'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 9; subscriptions and affilitaions added'; " + System.currentTimeMillis() + ";\n");
 
 			repository.update(nodeName, nodeaAffiliations);
-			addLog(logOut, "CHECKPOINT 10; affiliations updated'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 10; affiliations updated'; " + System.currentTimeMillis() + ";\n");
 			repository.update(nodeName, nodeSubscriptions);
-			addLog(logOut, "CHECKPOINT 11; subscriptions updated'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 11; subscriptions updated'; " + System.currentTimeMillis() + ";\n");
 
 			if (colNodeConfig == null) {
 				repository.addToRootCollection(nodeName);
-				addLog(logOut, "CHECKPOINT 12a; root collection updated'; " + System.currentTimeMillis());
+				logsb.append("CHECKPOINT 12a; root collection updated'; " + System.currentTimeMillis() + ";\n");
 			} else {
 				colNodeConfig.addChildren(nodeName);
 				repository.update(collection, colNodeConfig);
-				addLog(logOut, "CHECKPOINT 12b; collection updated'; " + System.currentTimeMillis());
+				logsb.append("CHECKPOINT 12b; collection updated'; " + System.currentTimeMillis() + ";\n");
 			}
 
 			fireOnNodeCreatedConfigChange(nodeName);
@@ -227,7 +208,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			}
 
-			addLog(logOut, "CHECKPOINT 13; notification prepared'; " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 13; notification prepared'; " + System.currentTimeMillis() + ";\n");
 
 			if (instantNode) {
 				Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
@@ -235,23 +216,16 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				ps.addChild(cr);
 				result.addChild(ps);
 			}
-			addLog(logOut, "CHECKPOINT 14; sending results (" + notifications.size() + "); " + System.currentTimeMillis());
+			logsb.append("CHECKPOINT 14; sending results (" + notifications.size() + "); " + System.currentTimeMillis() + ";\n");
+
+			result.addChild(new Element("tigaselog", logsb.toString()));
+
 			return notifications;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
-		} finally {
-			if (logOut != null) {
-				try {
-					logOut.flush();
-					logOut.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-
-			}
 		}
 
 	}
