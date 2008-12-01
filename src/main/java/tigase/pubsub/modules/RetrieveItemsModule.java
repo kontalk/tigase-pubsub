@@ -32,6 +32,7 @@ import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
@@ -86,7 +87,7 @@ public class RetrieveItemsModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(final Element element) throws PubSubException {
+	public List<Element> process(final Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			final Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element items = pubsub.getChild("items");

@@ -98,6 +98,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected PubSubDAO directPubSubRepository;
 
+	protected final ElementWriter elementWriter;
+
 	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
@@ -140,6 +142,18 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	public PubSubComponent() {
 		setName("pubsub");
+		this.elementWriter = new ElementWriter() {
+
+			public void write(Collection<Element> elements) {
+				for (Element element : elements) {
+					write(element);
+				}
+			}
+
+			public void write(final Element element) {
+				addOutPacket(new Packet(element));
+			}
+		};
 	}
 
 	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
@@ -331,10 +345,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 	}
 
-	public Collection<Element> process(final Element element) throws PacketErrorTypeException {
-		List<Element> result = new ArrayList<Element>();
+	public void process(final Element element, final ElementWriter writer) throws PacketErrorTypeException {
 		try {
-			boolean handled = runModules(element, result);
+			boolean handled = runModules(element, writer);
 
 			if (!handled) {
 				final String t = element.getAttribute("type");
@@ -346,19 +359,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				}
 			}
 		} catch (PubSubException e) {
-			Element r = e.makeElement(element);
-			result.add(r);
+			log.finest("Exception '" + e.getErrorCondition() + "' throwed for request id=" + element.getAttribute("id"));
+			writer.write(e.makeElement(element));
 		}
-		return result;
 	}
 
 	@Override
 	public void processPacket(final Packet packet) {
 		try {
-			Collection<Element> result = process(packet.getElement());
-			for (Element element : result) {
-				addOutPacket(new Packet(element));
-			}
+			process(packet.getElement(), this.elementWriter);
 		} catch (Exception e) {
 			log.log(Level.WARNING, "Unexpected exception: internal-server-error", e);
 			e.printStackTrace();
@@ -377,7 +386,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return module;
 	}
 
-	protected boolean runModules(final Element element, Collection<Element> sendCollection) throws PubSubException {
+	protected boolean runModules(final Element element, final ElementWriter writer) throws PubSubException {
 		boolean handled = false;
 		log.finest("Processing packet: " + element.toString());
 
@@ -386,9 +395,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			if (criteria != null && criteria.match(element)) {
 				handled = true;
 				log.finest("Handled by module " + module.getClass());
-				List<Element> result = module.process(element);
+				List<Element> result = module.process(element, writer);
 				if (result != null) {
-					sendCollection.addAll(result);
+					for (Element element2 : result) {
+						writer.write(element2);
+					}
 					return true;
 				}
 			}
@@ -400,15 +411,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	public void setProperties(Map<String, Object> props) {
 		super.setProperties(props);
 
-//		String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
-//		if (hostnames == null || hostnames.length == 0) {
-//			log.warning("Hostnames definition is empty, setting 'localhost'");
-//			hostnames = new String[] { getName() + ".localhost" };
-//		}
-//		clearRoutings();
-//		for (String host : hostnames) {
-//			addRouting(host);
-//		}
+		// String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
+		// if (hostnames == null || hostnames.length == 0) {
+		// log.warning("Hostnames definition is empty, setting 'localhost'");
+		// hostnames = new String[] { getName() + ".localhost" };
+		// }
+		// clearRoutings();
+		// for (String host : hostnames) {
+		// addRouting(host);
+		// }
 
 		try {
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);

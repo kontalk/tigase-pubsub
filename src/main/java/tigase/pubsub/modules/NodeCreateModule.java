@@ -34,6 +34,7 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
@@ -95,7 +96,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		final long time1 = System.currentTimeMillis();
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element create = pubSub.getChild("create");
@@ -172,9 +173,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			fireOnNodeCreatedConfigChange(nodeName);
 
-			ArrayList<Element> notifications = new ArrayList<Element>();
 			Element result = createResultIQ(element);
-			notifications.add(result);
 
 			if (collection != null) {
 				ISubscriptions colNodeSubscriptions = this.repository.getNodeSubscriptions(collection);
@@ -182,7 +181,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
 				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
-				notifications.addAll(publishModule.prepareNotification(colE, element.getAttribute("to"), collection, nodeConfig,
+
+				elementWriter.write(publishModule.prepareNotification(colE, element.getAttribute("to"), collection, nodeConfig,
 						colNodeAffiliations, colNodeSubscriptions));
 
 			}
@@ -197,7 +197,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			final long time2 = System.currentTimeMillis();
 			result.addChild(new Element("text", "Created in " + (time2 - time1) + " ms"));
 
-			return notifications;
+			elementWriter.write(result);
+			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

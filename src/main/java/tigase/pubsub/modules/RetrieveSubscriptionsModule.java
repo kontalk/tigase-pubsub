@@ -26,6 +26,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
@@ -56,7 +57,7 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			final Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element subscriptions = pubsub.getChild("subscriptions");

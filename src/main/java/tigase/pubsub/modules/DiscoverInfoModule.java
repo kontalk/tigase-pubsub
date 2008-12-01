@@ -30,6 +30,7 @@ import tigase.form.Field;
 import tigase.form.Form;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.Module;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
@@ -61,7 +62,7 @@ public class DiscoverInfoModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			final String senderJid = element.getAttribute("from");
 			final Element query = element.getChild("query", "http://jabber.org/protocol/disco#info");

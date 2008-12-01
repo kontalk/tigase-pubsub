@@ -21,7 +21,6 @@
  */
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import tigase.criteria.Criteria;
@@ -29,6 +28,7 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -71,7 +71,7 @@ public class ManageAffiliationsModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
 			Element affiliations = pubsub.getChild("affiliations");
@@ -99,16 +99,15 @@ public class ManageAffiliationsModule extends AbstractModule {
 				}
 			}
 
-			List<Element> result = new ArrayList<Element>();
 			if (type.equals("get")) {
-				result = processGet(element, affiliations, nodeName, nodeAffiliations);
+				processGet(element, affiliations, nodeName, nodeAffiliations, elementWriter);
 			} else if (type.equals("set")) {
-				result = processSet(element, affiliations, nodeName, nodeAffiliations);
+				processSet(element, affiliations, nodeName, nodeAffiliations, elementWriter);
 			}
 			if (nodeAffiliations.isChanged()) {
 				repository.update(nodeName, nodeAffiliations);
 			}
-			return result;
+			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -117,9 +116,8 @@ public class ManageAffiliationsModule extends AbstractModule {
 		}
 	}
 
-	private List<Element> processGet(Element element, Element affiliations, String nodeName, final IAffiliations nodeAffiliations)
-			throws RepositoryException {
-		List<Element> result = new ArrayList<Element>();
+	private void processGet(Element element, Element affiliations, String nodeName, final IAffiliations nodeAffiliations,
+			ElementWriter elementWriter) throws RepositoryException {
 		Element iq = createResultIQ(element);
 		Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
 		iq.addChild(ps);
@@ -138,15 +136,13 @@ public class ManageAffiliationsModule extends AbstractModule {
 			}
 		}
 
-		result.add(iq);
-		return result;
+		elementWriter.write(iq);
 	}
 
-	private List<Element> processSet(final Element element, final Element affiliations, final String nodeName,
-			final IAffiliations nodeAffiliations) throws PubSubException, RepositoryException {
-		List<Element> result = new ArrayList<Element>();
+	private void processSet(final Element element, final Element affiliations, final String nodeName,
+			final IAffiliations nodeAffiliations, ElementWriter elementWriter) throws PubSubException, RepositoryException {
 		Element iq = createResultIQ(element);
-		result.add(iq);
+
 		List<Element> affs = affiliations.getChildren();
 		for (Element a : affs) {
 			if (!"affiliation".equals(a.getName()))
@@ -163,13 +159,15 @@ public class ManageAffiliationsModule extends AbstractModule {
 
 			if (oldAffiliation == Affiliation.none && newAffiliation != Affiliation.none) {
 				nodeAffiliations.addAffiliation(jid, newAffiliation);
-				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
+				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
 			} else {
 				nodeAffiliations.changeAffiliation(jid, newAffiliation);
-				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
+				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
 			}
 
 		}
-		return result;
+
+		elementWriter.write(iq);
+
 	}
 }

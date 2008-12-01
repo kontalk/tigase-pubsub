@@ -27,6 +27,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
@@ -59,7 +60,7 @@ public class DiscoverItemsModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			final Element query = element.getChild("query", "http://jabber.org/protocol/disco#items");
 			final String nodeName = query.getAttribute("node");

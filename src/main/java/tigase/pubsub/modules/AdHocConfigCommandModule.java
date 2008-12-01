@@ -30,6 +30,7 @@ import tigase.adhoc.AdHocCommandManager;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -69,7 +70,7 @@ public class AdHocConfigCommandModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			List<Element> result = makeArray(this.commandsManager.process(element));
 			return result;

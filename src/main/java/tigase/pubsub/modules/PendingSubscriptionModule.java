@@ -31,6 +31,7 @@ import tigase.form.Form;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -67,7 +68,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element message) throws PubSubException {
+	public List<Element> process(Element message, ElementWriter elementWriter) throws PubSubException {
 		try {
 			Form x = new Form(message.getChild("x", "jabber:x:data"));
 			final String subId = x.getAsString("pubsub#subid");

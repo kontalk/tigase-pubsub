@@ -33,5 +33,5 @@ public interface Module {
 
 	Criteria getModuleCriteria();
 
-	List<Element> process(final Element element) throws PubSubException;
+	List<Element> process(final Element element, ElementWriter elementWriter) throws PubSubException;
 }

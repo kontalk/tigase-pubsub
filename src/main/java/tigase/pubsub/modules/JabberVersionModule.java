@@ -26,6 +26,7 @@ import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.Module;
 import tigase.pubsub.PubSubVersion;
 import tigase.pubsub.exceptions.PubSubException;
@@ -47,7 +48,7 @@ public class JabberVersionModule implements Module {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		List<Element> result = new ArrayList<Element>();
 		Element iq = new Element("iq", new String[] { "to", "from", "id", "type" }, new String[] { element.getAttribute("from"),
 				element.getAttribute("to"), element.getAttribute("id"), "result" });

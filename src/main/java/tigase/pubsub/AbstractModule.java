@@ -22,6 +22,7 @@
 package tigase.pubsub;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -46,7 +47,7 @@ public abstract class AbstractModule implements Module {
 	}
 
 	public static List<Element> makeArray(Element... elements) {
-		ArrayList<Element> result = new ArrayList<Element>();
+		LinkedList<Element> result = new LinkedList<Element>();
 		for (Element element : elements) {
 			result.add(element);
 

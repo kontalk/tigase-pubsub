@@ -27,6 +27,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
@@ -57,7 +58,7 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			final Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element affiliations = pubsub.getChild("affiliations");

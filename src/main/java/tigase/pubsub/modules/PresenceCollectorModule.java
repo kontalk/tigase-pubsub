@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.Module;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.util.JIDUtils;
@@ -93,7 +94,7 @@ public class PresenceCollectorModule implements Module {
 		return null;
 	}
 
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		final String type = element.getAttribute("type");
 		final String jid = element.getAttribute("from");
 

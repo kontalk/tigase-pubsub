@@ -33,6 +33,7 @@ import tigase.form.Form;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -132,7 +133,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
 			final Element configure = pubSub.getChild("configure");

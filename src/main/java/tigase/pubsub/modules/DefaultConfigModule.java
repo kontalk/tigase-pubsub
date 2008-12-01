@@ -26,6 +26,7 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -57,7 +58,7 @@ public class DefaultConfigModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			Element pubsub = new Element("pubsub", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/pubsub#owner" });
@@ -73,7 +74,9 @@ public class DefaultConfigModule extends AbstractModule {
 			Element result = createResultIQ(element);
 			result.addChild(pubsub);
 
-			return makeArray(result);
+			elementWriter.write(result);
+
+			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

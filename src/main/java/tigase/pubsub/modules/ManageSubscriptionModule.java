@@ -21,7 +21,6 @@
  */
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import tigase.criteria.Criteria;
@@ -29,6 +28,7 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
+import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -74,7 +74,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
 			Element subscriptions = pubsub.getChild("subscriptions");
@@ -105,16 +105,15 @@ public class ManageSubscriptionModule extends AbstractModule {
 				}
 			}
 
-			List<Element> result = new ArrayList<Element>();
 			if (type.equals("get")) {
-				result = processGet(element, subscriptions, nodeName, nodeSubscriptions);
+				processGet(element, subscriptions, nodeName, nodeSubscriptions, elementWriter);
 			} else if (type.equals("set")) {
-				result = processSet(element, subscriptions, nodeName, nodeSubscriptions);
+				processSet(element, subscriptions, nodeName, nodeSubscriptions, elementWriter);
 			}
 			if (nodeSubscriptions.isChanged()) {
 				this.repository.update(nodeName, nodeSubscriptions);
 			}
-			return result;
+			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -123,9 +122,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 		}
 	}
 
-	private List<Element> processGet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions)
-			throws RepositoryException {
-		List<Element> result = new ArrayList<Element>();
+	private void processGet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions,
+			ElementWriter elementWriter) throws RepositoryException {
 		Element iq = createResultIQ(element);
 		Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
 		iq.addChild(ps);
@@ -144,15 +142,12 @@ public class ManageSubscriptionModule extends AbstractModule {
 			}
 		}
 
-		result.add(iq);
-		return result;
+		elementWriter.write(iq);
 	}
 
-	private List<Element> processSet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions)
-			throws PubSubException, RepositoryException {
-		List<Element> result = new ArrayList<Element>();
+	private void processSet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions,
+			ElementWriter elementWriter) throws PubSubException, RepositoryException {
 		Element iq = createResultIQ(element);
-		result.add(iq);
 		List<Element> subss = subscriptions.getChildren();
 		for (Element a : subss) {
 			if (!"subscription".equals(a.getName()))
@@ -170,13 +165,13 @@ public class ManageSubscriptionModule extends AbstractModule {
 
 			if (oldSubscription == Subscription.none && newSubscription != Subscription.none) {
 				nodeSubscriptions.addSubscriberJid(jid, newSubscription);
-				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
 			} else {
 				nodeSubscriptions.changeSubscription(jid, newSubscription);
-				result.add(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
 			}
 
 		}
-		return result;
+		elementWriter.write(iq);
 	}
 }
