@@ -21,6 +21,10 @@
  */
 package tigase.pubsub.modules;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -90,13 +94,36 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 		return CRIT_CREATE;
 	}
 
+	private final void addLog(OutputStream logStream, String message) {
+		try {
+			if (logStream == null) {
+				System.out.println(message);
+			} else {
+				logStream.write(message.getBytes());
+				logStream.write('\n');
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	@Override
 	public List<Element> process(Element element) throws PubSubException {
+		FileOutputStream logOut;
+		try {
+			logOut = new FileOutputStream("pubsub-time-log.log", true);
+		} catch (FileNotFoundException e2) {
+			logOut = null;
+			e2.printStackTrace();
+		}
+
+		addLog(logOut, "CHECKPOINT 1; entering; " + System.currentTimeMillis());
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element create = pubSub.getChild("create");
 		final Element configure = pubSub.getChild("configure");
 
 		String nodeName = create.getAttribute("node");
+		addLog(logOut, "CHECKPOINT 2; getting node name '" + nodeName + "'; " + System.currentTimeMillis());
 		try {
 			boolean instantNode = nodeName == null;
 			if (instantNode) {
@@ -106,6 +133,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if (repository.getNodeConfig(nodeName) != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
+
+			addLog(logOut, "CHECKPOINT 3; potential conflict checked'; " + System.currentTimeMillis());
 
 			NodeType nodeType = NodeType.leaf;
 			String collection = null;
@@ -132,6 +161,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				}
 			}
 
+			addLog(logOut, "CHECKPOINT 4; configuration processed'; " + System.currentTimeMillis());
+
 			CollectionNodeConfig colNodeConfig = null;
 			if (collection != null) {
 				AbstractNodeConfig absNodeConfig = repository.getNodeConfig(collection);
@@ -143,25 +174,40 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				colNodeConfig = (CollectionNodeConfig) absNodeConfig;
 			}
 
+			addLog(logOut, "CHECKPOINT 5; collections checked'; " + System.currentTimeMillis());
+
 			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 
+			addLog(logOut, "CHECKPOINT 6; ready to create'; " + System.currentTimeMillis());
+
 			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
 					collection == null ? "" : collection);
+
+			addLog(logOut, "CHECKPOINT 7; node created'; " + System.currentTimeMillis());
+
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(nodeName);
+
+			addLog(logOut, "CHECKPOINT 8; ready to add subscriptions and affilitaions'; " + System.currentTimeMillis());
 
 			nodeSubscriptions.addSubscriberJid(element.getAttribute("from"), Subscription.subscribed);
 			nodeaAffiliations.addAffiliation(element.getAttribute("from"), Affiliation.owner);
 
+			addLog(logOut, "CHECKPOINT 9; subscriptions and affilitaions added'; " + System.currentTimeMillis());
+
 			repository.update(nodeName, nodeaAffiliations);
+			addLog(logOut, "CHECKPOINT 10; affiliations updated'; " + System.currentTimeMillis());
 			repository.update(nodeName, nodeSubscriptions);
+			addLog(logOut, "CHECKPOINT 11; subscriptions updated'; " + System.currentTimeMillis());
 
 			if (colNodeConfig == null) {
 				repository.addToRootCollection(nodeName);
+				addLog(logOut, "CHECKPOINT 12a; root collection updated'; " + System.currentTimeMillis());
 			} else {
 				colNodeConfig.addChildren(nodeName);
 				repository.update(collection, colNodeConfig);
+				addLog(logOut, "CHECKPOINT 12b; collection updated'; " + System.currentTimeMillis());
 			}
 
 			fireOnNodeCreatedConfigChange(nodeName);
@@ -181,18 +227,31 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			}
 
+			addLog(logOut, "CHECKPOINT 13; notification prepared'; " + System.currentTimeMillis());
+
 			if (instantNode) {
 				Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
 				Element cr = new Element("create", new String[] { "node" }, new String[] { nodeName });
 				ps.addChild(cr);
 				result.addChild(ps);
 			}
+			addLog(logOut, "CHECKPOINT 14; sending results (" + notifications.size() + "); " + System.currentTimeMillis());
 			return notifications;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
+		} finally {
+			if (logOut != null) {
+				try {
+					logOut.flush();
+					logOut.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			}
 		}
 
 	}
