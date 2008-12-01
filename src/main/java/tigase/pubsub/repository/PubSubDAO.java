@@ -373,10 +373,14 @@ public class PubSubDAO implements IPubSubDAO {
 	 * tigase.pubsub.LeafNodeConfig)
 	 */
 	public void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException {
+		String cnf = nodeConfig.getFormElement().toString();
+		updateNodeConfig(nodeName, cnf);
+	}
+
+	public void updateNodeConfig(final String nodeName, final String serializedData) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' configuration...");
-			String cnf = nodeConfig.getFormElement().toString();
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "configuration", cnf);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "configuration", serializedData);
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration writing error", e);
 		}
@@ -385,10 +389,14 @@ public class PubSubDAO implements IPubSubDAO {
 
 	@Override
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
+		String data = affiliations.serialize();
+		updateAffiliations(nodeName, data);
+	}
+
+	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' affiliations...");
-			String data = affiliations.serialize();
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "affiliations", data);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "affiliations", serializedData);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers writing error", e);
 		}
@@ -396,10 +404,14 @@ public class PubSubDAO implements IPubSubDAO {
 
 	@Override
 	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
+		String data = subscriptions.serialize();
+		updateSubscriptions(nodeName, data);
+	}
+
+	public void updateSubscriptions(String nodeName, String serializedData) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' subscriptions...");
-			String data = subscriptions.serialize();
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions", data);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions", serializedData);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers writing error", e);
 		}

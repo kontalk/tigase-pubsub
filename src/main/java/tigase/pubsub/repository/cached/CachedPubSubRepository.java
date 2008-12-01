@@ -14,13 +14,14 @@ import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
+import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
 
 public class CachedPubSubRepository implements IPubSubRepository {
 
 	public final static long MAX_WRITE_DELAY = 1000l * 15l;
 
-	private final IPubSubDAO dao;
+	private final PubSubDAO dao;
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
@@ -32,7 +33,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	private final Set<String> rootCollection = new HashSet<String>();
 
-	public CachedPubSubRepository(final IPubSubDAO dao) {
+	public CachedPubSubRepository(final PubSubDAO dao) {
 		this.dao = dao;
 	}
 
@@ -58,8 +59,19 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		this.nodes.remove(nodeName);
 	}
 
+	private enum UpdateItem {
+		config, affiliations, subcriptions
+	}
+
+	private static final class UpdateAction {
+		String nodeName;
+		UpdateItem item;
+		String data;
+	}
+
 	public void doLazyWrite() throws RepositoryException {
 		final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
+		final Set<UpdateAction> toWrite = new HashSet<UpdateAction>();
 		synchronized (mutex) {
 			Iterator<Node> nodes = this.nodesToSave.iterator();
 			while (nodes.hasNext()) {
@@ -68,20 +80,47 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					continue;
 				if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
 					node.resetNodeAffiliationsChangeTimestamp();
-					this.dao.update(node.getName(), node.getNodeAffiliations());
+					UpdateAction action = new UpdateAction();
+					action.item = UpdateItem.affiliations;
+					action.nodeName = node.getName();
+					action.data = node.getNodeAffiliations().serialize();
+					// this.dao.update(node.getName(),
+					// node.getNodeAffiliations());
 				}
 				if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
 					node.resetNodeSubscriptionsChangeTimestamp();
-					this.dao.update(node.getName(), node.getNodeSubscriptions());
+					UpdateAction action = new UpdateAction();
+					action.item = UpdateItem.subcriptions;
+					action.nodeName = node.getName();
+					action.data = node.getNodeSubscriptions().serialize();
+					// this.dao.update(node.getName(),
+					// node.getNodeSubscriptions());
 				}
 				if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
 					node.resetNodeConfigChangeTimestamp();
-					this.dao.update(node.getName(), node.getNodeConfig());
+					UpdateAction action = new UpdateAction();
+					action.item = UpdateItem.config;
+					action.nodeName = node.getName();
+					action.data = node.getNodeConfig().getFormElement().toString();
+					// this.dao.update(node.getName(), node.getNodeConfig());
 				}
 				if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
 						&& node.getNodeAffiliationsChangeTimestamp() == null) {
 					nodes.remove();
 				}
+			}
+		}
+		for (UpdateAction updateAction : toWrite) {
+			switch (updateAction.item) {
+			case config:
+				dao.updateNodeConfig(updateAction.nodeName, updateAction.data);
+				break;
+			case affiliations:
+				dao.updateAffiliations(updateAction.nodeName, updateAction.data);
+				break;
+			case subcriptions:
+				dao.updateSubscriptions(updateAction.nodeName, updateAction.data);
+				break;
 			}
 		}
 	}

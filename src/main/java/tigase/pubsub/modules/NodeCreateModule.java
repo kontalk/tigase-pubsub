@@ -96,15 +96,12 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 	@Override
 	public List<Element> process(Element element) throws PubSubException {
-		StringBuilder logsb = new StringBuilder();
-
-		logsb.append("CHECKPOINT 1; entering; " + System.currentTimeMillis() + ";\n");
+		final long time1 = System.currentTimeMillis();
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element create = pubSub.getChild("create");
 		final Element configure = pubSub.getChild("configure");
 
 		String nodeName = create.getAttribute("node");
-		logsb.append("CHECKPOINT 2; getting node name '" + nodeName + "'; " + System.currentTimeMillis() + ";\n");
 		try {
 			boolean instantNode = nodeName == null;
 			if (instantNode) {
@@ -114,8 +111,6 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if (repository.getNodeConfig(nodeName) != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
-
-			logsb.append("CHECKPOINT 3; potential conflict checked'; " + System.currentTimeMillis() + ";\n");
 
 			NodeType nodeType = NodeType.leaf;
 			String collection = null;
@@ -142,8 +137,6 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				}
 			}
 
-			logsb.append("CHECKPOINT 4; configuration processed'; " + System.currentTimeMillis() + ";\n");
-
 			CollectionNodeConfig colNodeConfig = null;
 			if (collection != null) {
 				AbstractNodeConfig absNodeConfig = repository.getNodeConfig(collection);
@@ -155,40 +148,26 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				colNodeConfig = (CollectionNodeConfig) absNodeConfig;
 			}
 
-			logsb.append("CHECKPOINT 5; collections checked'; " + System.currentTimeMillis() + ";\n");
-
 			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
 				throw new PubSubException(Authorization.NOT_ALLOWED);
-
-			logsb.append("CHECKPOINT 6; ready to create'; " + System.currentTimeMillis() + ";\n");
 
 			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
 					collection == null ? "" : collection);
 
-			logsb.append("CHECKPOINT 7; node created'; " + System.currentTimeMillis() + ";\n");
-
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(nodeName);
-
-			logsb.append("CHECKPOINT 8; ready to add subscriptions and affilitaions'; " + System.currentTimeMillis() + ";\n");
 
 			nodeSubscriptions.addSubscriberJid(element.getAttribute("from"), Subscription.subscribed);
 			nodeaAffiliations.addAffiliation(element.getAttribute("from"), Affiliation.owner);
 
-			logsb.append("CHECKPOINT 9; subscriptions and affilitaions added'; " + System.currentTimeMillis() + ";\n");
-
 			repository.update(nodeName, nodeaAffiliations);
-			logsb.append("CHECKPOINT 10; affiliations updated'; " + System.currentTimeMillis() + ";\n");
 			repository.update(nodeName, nodeSubscriptions);
-			logsb.append("CHECKPOINT 11; subscriptions updated'; " + System.currentTimeMillis() + ";\n");
 
 			if (colNodeConfig == null) {
 				repository.addToRootCollection(nodeName);
-				logsb.append("CHECKPOINT 12a; root collection updated'; " + System.currentTimeMillis() + ";\n");
 			} else {
 				colNodeConfig.addChildren(nodeName);
 				repository.update(collection, colNodeConfig);
-				logsb.append("CHECKPOINT 12b; collection updated'; " + System.currentTimeMillis() + ";\n");
 			}
 
 			fireOnNodeCreatedConfigChange(nodeName);
@@ -208,17 +187,15 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			}
 
-			logsb.append("CHECKPOINT 13; notification prepared'; " + System.currentTimeMillis() + ";\n");
-
 			if (instantNode) {
 				Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
 				Element cr = new Element("create", new String[] { "node" }, new String[] { nodeName });
 				ps.addChild(cr);
 				result.addChild(ps);
 			}
-			logsb.append("CHECKPOINT 14; sending results (" + notifications.size() + "); " + System.currentTimeMillis() + ";\n");
 
-			result.addChild(new Element("tigaselog", logsb.toString()));
+			final long time2 = System.currentTimeMillis();
+			result.addChild(new Element("text", "Created in " + (time2 - time1) + " ms"));
 
 			return notifications;
 		} catch (PubSubException e1) {
