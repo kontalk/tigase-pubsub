@@ -249,7 +249,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	@Override
 	public List<Element> getDiscoFeatures() {
-		System.out.println("GET DISCO FEATORUES");
+		//System.out.println("GET DISCO FEATORUES");
 
 		// TODO Auto-generated method stub
 		return null;
