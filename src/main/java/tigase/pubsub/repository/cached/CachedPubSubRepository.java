@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
@@ -150,6 +151,21 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(this.dao.getNodeSubscriptions(nodeName));
 
 			node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
+
+			if (this.nodes.size() > 2000) {
+				Iterator<Entry<String, Node>> it = this.nodes.entrySet().iterator();
+				int count = 0;
+				while (it.hasNext() && count < 10) {
+					Entry<String, Node> e = it.next();
+					if (nodesToSave.contains(e.getKey())) {
+						continue;
+					}
+					count++;
+					it.remove();
+				}
+
+			}
+
 			this.nodes.put(nodeName, node);
 		}
 
