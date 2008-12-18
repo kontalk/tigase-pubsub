@@ -144,13 +144,16 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.elementWriter = new ElementWriter() {
 
 			public void write(Collection<Element> elements) {
-				for (Element element : elements) {
-					write(element);
-				}
+				if (elements != null)
+					for (Element element : elements) {
+						if (element != null)
+							write(element);
+					}
 			}
 
 			public void write(final Element element) {
-				addOutPacket(new Packet(element));
+				if (element != null)
+					addOutPacket(new Packet(element));
 			}
 		};
 	}
