@@ -136,7 +136,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 		x.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#subscribe_authorization"));
 		x.addField(Field.fieldHidden("pubsub#subid", subID));
 		x.addField(Field.fieldTextSingle("pubsub#node", nodeName, "Node ID"));
-		x.addField(Field.fieldJidSingle("pusub#subscriber_jid", subscriberJid, "UsersSubscription Address"));
+		x.addField(Field.fieldJidSingle("pubsub#subscriber_jid", subscriberJid, "UsersSubscription Address"));
 		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
 
 		List<Element> result = new ArrayList<Element>();
