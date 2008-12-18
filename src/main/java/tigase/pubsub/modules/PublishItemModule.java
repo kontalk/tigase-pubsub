@@ -157,8 +157,7 @@ public class PublishItemModule extends AbstractModule {
 	}
 
 	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName,
-			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
-			throws RepositoryException {
+			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions) throws RepositoryException {
 		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations, nodesSubscriptions);
 	}
 
@@ -200,15 +199,13 @@ public class PublishItemModule extends AbstractModule {
 			if (body != null) {
 				message.addChildren(body);
 			}
-			Element event = new Element("event", new String[] { "xmlns" },
-					new String[] { "http://jabber.org/protocol/pubsub#event" });
+			Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
 
 			event.addChild(itemToSend);
 			message.addChild(event);
 
 			if (headers != null && headers.size() > 0) {
-				Element headElem = new Element("headers", new String[] { "xmlns" },
-						new String[] { "http://jabber.org/protocol/shim" });
+				Element headElem = new Element("headers", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/shim" });
 				for (Entry<String, String> entry : headers.entrySet()) {
 					Element h = new Element("header", entry.getValue(), new String[] { "name" }, new String[] { entry.getKey() });
 					headElem.addChild(h);

@@ -69,8 +69,7 @@ public class DiscoverInfoModule extends AbstractModule {
 			final String nodeName = query.getAttribute("node");
 
 			Element resultIq = createResultIQ(element);
-			Element resultQuery = new Element("query", new String[] { "xmlns" },
-					new String[] { "http://jabber.org/protocol/disco#info" });
+			Element resultQuery = new Element("query", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/disco#info" });
 			resultIq.addChild(resultQuery);
 
 			if (nodeName == null) {
@@ -97,8 +96,7 @@ public class DiscoverInfoModule extends AbstractModule {
 
 				resultQuery.addChild(new Element("identity", new String[] { "category", "type" }, new String[] { "pubsub",
 						nodeConfig.getNodeType().name() }));
-				resultQuery.addChild(new Element("feature", new String[] { "var" },
-						new String[] { "http://jabber.org/protocol/pubsub" }));
+				resultQuery.addChild(new Element("feature", new String[] { "var" }, new String[] { "http://jabber.org/protocol/pubsub" }));
 
 				Form form = new Form("result", null, null);
 				form.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#meta-data"));

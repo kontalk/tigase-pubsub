@@ -133,7 +133,6 @@ public class NodeSubscriptions implements ISubscriptions {
 				subs.put(a.getJid(), a);
 			}
 		} else {
-			System.out.println("!!!!!!!!!!!!!!!!!!!" + nodeSubscriptions.getClass());
 			throw new RuntimeException("!!!!!!!!!!!!!!!!!!!" + nodeSubscriptions.getClass());
 		}
 	}

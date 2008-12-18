@@ -79,8 +79,7 @@ public class PurgeItemsModule extends AbstractModule {
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			} else if (nodeConfig.getNodeType() == NodeType.collection) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
-						"purge-nodes"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported", "purge-nodes"));
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
@@ -94,8 +93,8 @@ public class PurgeItemsModule extends AbstractModule {
 			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 
 			if (!leafNodeConfig.isPersistItem()) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
-						"persistent-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
+						new PubSubErrorCondition("unsupported", "persistent-items"));
 			}
 
 			List<Element> result = new ArrayList<Element>();
@@ -105,9 +104,8 @@ public class PurgeItemsModule extends AbstractModule {
 
 			String[] itemsToDelete = nodeItems.getItemsIds();
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
-			result.addAll(publishModule.prepareNotification(
-					new Element("purge", new String[] { "node" }, new String[] { nodeName }), element.getAttribute("to"), nodeName,
-					nodeConfig, nodeAffiliations, nodeSubscriptions));
+			result.addAll(publishModule.prepareNotification(new Element("purge", new String[] { "node" }, new String[] { nodeName }),
+					element.getAttribute("to"), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 			log.info("Purging node " + nodeName);
 			if (itemsToDelete != null)
 				for (String id : itemsToDelete) {

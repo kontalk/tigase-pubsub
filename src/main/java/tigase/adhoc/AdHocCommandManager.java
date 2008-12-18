@@ -50,8 +50,8 @@ public class AdHocCommandManager {
 		if (adHocCommand == null) {
 
 		} else {
-			Element iqResult = new Element("iq", new String[] { "from", "to", "id", "type" }, new String[] {
-					element.getAttribute("to"), senderJid, element.getAttribute("id"), "result" });
+			Element iqResult = new Element("iq", new String[] { "from", "to", "id", "type" }, new String[] { element.getAttribute("to"),
+					senderJid, element.getAttribute("id"), "result" });
 
 			State currentState = null;
 

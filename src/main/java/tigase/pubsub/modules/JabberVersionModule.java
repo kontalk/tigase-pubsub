@@ -34,8 +34,7 @@ import tigase.xml.Element;
 
 public class JabberVersionModule implements Module {
 
-	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
-			ElementCriteria.name("query", "jabber:iq:version"));
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(ElementCriteria.name("query", "jabber:iq:version"));
 
 	@Override
 	public String[] getFeatures() {
@@ -56,8 +55,8 @@ public class JabberVersionModule implements Module {
 		query.addChild(new Element("name", "Tigase PubSub"));
 		query.addChild(new Element("version", PubSubVersion.getVersion()));
 		query.addChild(new Element("os", System.getProperty("os.name") + "-" + System.getProperty("os.arch") + "-"
-				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-"
-				+ System.getProperty("java.version") + " " + System.getProperty("java.vm.vendor")));
+				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-" + System.getProperty("java.version")
+				+ " " + System.getProperty("java.vm.vendor")));
 
 		iq.addChild(query);
 		result.add(iq);

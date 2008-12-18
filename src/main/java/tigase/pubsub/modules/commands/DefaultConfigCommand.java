@@ -89,7 +89,6 @@ public class DefaultConfigCommand implements AdHocCommand {
 
 					response.getElements().add(f.getElement());
 					response.completeSession();
-					System.out.println("zapisane!");
 				}
 				response.completeSession();
 			}

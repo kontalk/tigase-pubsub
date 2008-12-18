@@ -77,8 +77,7 @@ import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
-public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco,
-		DefaultNodeConfigListener {
+public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco, DefaultNodeConfigListener {
 
 	public static final String ADMINS_KEY = "admin";
 
@@ -249,7 +248,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	@Override
 	public List<Element> getDiscoFeatures() {
-		//System.out.println("GET DISCO FEATORUES");
 
 		// TODO Auto-generated method stub
 		return null;
@@ -280,8 +278,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
 				this.publishNodeModule));
 		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository, this.publishNodeModule));
-		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository,
-				this.defaultNodeConfig));
+		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig));
 		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
 				this.publishNodeModule));
 		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
@@ -301,8 +298,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.pubsubRepository.init();
 	}
 
-	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
-			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
+	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository, LeafNodeConfig defaultNodeConfig)
+			throws UserNotFoundException, TigaseDBException, RepositoryException {
 		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
 		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
 		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");

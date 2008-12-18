@@ -21,10 +21,6 @@
  */
 package tigase.pubsub.modules;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -80,12 +76,11 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 	@Override
 	public String[] getFeatures() {
-		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure",
-				"http://jabber.org/protocol/pubsub#collections", "http://jabber.org/protocol/pubsub#create-nodes",
-				"http://jabber.org/protocol/pubsub#instant-nodes", "http://jabber.org/protocol/pubsub#multi-collection",
-				"http://jabber.org/protocol/pubsub#access-authorize", "http://jabber.org/protocol/pubsub#access-open",
-				"http://jabber.org/protocol/pubsub#access-presence", "http://jabber.org/protocol/pubsub#access-roster",
-				"http://jabber.org/protocol/pubsub#access-whitelist",
+		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure", "http://jabber.org/protocol/pubsub#collections",
+				"http://jabber.org/protocol/pubsub#create-nodes", "http://jabber.org/protocol/pubsub#instant-nodes",
+				"http://jabber.org/protocol/pubsub#multi-collection", "http://jabber.org/protocol/pubsub#access-authorize",
+				"http://jabber.org/protocol/pubsub#access-open", "http://jabber.org/protocol/pubsub#access-presence",
+				"http://jabber.org/protocol/pubsub#access-roster", "http://jabber.org/protocol/pubsub#access-whitelist",
 
 		};
 	}
@@ -152,8 +147,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 
-			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
-					collection == null ? "" : collection);
+			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType, collection == null ? ""
+					: collection);
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(nodeName);

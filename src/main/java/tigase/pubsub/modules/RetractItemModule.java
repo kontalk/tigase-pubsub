@@ -49,8 +49,7 @@ public class RetractItemModule extends AbstractModule {
 
 	private final PublishItemModule publishModule;
 
-	public RetractItemModule(final PubSubConfig config, final IPubSubRepository pubsubRepository,
-			final PublishItemModule publishItemModule) {
+	public RetractItemModule(final PubSubConfig config, final IPubSubRepository pubsubRepository, final PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishItemModule;
 	}
@@ -87,8 +86,7 @@ public class RetractItemModule extends AbstractModule {
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			} else if (nodeConfig.getNodeType() == NodeType.collection) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
-						"retract-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported", "retract-items"));
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
@@ -101,8 +99,8 @@ public class RetractItemModule extends AbstractModule {
 			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 
 			if (!leafNodeConfig.isPersistItem()) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
-						"persistent-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
+						new PubSubErrorCondition("unsupported", "persistent-items"));
 			}
 
 			List<String> itemsToDelete = new ArrayList<String>();

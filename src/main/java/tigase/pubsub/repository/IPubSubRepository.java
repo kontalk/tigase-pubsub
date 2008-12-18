@@ -7,8 +7,8 @@ public interface IPubSubRepository {
 
 	public void addToRootCollection(String nodeName) throws RepositoryException;
 
-	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
-			String collection) throws RepositoryException;
+	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
+			throws RepositoryException;
 
 	public abstract void deleteNode(String nodeName) throws RepositoryException;
 

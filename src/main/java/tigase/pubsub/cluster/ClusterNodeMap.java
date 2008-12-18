@@ -3,7 +3,6 @@ package tigase.pubsub.cluster;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -14,20 +13,6 @@ public class ClusterNodeMap {
 
 	private class NodeInfo {
 		private String clusterNodeId;
-	}
-
-	public static void main(String[] args) {
-		Set<String> cluster = new HashSet<String>();
-		cluster.add("cluster_node_1");
-		cluster.add("cluster_node_2");
-		ClusterNodeMap c = new ClusterNodeMap(cluster);
-
-		c.assign("cluster_node_1", "001");
-		c.assign("cluster_node_2", "002");
-		c.assign("cluster_node_1", "003");
-
-		System.out.println(c.getClusterNodeId("004"));
-
 	}
 
 	private final Set<String> clusterNodes;

@@ -41,8 +41,7 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 			} else if (data == null) {
 				Form form = new Form("result", "Delete all nodes", "To DELETE ALL NODES please check checkbox.");
 
-				form.addField(Field.fieldBoolean("tigase-pubsub#delete-all", Boolean.FALSE,
-						"YES! I'm sure! I want to delete all nodes"));
+				form.addField(Field.fieldBoolean("tigase-pubsub#delete-all", Boolean.FALSE, "YES! I'm sure! I want to delete all nodes"));
 
 				response.getElements().add(form.getElement());
 				response.startSession();

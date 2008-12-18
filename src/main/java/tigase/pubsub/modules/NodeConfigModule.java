@@ -68,7 +68,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	public static void parseConf(final AbstractNodeConfig conf, final Element configure) throws PubSubException {
 		Element x = configure.getChild("x", "jabber:x:data");
 		Form foo = new Form(x);
-		System.out.println(foo);
 		if (x != null && "submit".equals(x.getAttribute("type"))) {
 			for (Field field : conf.getForm().getAllFields()) {
 				final String var = field.getVar();
@@ -141,7 +140,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			final String type = element.getAttribute("type");
 
 			final String id = element.getAttribute("id");
-			System.out.println(id);
 
 			if (nodeName == null) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
@@ -202,8 +200,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(colNodeConfig.getNodeName());
 
 						Element associateNotification = createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
-						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"),
-								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"), nodeName,
+								nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 					}
 
 					if (nodeConfig.getCollection().equals("")) {
@@ -230,8 +228,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				if (nodeConfig instanceof CollectionNodeConfig) {
 					final String[] removedChildNodes = diff(children == null ? new String[] {} : children,
 							nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
-					final String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {}
-							: nodeConfig.getChildren(), children == null ? new String[] {} : children);
+					final String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
+							children == null ? new String[] {} : children);
 
 					for (String ann : addedChildNodes) {
 						AbstractNodeConfig nc = repository.getNodeConfig(ann);
@@ -257,8 +255,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						repository.update(nc.getNodeName(), nc);
 
 						Element associateNotification = createAssociateNotification(nodeName, ann);
-						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"),
-								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"), nodeName,
+								nodeConfig, nodeAffiliations, nodeSubscriptions));
 
 					}
 
@@ -270,8 +268,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						}
 						if (rnn != null && rnn.length() != 0) {
 							Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
-							resultArray.addAll(publishModule.prepareNotification(disassociateNotification,
-									element.getAttribute("to"), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+							resultArray.addAll(publishModule.prepareNotification(disassociateNotification, element.getAttribute("to"),
+									nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 						}
 					}
 

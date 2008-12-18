@@ -84,8 +84,7 @@ public class PubSubDAO implements IPubSubDAO {
 			throws RepositoryException {
 		try {
 			nodeConfig.setNodeType(nodeType);
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY,
-					String.valueOf(System.currentTimeMillis()));
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, CREATION_DATE_KEY, String.valueOf(System.currentTimeMillis()));
 
 			if (nodeConfig != null)
 				update(nodeName, nodeConfig);
@@ -167,8 +166,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 */
 	public Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
 		try {
-			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
-					"creation-date");
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date");
 			if (tmp == null)
 				return null;
 			Date d = new Date(Long.parseLong(tmp));
@@ -200,8 +198,7 @@ public class PubSubDAO implements IPubSubDAO {
 
 	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
 		try {
-			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
-					"update-date");
+			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date");
 			if (tmp == null)
 				return null;
 			Date d = new Date(Long.parseLong(tmp));
@@ -221,8 +218,8 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	public <T extends AbstractNodeConfig> T getNodeConfig(final Class<T> nodeConfigClass, final String nodeName,
-			final Form configForm) throws RepositoryException {
+	public <T extends AbstractNodeConfig> T getNodeConfig(final Class<T> nodeConfigClass, final String nodeName, final Form configForm)
+			throws RepositoryException {
 		try {
 			Constructor<T> constructor = nodeConfigClass.getConstructor(String.class);
 			T nodeConfig = constructor.newInstance(nodeName);
@@ -377,20 +374,16 @@ public class PubSubDAO implements IPubSubDAO {
 		updateNodeConfig(nodeName, cnf);
 	}
 
-	public void updateNodeConfig(final String nodeName, final String serializedData) throws RepositoryException {
-		try {
-			log.fine("Writing node '" + nodeName + "' configuration...");
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "configuration", serializedData);
-		} catch (Exception e) {
-			throw new RepositoryException("Node configuration writing error", e);
-		}
-
-	}
-
 	@Override
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
 		String data = affiliations.serialize();
 		updateAffiliations(nodeName, data);
+	}
+
+	@Override
+	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
+		String data = subscriptions.serialize();
+		updateSubscriptions(nodeName, data);
 	}
 
 	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
@@ -402,10 +395,14 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	@Override
-	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
-		String data = subscriptions.serialize();
-		updateSubscriptions(nodeName, data);
+	public void updateNodeConfig(final String nodeName, final String serializedData) throws RepositoryException {
+		try {
+			log.fine("Writing node '" + nodeName + "' configuration...");
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "configuration", serializedData);
+		} catch (Exception e) {
+			throw new RepositoryException("Node configuration writing error", e);
+		}
+
 	}
 
 	public void updateSubscriptions(String nodeName, String serializedData) throws RepositoryException {

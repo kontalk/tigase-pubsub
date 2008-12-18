@@ -158,21 +158,19 @@ public abstract class AbstractNodeConfig {
 		form.addField(Field.fieldBoolean(PUBSUB + "deliver_payloads", true, "Whether to deliver payloads with event notifications"));
 		form.addField(Field.fieldBoolean(PUBSUB + "notify_config", false, "Notify subscribers when the node configuration changes"));
 		form.addField(Field.fieldBoolean(PUBSUB + "notify_delete", false, "Notify subscribers when the node is deleted"));
-		form.addField(Field.fieldBoolean(PUBSUB + "notify_retract", false,
-				"Notify subscribers when items are removed from the node"));
+		form.addField(Field.fieldBoolean(PUBSUB + "notify_retract", false, "Notify subscribers when items are removed from the node"));
 		form.addField(Field.fieldBoolean(PUBSUB + "persist_items", true, "Persist items to storage"));
 		form.addField(Field.fieldTextSingle(PUBSUB + "max_items", "10", "Max # of items to persist"));
 		form.addField(Field.fieldBoolean(PUBSUB + "subscribe", true, "Whether to allow subscriptions"));
 		form.addField(Field.fieldTextSingle(PUBSUB + "collection", "", "The collection with which a node is affiliated"));
 		form.addField(Field.fieldListSingle(PUBSUB + "access_model", AccessModel.open.name(), "Specify the subscriber model", null,
 				asStrinTable(AccessModel.values())));
-		form.addField(Field.fieldListSingle(PUBSUB + "publish_model", PublisherModel.publishers.name(),
-				"Specify the publisher model", null, asStrinTable(PublisherModel.values())));
+		form.addField(Field.fieldListSingle(PUBSUB + "publish_model", PublisherModel.publishers.name(), "Specify the publisher model",
+				null, asStrinTable(PublisherModel.values())));
 		form.addField(Field.fieldListSingle(PUBSUB + "send_last_published_item", SendLastPublishedItem.on_sub.name(),
 				"When to send the last published item", null, asStrinTable(PublisherModel.values())));
 
-		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
-				"The domains allowed to access this node (blank for any)"));
+		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {}, "The domains allowed to access this node (blank for any)"));
 
 		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
 				"Whether to deliver notifications to available users only"));
@@ -202,8 +200,8 @@ public abstract class AbstractNodeConfig {
 		return form.getAsBoolean("pubsub#notify_config");
 	}
 
-	public void read(final UserRepository repository, final PubSubConfig config, final String subnode)
-			throws UserNotFoundException, TigaseDBException {
+	public void read(final UserRepository repository, final PubSubConfig config, final String subnode) throws UserNotFoundException,
+			TigaseDBException {
 		if (repository == null)
 			return;
 		String[] keys = repository.getKeys(config.getServiceName(), subnode);
@@ -258,8 +256,7 @@ public abstract class AbstractNodeConfig {
 			String[] d = (String[]) data;
 			f.setValues(d);
 		} else {
-			throw new RuntimeException("Cannot match type " + data.getClass().getCanonicalName() + " to field type "
-					+ f.getType().name());
+			throw new RuntimeException("Cannot match type " + data.getClass().getCanonicalName() + " to field type " + f.getType().name());
 		}
 
 	}

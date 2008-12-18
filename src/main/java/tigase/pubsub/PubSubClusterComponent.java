@@ -139,8 +139,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	}
 
 	@Override
-	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
-			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
+	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository, LeafNodeConfig defaultNodeConfig)
+			throws UserNotFoundException, TigaseDBException, RepositoryException {
 		super.initialize(admins, pubSubDAO, createPubSubRepository, defaultNodeConfig);
 
 		log.info(getComponentId() + " reads all nodes");
@@ -180,7 +180,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		final String uuid = methodParams.get("uuid");
 
 		if (clel.getFirstNode().equals(getComponentId())) {
-			System.out.println("TADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA " + uuid);
 			final Command command = waitingsCommands.remove(uuid);
 			if (command != null) {
 				command.execute();
@@ -194,11 +193,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			final String clusterNode = methodParams.get("clusterNodeId");
 			final String pubsubNode = methodParams.get("pubsubNodeName");
 
-			System.out.println(uuid + " " + getComponentId() + " rejestruje, że '" + clusterNode + "' będzie właścicielem '"
-					+ pubsubNode + "' (2)");
 			this.nodeMap.assign(clusterNode, pubsubNode);
 			final boolean sent = sentToNextNode(clel);
-			System.out.println("Sending '" + methodParams.get("uuid") + "' to next node: " + sent);
 		} else {
 			throw new RuntimeException("Unsupported method " + methodName);
 		}
@@ -247,8 +243,6 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 								clusterNode = this.nodeMap.getNewOwnerOfNode(node);
 								String uuid = UUID.randomUUID().toString();
 
-								System.out.println(uuid + " " + getComponentId() + " rejestruje, że '" + clusterNode
-										+ "' będzie właścicielem '" + node + "' (1)");
 								this.nodeMap.assign(clusterNode, node);
 
 								final String n = clusterNode;
@@ -305,8 +299,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		params.put("clusterNodeId", clusterNode);
 		params.put("pubsubNodeName", pubsubNode);
 
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), cluster_node, StanzaType.set,
-				METHOD_SET_OWNERSHIP, params);
+		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), cluster_node, StanzaType.set, METHOD_SET_OWNERSHIP,
+				params);
 		sentToNextNode(call);
 	}
 
@@ -314,8 +308,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		Map<String, String> params = new HashMap<String, String>();
 		params.put("uuid", uuid);
 
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), firstNode, StanzaType.result, METHOD_RESULT,
-				params);
+		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), firstNode, StanzaType.result, METHOD_RESULT, params);
 		addOutPacket(new Packet(call.getClusterElement()));
 	}
 

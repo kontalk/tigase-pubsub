@@ -52,8 +52,8 @@ public class AdHocConfigCommandModule extends AbstractModule {
 		ArrayList<Element> commandsList = new ArrayList<Element>();
 		for (AdHocCommand command : this.commandsManager.getAllCommands()) {
 			if (config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				commandsList.add(new Element("item", new String[] { "jid", "node", "name" }, new String[] { toJid,
-						command.getNode(), command.getName() }));
+				commandsList.add(new Element("item", new String[] { "jid", "node", "name" }, new String[] { toJid, command.getNode(),
+						command.getName() }));
 			}
 		}
 		return commandsList;

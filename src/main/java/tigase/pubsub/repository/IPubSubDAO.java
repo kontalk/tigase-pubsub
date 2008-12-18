@@ -31,8 +31,8 @@ public interface IPubSubDAO {
 
 	public void addToRootCollection(String nodeName) throws RepositoryException;
 
-	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
-			String collection) throws RepositoryException;
+	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
+			throws RepositoryException;
 
 	public abstract void deleteItem(String nodeName, String id) throws RepositoryException;
 
@@ -72,7 +72,7 @@ public interface IPubSubDAO {
 
 	void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException;
 
-	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher,
-			final Element item) throws RepositoryException;
+	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
+			throws RepositoryException;
 
 }

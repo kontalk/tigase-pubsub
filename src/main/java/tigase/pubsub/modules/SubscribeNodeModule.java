@@ -71,17 +71,15 @@ public class SubscribeNodeModule extends AbstractModule {
 
 	private final PendingSubscriptionModule pendingSubscriptionModule;
 
-	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-			PendingSubscriptionModule manageSubscriptionModule) {
+	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository, PendingSubscriptionModule manageSubscriptionModule) {
 		super(config, pubsubRepository);
 		this.pendingSubscriptionModule = manageSubscriptionModule;
 	}
 
 	@Override
 	public String[] getFeatures() {
-		return new String[] { "http://jabber.org/protocol/pubsub#manage-subscriptions",
-				"http://jabber.org/protocol/pubsub#auto-subscribe", "http://jabber.org/protocol/pubsub#subscribe",
-				"http://jabber.org/protocol/pubsub#subscription-notifications" };
+		return new String[] { "http://jabber.org/protocol/pubsub#manage-subscriptions", "http://jabber.org/protocol/pubsub#auto-subscribe",
+				"http://jabber.org/protocol/pubsub#subscribe", "http://jabber.org/protocol/pubsub#subscription-notifications" };
 	}
 
 	@Override
@@ -108,8 +106,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
 			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 
-			if (senderAffiliation.getAffiliation() != Affiliation.owner
-					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
+			if (senderAffiliation.getAffiliation() != Affiliation.owner && !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 
@@ -134,8 +131,7 @@ public class SubscribeNodeModule extends AbstractModule {
 
 			if (subscription != null) {
 				if (subscription == Subscription.pending) {
-					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION,
-							"Subscription is pending");
+					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION, "Subscription is pending");
 				}
 			}
 			if (accessModel == AccessModel.whitelist
@@ -175,8 +171,8 @@ public class SubscribeNodeModule extends AbstractModule {
 				subid = nodeSubscriptions.addSubscriberJid(jid, newSubscription);
 				nodeAffiliations.addAffiliation(jid, affiliation);
 				if (accessModel == AccessModel.authorize) {
-					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"),
-							subid, jid, nodeAffiliations));
+					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"), subid,
+							jid, nodeAffiliations));
 				}
 
 			} else {

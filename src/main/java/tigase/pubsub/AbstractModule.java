@@ -79,8 +79,7 @@ public abstract class AbstractModule implements Module {
 		return best;
 	}
 
-	public String[] getActiveSubscribers(final IAffiliations affiliations, final ISubscriptions subscriptions)
-			throws RepositoryException {
+	public String[] getActiveSubscribers(final IAffiliations affiliations, final ISubscriptions subscriptions) throws RepositoryException {
 		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
 		if (subscribers == null)
 			return new String[] {};

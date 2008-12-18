@@ -54,8 +54,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 		message.addChild(pubsub);
 		Element affilations = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
 		pubsub.addChild(affilations);
-		affilations.addChild(new Element("subscription", new String[] { "jid", "subscription" }, new String[] { toJid,
-				subscription.name() }));
+		affilations.addChild(new Element("subscription", new String[] { "jid", "subscription" },
+				new String[] { toJid, subscription.name() }));
 		return message;
 	}
 

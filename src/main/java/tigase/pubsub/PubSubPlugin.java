@@ -34,8 +34,8 @@ import tigase.xmpp.impl.SimpleForwarder;
 
 public class PubSubPlugin extends SimpleForwarder {
 
-	private static final Element[] DISCO_FEATURES = { new Element("identity", new String[] { "category", "type" }, new String[] {
-			"pubsub", "pep" }), };
+	private static final Element[] DISCO_FEATURES = { new Element("identity", new String[] { "category", "type" }, new String[] { "pubsub",
+			"pep" }), };
 
 	private static final String[] ELEMENTS = { "pubsub" };
 

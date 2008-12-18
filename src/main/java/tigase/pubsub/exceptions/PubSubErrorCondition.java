@@ -43,8 +43,7 @@ public class PubSubErrorCondition {
 
 	public static final PubSubErrorCondition PENDING_SUBSCRIPTION = new PubSubErrorCondition("pending-subscription");
 
-	public static final PubSubErrorCondition PRESENCE_SUBSCRIPTION_REQUIRED = new PubSubErrorCondition(
-			"presence-subscription-required");
+	public static final PubSubErrorCondition PRESENCE_SUBSCRIPTION_REQUIRED = new PubSubErrorCondition("presence-subscription-required");
 
 	protected static final String XMLNS = "http://jabber.org/protocol/pubsub#errors";
 

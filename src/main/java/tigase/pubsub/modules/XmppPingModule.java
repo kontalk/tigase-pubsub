@@ -50,8 +50,8 @@ public class XmppPingModule implements Module {
 
 	@Override
 	public List<Element> process(Element iq, ElementWriter elementWriter) throws PubSubException {
-		Element reposnse = new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result",
-				iq.getAttribute("to"), iq.getAttribute("from"), iq.getAttribute("id") });
+		Element reposnse = new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
+				iq.getAttribute("from"), iq.getAttribute("id") });
 		List<Element> x = new ArrayList<Element>();
 		x.add(reposnse);
 		return x;

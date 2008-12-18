@@ -82,8 +82,8 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 								if (senderBareJid.equals(JIDUtils.getNodeID(usersSubscription.getJid()))) {
 									ISubscriptions ns = directRepo.getNodeSubscriptions(nodeName);
 									Subscription subscription = ns.getSubscription(usersSubscription.getJid());
-									Element a = new Element("subscription", new String[] { "node", "jid", "subscription" },
-											new String[] { node, usersSubscription.getJid(), subscription.name() });
+									Element a = new Element("subscription", new String[] { "node", "jid", "subscription" }, new String[] {
+											node, usersSubscription.getJid(), subscription.name() });
 									subscriptionsResult.addChild(a);
 								}
 							}

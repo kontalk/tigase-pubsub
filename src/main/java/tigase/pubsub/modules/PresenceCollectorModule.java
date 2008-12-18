@@ -107,8 +107,8 @@ public class PresenceCollectorModule implements Module {
 			}
 		} else if ("unavailable".equals(type)) {
 			removeJid(jid);
-			Element p = new Element("presence", new String[] { "to", "from", "type" }, new String[] { jid,
-					element.getAttribute("to"), "unavailable" });
+			Element p = new Element("presence", new String[] { "to", "from", "type" }, new String[] { jid, element.getAttribute("to"),
+					"unavailable" });
 			result.add(p);
 		} else if ("subscribe".equals(type)) {
 			log.finest("Contact " + jid + " wants to subscribe PubSub");

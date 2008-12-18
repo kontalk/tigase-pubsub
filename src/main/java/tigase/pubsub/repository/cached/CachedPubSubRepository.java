@@ -20,6 +20,16 @@ import tigase.pubsub.repository.RepositoryException;
 
 public class CachedPubSubRepository implements IPubSubRepository {
 
+	private static final class UpdateAction {
+		String data;
+		UpdateItem item;
+		String nodeName;
+	}
+
+	private enum UpdateItem {
+		affiliations, config, subcriptions
+	}
+
 	public final static long MAX_WRITE_DELAY = 1000l * 15l;
 
 	private final PubSubDAO dao;
@@ -58,16 +68,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			node.setDeleted(true);
 		}
 		this.nodes.remove(nodeName);
-	}
-
-	private enum UpdateItem {
-		config, affiliations, subcriptions
-	}
-
-	private static final class UpdateAction {
-		String nodeName;
-		UpdateItem item;
-		String data;
 	}
 
 	public void doLazyWrite() throws RepositoryException {
