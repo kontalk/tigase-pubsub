@@ -85,6 +85,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					action.item = UpdateItem.affiliations;
 					action.nodeName = node.getName();
 					action.data = node.getNodeAffiliations().serialize();
+					toWrite.add(action);
 					// this.dao.update(node.getName(),
 					// node.getNodeAffiliations());
 				}
@@ -94,6 +95,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					action.item = UpdateItem.subcriptions;
 					action.nodeName = node.getName();
 					action.data = node.getNodeSubscriptions().serialize();
+					toWrite.add(action);
 					// this.dao.update(node.getName(),
 					// node.getNodeSubscriptions());
 				}
@@ -103,6 +105,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					action.item = UpdateItem.config;
 					action.nodeName = node.getName();
 					action.data = node.getNodeConfig().getFormElement().toString();
+					toWrite.add(action);
 					// this.dao.update(node.getName(), node.getNodeConfig());
 				}
 				if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
@@ -112,6 +115,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			}
 		}
 		for (UpdateAction updateAction : toWrite) {
+			log.finest("Executing '" + updateAction.nodeName + "' :: " + updateAction.item);
+
 			switch (updateAction.item) {
 			case config:
 				dao.updateNodeConfig(updateAction.nodeName, updateAction.data);
@@ -240,6 +245,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			node.getNodeConfig().copyFrom(nodeConfig);
 			node.setNodeConfigChangeTimestamp();
 			synchronized (mutex) {
+				log.finest("Node '" + nodeName + "' added to lazy write queue (config)");
 				this.nodesToSave.add(node);
 			}
 		}
@@ -258,6 +264,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				affiliations.merge();
 				node.setNodeAffiliationsChangeTimestamp();
 				synchronized (mutex) {
+					log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations)");
 					this.nodesToSave.add(node);
 				}
 			}
@@ -279,6 +286,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				subscriptions.merge();
 				node.setNodeSubscriptionsChangeTimestamp();
 				synchronized (mutex) {
+					log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
 					this.nodesToSave.add(node);
 				}
 			}
