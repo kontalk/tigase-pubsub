@@ -106,7 +106,8 @@ public class SubscribeNodeModule extends AbstractModule {
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
 			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 
-			if (senderAffiliation.getAffiliation() != Affiliation.owner && !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
+			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid)) && senderAffiliation.getAffiliation() != Affiliation.owner
+					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 
@@ -143,7 +144,10 @@ public class SubscribeNodeModule extends AbstractModule {
 			Subscription newSubscription;
 			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
 
-			if (accessModel == AccessModel.open) {
+			if (this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || senderAffiliation.getAffiliation() != Affiliation.owner) {
+				newSubscription = Subscription.subscribed;
+				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
+			} else if (accessModel == AccessModel.open) {
 				newSubscription = Subscription.subscribed;
 				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
 			} else if (accessModel == AccessModel.authorize) {
