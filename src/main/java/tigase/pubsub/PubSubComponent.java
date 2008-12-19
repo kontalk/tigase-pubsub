@@ -166,12 +166,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	@Override
 	public void everySecond() {
 		super.everySecond();
-		try {
-			if (this.pubsubRepository != null)
-				this.pubsubRepository.doLazyWrite();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		}
+		if (this.pubsubRepository != null)
+			this.pubsubRepository.doLazyWrite();
 	}
 
 	protected String extractNodeName(Element element) {

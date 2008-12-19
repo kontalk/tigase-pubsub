@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
@@ -44,6 +45,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	private final Set<String> rootCollection = new HashSet<String>();
 
+	private Thread tlazyWriteThread;
+
+	private final Object writeThreadMutex = new Object();
+
 	public CachedPubSubRepository(final PubSubDAO dao) {
 		this.dao = dao;
 	}
@@ -70,63 +75,89 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		this.nodes.remove(nodeName);
 	}
 
-	public void doLazyWrite() throws RepositoryException {
-		final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
-		final Set<UpdateAction> toWrite = new HashSet<UpdateAction>();
-		synchronized (mutex) {
-			Iterator<Node> nodes = this.nodesToSave.iterator();
-			while (nodes.hasNext()) {
-				Node node = nodes.next();
-				if (node.isDeleted())
-					continue;
-				if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
-					node.resetNodeAffiliationsChangeTimestamp();
-					UpdateAction action = new UpdateAction();
-					action.item = UpdateItem.affiliations;
-					action.nodeName = node.getName();
-					action.data = node.getNodeAffiliations().serialize();
-					toWrite.add(action);
-					// this.dao.update(node.getName(),
-					// node.getNodeAffiliations());
-				}
-				if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
-					node.resetNodeSubscriptionsChangeTimestamp();
-					UpdateAction action = new UpdateAction();
-					action.item = UpdateItem.subcriptions;
-					action.nodeName = node.getName();
-					action.data = node.getNodeSubscriptions().serialize();
-					toWrite.add(action);
-					// this.dao.update(node.getName(),
-					// node.getNodeSubscriptions());
-				}
-				if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
-					node.resetNodeConfigChangeTimestamp();
-					UpdateAction action = new UpdateAction();
-					action.item = UpdateItem.config;
-					action.nodeName = node.getName();
-					action.data = node.getNodeConfig().getFormElement().toString();
-					toWrite.add(action);
-					// this.dao.update(node.getName(), node.getNodeConfig());
-				}
-				if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
-						&& node.getNodeAffiliationsChangeTimestamp() == null) {
-					nodes.remove();
-				}
-			}
-		}
-		for (UpdateAction updateAction : toWrite) {
-			log.finest("Executing '" + updateAction.nodeName + "' :: " + updateAction.item);
+	public void doLazyWrite() {
+		synchronized (writeThreadMutex) {
+			if (tlazyWriteThread == null) {
+				tlazyWriteThread = new Thread() {
+					@Override
+					public void run() {
+						super.run();
+						final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
+						final Set<UpdateAction> toWrite = new HashSet<UpdateAction>();
+						synchronized (mutex) {
+							Iterator<Node> nodes = nodesToSave.iterator();
+							while (nodes.hasNext()) {
+								Node node = nodes.next();
+								if (node.isDeleted())
+									continue;
+								if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
+									node.resetNodeAffiliationsChangeTimestamp();
+									UpdateAction action = new UpdateAction();
+									action.item = UpdateItem.affiliations;
+									action.nodeName = node.getName();
+									action.data = node.getNodeAffiliations().serialize();
+									toWrite.add(action);
+									// this.dao.update(node.getName(),
+									// node.getNodeAffiliations());
+								}
+								if (node.getNodeSubscriptionsChangeTimestamp() != null
+										&& node.getNodeSubscriptionsChangeTimestamp() < border) {
+									node.resetNodeSubscriptionsChangeTimestamp();
+									UpdateAction action = new UpdateAction();
+									action.item = UpdateItem.subcriptions;
+									action.nodeName = node.getName();
+									action.data = node.getNodeSubscriptions().serialize();
+									toWrite.add(action);
+									// this.dao.update(node.getName(),
+									// node.getNodeSubscriptions());
+								}
+								if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
+									node.resetNodeConfigChangeTimestamp();
+									UpdateAction action = new UpdateAction();
+									action.item = UpdateItem.config;
+									action.nodeName = node.getName();
+									action.data = node.getNodeConfig().getFormElement().toString();
+									toWrite.add(action);
+									// this.dao.update(node.getName(),
+									// node.getNodeConfig());
+								}
+								if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
+										&& node.getNodeAffiliationsChangeTimestamp() == null) {
+									nodes.remove();
+								}
+							}
+						}
+						for (UpdateAction updateAction : toWrite) {
+							log.finest("Executing '" + updateAction.nodeName + "' :: " + updateAction.item);
 
-			switch (updateAction.item) {
-			case config:
-				dao.updateNodeConfig(updateAction.nodeName, updateAction.data);
-				break;
-			case affiliations:
-				dao.updateAffiliations(updateAction.nodeName, updateAction.data);
-				break;
-			case subcriptions:
-				dao.updateSubscriptions(updateAction.nodeName, updateAction.data);
-				break;
+							try {
+								switch (updateAction.item) {
+								case config:
+									dao.updateNodeConfig(updateAction.nodeName, updateAction.data);
+									break;
+								case affiliations:
+									dao.updateAffiliations(updateAction.nodeName, updateAction.data);
+									break;
+								case subcriptions:
+									dao.updateSubscriptions(updateAction.nodeName, updateAction.data);
+									break;
+								}
+							} catch (Exception e) {
+								log.log(Level.SEVERE, "Lazy writing error", e);
+							}
+						}
+
+						try {
+							sleep(5 * 1000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						synchronized (writeThreadMutex) {
+							tlazyWriteThread = null;
+						}
+					}
+				};
+				tlazyWriteThread.start();
 			}
 		}
 	}
