@@ -259,8 +259,12 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	@Override
 	public List<Element> getDiscoItems(String node, String jid) {
-		Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);
-		return Arrays.asList(result);
+		if (node == null) {
+			Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);
+			return Arrays.asList(result);
+		} else {
+			return null;
+		}
 	}
 
 	protected void init() {
