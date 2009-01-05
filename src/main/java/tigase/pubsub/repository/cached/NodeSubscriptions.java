@@ -41,18 +41,6 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 	}
 
 	@Override
-	public NodeSubscriptions clone() throws CloneNotSupportedException {
-		NodeSubscriptions clone = new NodeSubscriptions();
-		for (UsersSubscription a : this.subs.values()) {
-			clone.subs.put(a.getJid(), a.clone());
-		}
-		for (UsersSubscription a : this.changedSubs.values()) {
-			clone.changedSubs.put(a.getJid(), a.clone());
-		}
-		return clone;
-	}
-
-	@Override
 	protected UsersSubscription get(final String bareJid) {
 		UsersSubscription us = changedSubs.get(bareJid);
 		if (us == null) {
@@ -71,7 +59,7 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 	@Override
 	public UsersSubscription[] getSubscriptions() {
 		final Set<UsersSubscription> result = new HashSet<UsersSubscription>();
-		result.addAll(this.subs.values());
+		result.addAll(this.subs.getAllValues());
 		result.addAll(this.changedSubs.values());
 		return result.toArray(new UsersSubscription[] {});
 	}

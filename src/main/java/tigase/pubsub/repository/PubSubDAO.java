@@ -288,8 +288,17 @@ public class PubSubDAO implements IPubSubDAO {
 	@Override
 	public NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
 		try {
-			String cnfData = repository.getData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions");
-			return NodeSubscriptions.create(cnfData);
+			final NodeSubscriptions ns = NodeSubscriptions.create();
+			int index = 0;
+			while (true) {
+				final String key = "subscriptions" + (index == 0 ? "" : ("." + index));
+				String cnfData = repository.getData(config.getServiceName(), NODES_KEY + nodeName, key);
+				if (cnfData == null || cnfData.length() == 0)
+					break;
+				ns.parse(cnfData);
+				++index;
+			}
+			return ns;
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers reading error", e);
 		}
@@ -380,12 +389,6 @@ public class PubSubDAO implements IPubSubDAO {
 		updateAffiliations(nodeName, data);
 	}
 
-	@Override
-	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException {
-		String data = subscriptions.serialize();
-		updateSubscriptions(nodeName, data);
-	}
-
 	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' affiliations...");
@@ -405,10 +408,21 @@ public class PubSubDAO implements IPubSubDAO {
 
 	}
 
-	public void updateSubscriptions(String nodeName, String serializedData) throws RepositoryException {
+	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
 		try {
+			final String key = "subscriptions" + (changedIndex == 0 ? "" : ("." + changedIndex));
+			log.fine("Removing node '" + nodeName + "' subscriptions fragment...");
+			repository.removeData(config.getServiceName(), NODES_KEY + nodeName, key);
+		} catch (Exception e) {
+			throw new RepositoryException("Node subscribers fragment removing error", e);
+		}
+	}
+
+	public void updateSubscriptions(String nodeName, int changedIndex, String serializedData) throws RepositoryException {
+		try {
+			final String key = "subscriptions" + (changedIndex == 0 ? "" : ("." + changedIndex));
 			log.fine("Writing node '" + nodeName + "' subscriptions...");
-			repository.setData(config.getServiceName(), NODES_KEY + nodeName, "subscriptions", serializedData);
+			repository.setData(config.getServiceName(), NODES_KEY + nodeName, key, serializedData);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers writing error", e);
 		}

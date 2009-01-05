@@ -18,18 +18,10 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.stateless.UsersSubscription;
+import tigase.pubsub.utils.FragmentedMap;
 
 public class CachedPubSubRepository implements IPubSubRepository {
-
-	private static final class UpdateAction {
-		String data;
-		UpdateItem item;
-		String nodeName;
-	}
-
-	private enum UpdateItem {
-		affiliations, config, subcriptions
-	}
 
 	public final static long MAX_WRITE_DELAY = 1000l * 15l;
 
@@ -83,70 +75,50 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					public void run() {
 						super.run();
 						final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
-						final Set<UpdateAction> toWrite = new HashSet<UpdateAction>();
-						synchronized (mutex) {
-							Iterator<Node> nodes = nodesToSave.iterator();
-							while (nodes.hasNext()) {
-								Node node = nodes.next();
-								if (node.isDeleted())
-									continue;
-								if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
-									node.resetNodeAffiliationsChangeTimestamp();
-									UpdateAction action = new UpdateAction();
-									action.item = UpdateItem.affiliations;
-									action.nodeName = node.getName();
-									action.data = node.getNodeAffiliations().serialize();
-									toWrite.add(action);
-									// this.dao.update(node.getName(),
-									// node.getNodeAffiliations());
-								}
-								if (node.getNodeSubscriptionsChangeTimestamp() != null
-										&& node.getNodeSubscriptionsChangeTimestamp() < border) {
-									node.resetNodeSubscriptionsChangeTimestamp();
-									UpdateAction action = new UpdateAction();
-									action.item = UpdateItem.subcriptions;
-									action.nodeName = node.getName();
-									action.data = node.getNodeSubscriptions().serialize();
-									toWrite.add(action);
-									// this.dao.update(node.getName(),
-									// node.getNodeSubscriptions());
-								}
-								if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
-									node.resetNodeConfigChangeTimestamp();
-									UpdateAction action = new UpdateAction();
-									action.item = UpdateItem.config;
-									action.nodeName = node.getName();
-									action.data = node.getNodeConfig().getFormElement().toString();
-									toWrite.add(action);
-									// this.dao.update(node.getName(),
-									// node.getNodeConfig());
-								}
-								if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
-										&& node.getNodeAffiliationsChangeTimestamp() == null) {
-									nodes.remove();
-								}
-							}
-						}
-						for (UpdateAction updateAction : toWrite) {
-							log.finest("Executing '" + updateAction.nodeName + "' :: " + updateAction.item);
 
+						synchronized (mutex) {
 							try {
-								switch (updateAction.item) {
-								case config:
-									dao.updateNodeConfig(updateAction.nodeName, updateAction.data);
-									break;
-								case affiliations:
-									dao.updateAffiliations(updateAction.nodeName, updateAction.data);
-									break;
-								case subcriptions:
-									dao.updateSubscriptions(updateAction.nodeName, updateAction.data);
-									break;
+								Iterator<Node> nodes = nodesToSave.iterator();
+								while (nodes.hasNext()) {
+									Node node = nodes.next();
+									if (node.isDeleted())
+										continue;
+									if (node.getNodeAffiliationsChangeTimestamp() != null
+											&& node.getNodeAffiliationsChangeTimestamp() < border) {
+										node.resetNodeAffiliationsChangeTimestamp();
+
+										dao.updateAffiliations(node.getName(), node.getNodeAffiliations().serialize());
+
+									}
+									if (node.getNodeSubscriptionsChangeTimestamp() != null
+											&& node.getNodeSubscriptionsChangeTimestamp() < border) {
+										node.resetNodeSubscriptionsChangeTimestamp();
+
+										final FragmentedMap<String, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
+										fm.defragment();
+										for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
+											dao.removeSubscriptions(node.getName(), deletedIndex);
+										}
+										for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
+											final Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
+											dao.updateSubscriptions(node.getName(), changedIndex, node.getNodeSubscriptions().serialize(ft));
+										}
+										fm.cleanChangingLog();
+									}
+									if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
+										node.resetNodeConfigChangeTimestamp();
+										dao.updateNodeConfig(node.getName(), node.getNodeConfig().getFormElement().toString());
+									}
+									if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
+											&& node.getNodeAffiliationsChangeTimestamp() == null) {
+										nodes.remove();
+									}
 								}
 							} catch (Exception e) {
-								log.log(Level.SEVERE, "Lazy writing error", e);
+								e.printStackTrace();
+								// TODO: handle exception
 							}
 						}
-
 						try {
 							sleep(5 * 1000);
 						} catch (InterruptedException e) {

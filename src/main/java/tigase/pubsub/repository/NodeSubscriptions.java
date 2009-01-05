@@ -6,25 +6,23 @@ import java.util.Map;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.repository.stateless.UsersSubscription;
+import tigase.pubsub.utils.FragmentedMap;
 import tigase.util.JIDUtils;
 
 public class NodeSubscriptions implements ISubscriptions {
 
 	protected final static String DELIMITER = ";";
 
-	public static NodeSubscriptions create(String data) {
+	public static NodeSubscriptions create() {
 		NodeSubscriptions s = new NodeSubscriptions();
-		try {
-			s.parse(data);
-			return s;
-		} catch (Exception e) {
-			return new NodeSubscriptions();
-		}
+		return s;
 	}
 
 	private boolean changed = false;
 
-	protected final Map<String, UsersSubscription> subs = new HashMap<String, UsersSubscription>();
+	public final static int MAX_FRAGMENT_SIZE = 100;
+
+	protected final FragmentedMap<String, UsersSubscription> subs = new FragmentedMap<String, UsersSubscription>(MAX_FRAGMENT_SIZE);
 
 	protected NodeSubscriptions() {
 	}
@@ -46,18 +44,6 @@ public class NodeSubscriptions implements ISubscriptions {
 		if (s != null) {
 			s.setSubscription(subscription);
 			changed = true;
-		}
-	}
-
-	@Override
-	public NodeSubscriptions clone() throws CloneNotSupportedException {
-		synchronized (this.subs) {
-			NodeSubscriptions clone = new NodeSubscriptions();
-			for (UsersSubscription a : this.subs.values()) {
-				clone.subs.put(a.getJid(), a.clone());
-			}
-			clone.changed = changed;
-			return clone;
 		}
 	}
 
@@ -89,12 +75,12 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	public UsersSubscription[] getSubscriptions() {
 		synchronized (this.subs) {
-			return this.subs.values().toArray(new UsersSubscription[] {});
+			return this.subs.getAllValues().toArray(new UsersSubscription[] {});
 		}
 	}
 
 	public Map<String, UsersSubscription> getSubscriptionsMap() {
-		return subs;
+		return subs.getMap();
 	}
 
 	public boolean isChanged() {
@@ -102,33 +88,34 @@ public class NodeSubscriptions implements ISubscriptions {
 	}
 
 	public void parse(String data) {
+		Map<String, UsersSubscription> parsed = new HashMap<String, UsersSubscription>();
 		String[] tokens = data.split(DELIMITER);
-		synchronized (this.subs) {
-			subs.clear();
-			int c = 0;
-			String jid = null;
-			String subid = null;
-			String state = null;
-			for (String t : tokens) {
-				if (c == 2) {
-					state = t;
-					++c;
-				} else if (c == 1) {
-					subid = t;
-					++c;
-				} else if (c == 0) {
-					jid = t;
-					++c;
-				}
-				if (c == 3) {
-					UsersSubscription b = new UsersSubscription(jid, subid, Subscription.valueOf(state));
-					subs.put(jid, b);
-					jid = null;
-					subid = null;
-					state = null;
-					c = 0;
-				}
+		int c = 0;
+		String jid = null;
+		String subid = null;
+		String state = null;
+		for (String t : tokens) {
+			if (c == 2) {
+				state = t;
+				++c;
+			} else if (c == 1) {
+				subid = t;
+				++c;
+			} else if (c == 0) {
+				jid = t;
+				++c;
 			}
+			if (c == 3) {
+				UsersSubscription b = new UsersSubscription(jid, subid, Subscription.valueOf(state));
+				parsed.put(jid, b);
+				jid = null;
+				subid = null;
+				state = null;
+				c = 0;
+			}
+		}
+		synchronized (subs) {
+			subs.addFragment(parsed);
 		}
 	}
 
@@ -138,7 +125,7 @@ public class NodeSubscriptions implements ISubscriptions {
 				NodeSubscriptions ns = (NodeSubscriptions) nodeSubscriptions;
 				this.changed = true;
 				subs.clear();
-				for (UsersSubscription a : ns.subs.values()) {
+				for (UsersSubscription a : ns.subs.getAllValues()) {
 					subs.put(a.getJid(), a);
 				}
 			} else {
@@ -151,21 +138,23 @@ public class NodeSubscriptions implements ISubscriptions {
 		this.changed = false;
 	}
 
-	public String serialize() {
+	public String serialize(Map<String, UsersSubscription> fragment) {
 		StringBuilder sb = new StringBuilder();
-		synchronized (this.subs) {
-			for (UsersSubscription s : this.subs.values()) {
-				if (s.getSubscription() != Subscription.none) {
-					sb.append(s.getJid());
-					sb.append(DELIMITER);
-					sb.append(s.getSubid());
-					sb.append(DELIMITER);
-					sb.append(s.getSubscription().name());
-					sb.append(DELIMITER);
-				}
+		for (UsersSubscription s : fragment.values()) {
+			if (s.getSubscription() != Subscription.none) {
+				sb.append(s.getJid());
+				sb.append(DELIMITER);
+				sb.append(s.getSubid());
+				sb.append(DELIMITER);
+				sb.append(s.getSubscription().name());
+				sb.append(DELIMITER);
 			}
 		}
 		return sb.toString();
+	}
+
+	public FragmentedMap<String, UsersSubscription> getFragmentedMap() {
+		return subs;
 	}
 
 }

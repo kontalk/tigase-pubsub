@@ -70,8 +70,6 @@ public interface IPubSubDAO {
 
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException;
 
-	void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException;
-
 	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
 			throws RepositoryException;
 
