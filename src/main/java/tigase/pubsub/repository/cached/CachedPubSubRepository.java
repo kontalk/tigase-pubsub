@@ -46,7 +46,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		this.dao = dao;
 		this.maxCacheSize = maxCacheSize;
 		Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
-
+		log.config("Initializing Cached Repository with cache size = " + (maxCacheSize == null ? "OFF" : maxCacheSize));
 	}
 
 	@Override
