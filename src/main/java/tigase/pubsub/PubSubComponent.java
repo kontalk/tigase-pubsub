@@ -83,7 +83,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 
-	private static final String MAX_CACHE_SIZE = "pubsub-node-cache-size";
+	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 
