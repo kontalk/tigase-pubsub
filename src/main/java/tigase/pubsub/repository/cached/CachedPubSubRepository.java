@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
@@ -43,6 +42,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	public CachedPubSubRepository(final PubSubDAO dao) {
 		this.dao = dao;
+		Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
+
 	}
 
 	@Override
@@ -70,65 +71,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void doLazyWrite() {
 		synchronized (writeThreadMutex) {
 			if (tlazyWriteThread == null) {
-				tlazyWriteThread = new Thread() {
-					@Override
-					public void run() {
-						super.run();
-						final long border = System.currentTimeMillis() - MAX_WRITE_DELAY;
-
-						synchronized (mutex) {
-							try {
-								Iterator<Node> nodes = nodesToSave.iterator();
-								while (nodes.hasNext()) {
-									Node node = nodes.next();
-									if (node.isDeleted())
-										continue;
-									if (node.getNodeAffiliationsChangeTimestamp() != null
-											&& node.getNodeAffiliationsChangeTimestamp() < border) {
-										node.resetNodeAffiliationsChangeTimestamp();
-
-										dao.updateAffiliations(node.getName(), node.getNodeAffiliations().serialize());
-
-									}
-									if (node.getNodeSubscriptionsChangeTimestamp() != null
-											&& node.getNodeSubscriptionsChangeTimestamp() < border) {
-										node.resetNodeSubscriptionsChangeTimestamp();
-
-										final FragmentedMap<String, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
-										fm.defragment();
-										for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
-											dao.removeSubscriptions(node.getName(), deletedIndex);
-										}
-										for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
-											final Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
-											dao.updateSubscriptions(node.getName(), changedIndex, node.getNodeSubscriptions().serialize(ft));
-										}
-										fm.cleanChangingLog();
-									}
-									if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
-										node.resetNodeConfigChangeTimestamp();
-										dao.updateNodeConfig(node.getName(), node.getNodeConfig().getFormElement().toString());
-									}
-									if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
-											&& node.getNodeAffiliationsChangeTimestamp() == null) {
-										nodes.remove();
-									}
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
-								// TODO: handle exception
-							}
-						}
-						try {
-							sleep(5 * 1000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						synchronized (writeThreadMutex) {
-							tlazyWriteThread = null;
-						}
-					}
-				};
+				tlazyWriteThread = makeLazyWriteThread(false);
 				tlazyWriteThread.start();
 			}
 		}
@@ -233,6 +176,73 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void init() {
 		log.config("Cached PubSubRepository initialising...");
+	}
+
+	private Thread makeLazyWriteThread(final boolean immediatelly) {
+		Thread x = new Thread() {
+			@Override
+			public void run() {
+				super.run();
+				System.out.print(". ");
+				// synchronized (mutex) {
+				if (immediatelly) {
+					while (tlazyWriteThread != null)
+						;
+				}
+				System.out.println("writing");
+				final long border = System.currentTimeMillis() - (!immediatelly ? MAX_WRITE_DELAY : -10);
+				log.fine("Lazy write thread running... (immediatelly:" + immediatelly + ")");
+				try {
+					Iterator<Node> nodes = nodesToSave.iterator();
+					while (nodes.hasNext()) {
+						Node node = nodes.next();
+						System.out.println("->" + node.getName());
+						if (node.isDeleted())
+							continue;
+						if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
+							node.resetNodeAffiliationsChangeTimestamp();
+
+							dao.updateAffiliations(node.getName(), node.getNodeAffiliations().serialize());
+
+						}
+						if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
+							node.resetNodeSubscriptionsChangeTimestamp();
+							System.out.println("save subscription");
+							final FragmentedMap<String, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
+							System.out.println("defragment");
+							fm.defragment();
+
+							for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
+								dao.removeSubscriptions(node.getName(), deletedIndex);
+							}
+							for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
+								System.out.println("changed: " + changedIndex);
+								final Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
+								dao.updateSubscriptions(node.getName(), changedIndex, node.getNodeSubscriptions().serialize(ft));
+							}
+							fm.cleanChangingLog();
+						}
+						if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
+							node.resetNodeConfigChangeTimestamp();
+							dao.updateNodeConfig(node.getName(), node.getNodeConfig().getFormElement().toString());
+						}
+						if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
+								&& node.getNodeAffiliationsChangeTimestamp() == null) {
+							nodes.remove();
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					// TODO: handle exception
+				}
+				// }
+
+				synchronized (writeThreadMutex) {
+					tlazyWriteThread = null;
+				}
+			}
+		};
+		return x;
 	}
 
 	@Override

@@ -4,7 +4,6 @@ import java.util.Map;
 
 import tigase.pubsub.Subscription;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-import tigase.pubsub.utils.FragmentedMap;
 
 public interface ISubscriptions {
 
@@ -21,6 +20,5 @@ public interface ISubscriptions {
 	public boolean isChanged();
 
 	public abstract String serialize(Map<String, UsersSubscription> fragment);
-
 
 }

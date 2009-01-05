@@ -10,10 +10,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import com.sun.swing.internal.plaf.synth.resources.synth;
-
-import tigase.pubsub.repository.stateless.UsersSubscription;
-
 public class FragmentedMap<KEY, VALUE> {
 
 	private static class XMap<K, V> extends HashMap<K, V> {
@@ -35,18 +31,6 @@ public class FragmentedMap<KEY, VALUE> {
 			return X.hashCode();
 		}
 
-	}
-
-	public synchronized void addFragment(Map<KEY, VALUE> fragment) {
-		if (fragment.size() <= maxFragmentSize) {
-			XMap<KEY, VALUE> f = new XMap<KEY, VALUE>();
-			f.putAll(fragment);
-			this.fragments.add(f);
-		} else {
-			for (Entry<KEY, VALUE> en : fragment.entrySet()) {
-				put(en.getKey(), en.getValue());
-			}
-		}
 	}
 
 	public static void main(String[] args) {
@@ -83,6 +67,29 @@ public class FragmentedMap<KEY, VALUE> {
 		this.maxFragmentSize = maxFragmentSize;
 	}
 
+	public synchronized void addFragment(Map<KEY, VALUE> fragment) {
+		if (fragment.size() <= maxFragmentSize) {
+			XMap<KEY, VALUE> f = new XMap<KEY, VALUE>();
+			f.putAll(fragment);
+			this.fragments.add(f);
+		} else {
+			for (Entry<KEY, VALUE> en : fragment.entrySet()) {
+				put(en.getKey(), en.getValue());
+			}
+		}
+	}
+
+	public synchronized void cleanChangingLog() {
+		this.changedFragments.clear();
+		this.removedFragmentsIndexes.clear();
+	}
+
+	public synchronized void clear() {
+		this.changedFragments.clear();
+		this.fragments.clear();
+		this.removedFragmentsIndexes.clear();
+	}
+
 	public synchronized void defragment() {
 		final int size = this.fragments.size();
 		Iterator<Map<KEY, VALUE>> iterator = this.fragments.iterator();
@@ -108,14 +115,6 @@ public class FragmentedMap<KEY, VALUE> {
 		return null;
 	}
 
-	public synchronized Map<KEY, VALUE> getMap() {
-		Map<KEY, VALUE> result = new HashMap<KEY, VALUE>();
-		for (Map<KEY, VALUE> f : this.fragments) {
-			result.putAll(f);
-		}
-		return Collections.unmodifiableMap(result);
-	}
-
 	public synchronized Collection<VALUE> getAllValues() {
 		Set<VALUE> x = new HashSet<VALUE>();
 		for (Map<KEY, VALUE> f : this.fragments) {
@@ -130,10 +129,6 @@ public class FragmentedMap<KEY, VALUE> {
 			r.add(this.fragments.indexOf(f));
 		}
 		return r;
-	}
-
-	public synchronized Set<Integer> getRemovedFragmentIndexes() {
-		return Collections.unmodifiableSet(this.removedFragmentsIndexes);
 	}
 
 	public synchronized Map<KEY, VALUE> getFragment(int index) {
@@ -167,10 +162,16 @@ public class FragmentedMap<KEY, VALUE> {
 		return null;
 	}
 
-	public synchronized void putAll(Map<KEY, VALUE> fragment) {
-		for (Entry<KEY, VALUE> e : fragment.entrySet()) {
-			put(e.getKey(), e.getValue());
+	public synchronized Map<KEY, VALUE> getMap() {
+		Map<KEY, VALUE> result = new HashMap<KEY, VALUE>();
+		for (Map<KEY, VALUE> f : this.fragments) {
+			result.putAll(f);
 		}
+		return Collections.unmodifiableMap(result);
+	}
+
+	public synchronized Set<Integer> getRemovedFragmentIndexes() {
+		return Collections.unmodifiableSet(this.removedFragmentsIndexes);
 	}
 
 	public synchronized VALUE put(KEY key, VALUE value) {
@@ -194,6 +195,12 @@ public class FragmentedMap<KEY, VALUE> {
 		return fragment.put(key, value);
 	}
 
+	public synchronized void putAll(Map<KEY, VALUE> fragment) {
+		for (Entry<KEY, VALUE> e : fragment.entrySet()) {
+			put(e.getKey(), e.getValue());
+		}
+	}
+
 	public synchronized VALUE remove(KEY key) {
 		Map<KEY, VALUE> f = getFragmentWithKey(key);
 		if (f != null) {
@@ -211,17 +218,6 @@ public class FragmentedMap<KEY, VALUE> {
 		System.out.println("C: " + getChangedFragmentIndexes());
 		System.out.println("R: " + removedFragmentsIndexes);
 		System.out.println();
-	}
-
-	public synchronized void clear() {
-		this.changedFragments.clear();
-		this.fragments.clear();
-		this.removedFragmentsIndexes.clear();
-	}
-
-	public synchronized void cleanChangingLog() {
-		this.changedFragments.clear();
-		this.removedFragmentsIndexes.clear();
 	}
 
 }

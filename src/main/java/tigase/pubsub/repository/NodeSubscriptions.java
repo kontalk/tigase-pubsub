@@ -13,14 +13,14 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	protected final static String DELIMITER = ";";
 
+	public final static int MAX_FRAGMENT_SIZE = 100;
+
 	public static NodeSubscriptions create() {
 		NodeSubscriptions s = new NodeSubscriptions();
 		return s;
 	}
 
 	private boolean changed = false;
-
-	public final static int MAX_FRAGMENT_SIZE = 100;
 
 	protected final FragmentedMap<String, UsersSubscription> subs = new FragmentedMap<String, UsersSubscription>(MAX_FRAGMENT_SIZE);
 
@@ -53,6 +53,10 @@ public class NodeSubscriptions implements ISubscriptions {
 			UsersSubscription s = this.subs.get(bareJid);
 			return s;
 		}
+	}
+
+	public FragmentedMap<String, UsersSubscription> getFragmentedMap() {
+		return subs;
 	}
 
 	public Subscription getSubscription(String jid) {
@@ -151,10 +155,6 @@ public class NodeSubscriptions implements ISubscriptions {
 			}
 		}
 		return sb.toString();
-	}
-
-	public FragmentedMap<String, UsersSubscription> getFragmentedMap() {
-		return subs;
 	}
 
 }

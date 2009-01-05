@@ -372,6 +372,16 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
+	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
+		try {
+			final String key = "subscriptions" + (changedIndex == 0 ? "" : ("." + changedIndex));
+			log.fine("Removing node '" + nodeName + "' subscriptions fragment...");
+			repository.removeData(config.getServiceName(), NODES_KEY + nodeName, key);
+		} catch (Exception e) {
+			throw new RepositoryException("Node subscribers fragment removing error", e);
+		}
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -406,16 +416,6 @@ public class PubSubDAO implements IPubSubDAO {
 			throw new RepositoryException("Node configuration writing error", e);
 		}
 
-	}
-
-	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
-		try {
-			final String key = "subscriptions" + (changedIndex == 0 ? "" : ("." + changedIndex));
-			log.fine("Removing node '" + nodeName + "' subscriptions fragment...");
-			repository.removeData(config.getServiceName(), NODES_KEY + nodeName, key);
-		} catch (Exception e) {
-			throw new RepositoryException("Node subscribers fragment removing error", e);
-		}
 	}
 
 	public void updateSubscriptions(String nodeName, int changedIndex, String serializedData) throws RepositoryException {

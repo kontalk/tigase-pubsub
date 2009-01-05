@@ -19,6 +19,7 @@ public class FragmentedMapTest extends TestCase {
 
 	private FragmentedMap<String, String> fm;
 
+	@Override
 	@Before
 	public void setUp() {
 		f1 = new HashMap<String, String>();
@@ -41,17 +42,6 @@ public class FragmentedMapTest extends TestCase {
 	}
 
 	@Test
-	public void test02() {
-		HashMap<String, String> f = new HashMap<String, String>();
-		for (int i = 0; i < 12; i++) {
-			f.put("k-1-" + i, "v-1-" + i);
-		}
-		fm.addFragment(f);
-		Assert.assertEquals(3, fm.getFragmentsCount());
-
-	}
-
-	@Test
 	public void test01() {
 		Assert.assertEquals(0, fm.getFragmentsCount());
 		fm.addFragment(f1);
@@ -66,6 +56,17 @@ public class FragmentedMapTest extends TestCase {
 
 		fm.remove("k-2-2");
 		Assert.assertEquals(1, fm.getChangedFragmentIndexes().size());
+
+	}
+
+	@Test
+	public void test02() {
+		HashMap<String, String> f = new HashMap<String, String>();
+		for (int i = 0; i < 12; i++) {
+			f.put("k-1-" + i, "v-1-" + i);
+		}
+		fm.addFragment(f);
+		Assert.assertEquals(3, fm.getFragmentsCount());
 
 	}
 
