@@ -40,8 +40,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	private final Object writeThreadMutex = new Object();
 
-	public CachedPubSubRepository(final PubSubDAO dao) {
+	private final Integer maxCacheSize;
+
+	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {
 		this.dao = dao;
+		this.maxCacheSize = maxCacheSize;
 		Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
 
 	}
@@ -103,12 +106,12 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 			node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
 
-			if (this.nodes.size() > 2000) {
+			if (maxCacheSize != null && this.nodes.size() > maxCacheSize) {
 				Iterator<Entry<String, Node>> it = this.nodes.entrySet().iterator();
 				int count = 0;
 				while (it.hasNext() && count < 10) {
 					Entry<String, Node> e = it.next();
-					if (nodesToSave.contains(e.getKey())) {
+					if (nodesToSave.contains(e.getValue())) {
 						continue;
 					}
 					count++;
