@@ -87,6 +87,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
 
+	private static final String MAX_CACHE_SIZE = "pubsub-node-cache-size";
+
 	protected AdHocConfigCommandModule adHocCommandsModule;
 
 	protected final PubSubConfig config = new PubSubConfig();
@@ -139,6 +141,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected XsltTool xslTransformer;
 
+	private Integer maxRepositoryCacheSize;
+
 	public PubSubComponent() {
 		setName("pubsub");
 		this.elementWriter = new ElementWriter() {
@@ -160,7 +164,7 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
 		// return new StatelessPubSubRepository(directRepository, this.config);
-		return new CachedPubSubRepository(directRepository);
+		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
 	}
 
 	@Override
@@ -233,6 +237,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
+
+		props.put(MAX_CACHE_SIZE, "2000");
 
 		String[] admins;
 		if (params.get(GEN_ADMINS) != null) {
@@ -420,6 +426,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		// for (String host : hostnames) {
 		// addRouting(host);
 		// }
+
+		String maxCache = (String) props.get(MAX_CACHE_SIZE);
+		if (maxCache != null) {
+			try {
+				maxRepositoryCacheSize = Integer.valueOf(maxCache);
+			} catch (Exception e) {
+				maxRepositoryCacheSize = null;
+			}
+		}
 
 		try {
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
