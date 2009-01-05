@@ -83,11 +83,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 
+	private static final String MAX_CACHE_SIZE = "pubsub-node-cache-size";
+
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
-
-	private static final String MAX_CACHE_SIZE = "pubsub-node-cache-size";
 
 	protected AdHocConfigCommandModule adHocCommandsModule;
 
@@ -108,6 +108,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected ManageAffiliationsModule manageAffiliationsModule;
 
 	protected ManageSubscriptionModule manageSubscriptionModule;
+
+	private Integer maxRepositoryCacheSize;
 
 	protected final ArrayList<Module> modules = new ArrayList<Module>();
 
@@ -140,8 +142,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected UserRepository userRepository;
 
 	protected XsltTool xslTransformer;
-
-	private Integer maxRepositoryCacheSize;
 
 	public PubSubComponent() {
 		setName("pubsub");
@@ -431,8 +431,10 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		if (maxCache != null) {
 			try {
 				maxRepositoryCacheSize = Integer.valueOf(maxCache);
+				props.put(MAX_CACHE_SIZE, maxRepositoryCacheSize.toString());
 			} catch (Exception e) {
 				maxRepositoryCacheSize = null;
+				props.put(MAX_CACHE_SIZE, "off");
 			}
 		}
 

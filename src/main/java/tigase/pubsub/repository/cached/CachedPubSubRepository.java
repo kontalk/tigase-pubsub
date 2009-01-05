@@ -28,6 +28,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 
+	private final Integer maxCacheSize;
+
 	private final Object mutex = new Object();
 
 	private final Map<String, Node> nodes = new HashMap<String, Node>();
@@ -39,8 +41,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private Thread tlazyWriteThread;
 
 	private final Object writeThreadMutex = new Object();
-
-	private final Integer maxCacheSize;
 
 	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {
 		this.dao = dao;
@@ -186,20 +186,18 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			@Override
 			public void run() {
 				super.run();
-				System.out.print(". ");
 				// synchronized (mutex) {
 				if (immediatelly) {
 					while (tlazyWriteThread != null)
 						;
 				}
-				System.out.println("writing");
 				final long border = System.currentTimeMillis() - (!immediatelly ? MAX_WRITE_DELAY : -10);
-				log.fine("Lazy write thread running... (immediatelly:" + immediatelly + ")");
+				// log.fine("Lazy write thread running... (immediatelly:" +
+				// immediatelly + ")");
 				try {
 					Iterator<Node> nodes = nodesToSave.iterator();
 					while (nodes.hasNext()) {
 						Node node = nodes.next();
-						System.out.println("->" + node.getName());
 						if (node.isDeleted())
 							continue;
 						if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
@@ -210,16 +208,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 						}
 						if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
 							node.resetNodeSubscriptionsChangeTimestamp();
-							System.out.println("save subscription");
 							final FragmentedMap<String, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
-							System.out.println("defragment");
 							fm.defragment();
 
 							for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
 								dao.removeSubscriptions(node.getName(), deletedIndex);
 							}
 							for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
-								System.out.println("changed: " + changedIndex);
 								final Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
 								dao.updateSubscriptions(node.getName(), changedIndex, node.getNodeSubscriptions().serialize(ft));
 							}
