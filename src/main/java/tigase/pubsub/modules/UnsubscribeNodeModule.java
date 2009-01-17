@@ -64,6 +64,7 @@ public class UnsubscribeNodeModule extends AbstractModule {
 	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element unsubscribe = pubSub.getChild("unsubscribe");
+		final String senderJid = element.getAttribute("from");
 
 		final String nodeName = unsubscribe.getAttribute("node");
 		final String jid = unsubscribe.getAttribute("jid");
@@ -76,10 +77,11 @@ public class UnsubscribeNodeModule extends AbstractModule {
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 
 			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid);
-			if (affiliation.getAffiliation() != Affiliation.owner
-					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(element.getAttribute("from")))) {
+			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid)) && senderAffiliation.getAffiliation() != Affiliation.owner
+					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 			if (affiliation != null) {
