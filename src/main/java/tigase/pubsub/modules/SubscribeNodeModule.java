@@ -144,7 +144,7 @@ public class SubscribeNodeModule extends AbstractModule {
 			Subscription newSubscription;
 			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
 
-			if (this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || senderAffiliation.getAffiliation() != Affiliation.owner) {
+			if (this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || senderAffiliation.getAffiliation() == Affiliation.owner) {
 				newSubscription = Subscription.subscribed;
 				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
 			} else if (accessModel == AccessModel.open) {
@@ -174,7 +174,8 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (subid == null) {
 				subid = nodeSubscriptions.addSubscriberJid(jid, newSubscription);
 				nodeAffiliations.addAffiliation(jid, affiliation);
-				if (accessModel == AccessModel.authorize) {
+				if (accessModel == AccessModel.authorize
+						&& !(this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || senderAffiliation.getAffiliation() == Affiliation.owner)) {
 					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"), subid,
 							jid, nodeAffiliations));
 				}
