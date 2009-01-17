@@ -131,7 +131,8 @@ public class SubscribeNodeModule extends AbstractModule {
 			AccessModel accessModel = nodeConfig.getNodeAccessModel();
 
 			if (subscription != null) {
-				if (subscription == Subscription.pending) {
+				if (subscription == Subscription.pending
+						&& !(this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || senderAffiliation.getAffiliation() == Affiliation.owner)) {
 					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION, "Subscription is pending");
 				}
 			}
