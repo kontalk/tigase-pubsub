@@ -55,6 +55,17 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void addStats(final String name, final List<StatRecord> stats) {
 		stats.add(new StatRecord(name, "Cached nodes", "long", this.nodes.size(), Level.INFO));
 		stats.add(new StatRecord(name, "Unsaved nodes", "long", this.nodesToSave.size(), Level.INFO));
+
+		long subscriptionsCount = 0;
+		long affiliationsCount = 0;
+
+		for (Node nd : this.nodes.values()) {
+			subscriptionsCount += nd.getNodeSubscriptions().getSubscriptionsMap().size();
+			affiliationsCount += nd.getNodeAffiliations().getAffiliationsMap().size();
+		}
+
+		stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long", subscriptionsCount, Level.INFO));
+		stats.add(new StatRecord(name, "Affiliations count (in cache)", "long", affiliationsCount, Level.INFO));
 	}
 
 	@Override
