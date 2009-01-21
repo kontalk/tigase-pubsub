@@ -34,24 +34,23 @@ public class FragmentedMap<KEY, VALUE> {
 	}
 
 	public static void main(String[] args) {
-		Map<String, String> x = new XMap<String, String>();
+		Map<String, String> x;
 
-		int z = 3;
-		FragmentedMap<String, String> fm = new FragmentedMap<String, String>(z);
-		for (int i = 0; i < 9; i++) {
-			x.put("key-" + i, "value-" + i);
+		FragmentedMap<String, String> fm = new FragmentedMap<String, String>(10000-1);
+		for (int p = 0; p < 1000; p++) {
+			x = new XMap<String, String>();
+			for (int i = 0; i < 100; i++) {
+				x.put("key-" + p + "." + i, "value-" + p + "." + i);
+			}
+			fm.addFragment(x);
 		}
-		fm.addFragment(x);
 
-		fm.showDebug();
-
-		// fm.defragment();
-
-		fm.showDebug();
-
-		fm.put("key-10", "value-10");
-
-		fm.showDebug();
+		System.out.println(fm.getLoadFactor());
+		fm.defragment();
+		System.out.println(fm.getLoadFactor());
+		fm.defragment();
+		System.out.println(fm.getLoadFactor());
+		System.out.println(fm.getAllValues().size());
 
 	}
 
@@ -91,19 +90,11 @@ public class FragmentedMap<KEY, VALUE> {
 	}
 
 	public synchronized void defragment() {
-		final int size = this.fragments.size();
-		Iterator<Map<KEY, VALUE>> iterator = this.fragments.iterator();
-		while (iterator.hasNext()) {
-			Map<KEY, VALUE> f = iterator.next();
-			if (f.size() == 0) {
-				System.out.println(this.changedFragments.size());
-				System.out.println(">>" + this.changedFragments.remove(f));
-				System.out.println(this.changedFragments.size());
-				iterator.remove();
-			}
-		}
-		for (int i = this.fragments.size(); i < size; i++) {
-			this.removedFragmentsIndexes.add(i);
+		intDefragment();
+		float factor = getLoadFactor();
+		if (factor < 0.49999) {
+			optimize();
+			intDefragment();
 		}
 	}
 
@@ -162,6 +153,21 @@ public class FragmentedMap<KEY, VALUE> {
 		return null;
 	}
 
+	private float getLoadFactor() {
+		float sum = 0;
+		float area = 0;
+		if (this.fragments.size() > 1) {
+			for (Map<KEY, VALUE> iterable_element : this.fragments) {
+				sum += iterable_element.size();
+				area += maxFragmentSize;
+			}
+
+			return sum / area;
+		} else {
+			return 1;
+		}
+	}
+
 	public synchronized Map<KEY, VALUE> getMap() {
 		Map<KEY, VALUE> result = new HashMap<KEY, VALUE>();
 		for (Map<KEY, VALUE> f : this.fragments) {
@@ -174,8 +180,35 @@ public class FragmentedMap<KEY, VALUE> {
 		return Collections.unmodifiableSet(this.removedFragmentsIndexes);
 	}
 
+	private void intDefragment() {
+		final int size = this.fragments.size();
+		Iterator<Map<KEY, VALUE>> iterator = this.fragments.iterator();
+		while (iterator.hasNext()) {
+			Map<KEY, VALUE> f = iterator.next();
+			if (f.size() == 0) {
+				iterator.remove();
+			}
+		}
+		for (int i = this.fragments.size(); i < size; i++) {
+			this.removedFragmentsIndexes.add(i);
+		}
+	}
+
+	private void optimize() {
+		Iterator<Entry<KEY, VALUE>> iterator = getMap().entrySet().iterator();
+		Set<Entry<KEY, VALUE>> set = new HashSet<Entry<KEY, VALUE>>();
+		while (iterator.hasNext()) {
+			Entry<KEY, VALUE> p = iterator.next();
+			set.add(p);
+			remove(p.getKey());
+		}
+
+		for (Entry<KEY, VALUE> entry : set) {
+			put(entry.getKey(), entry.getValue());
+		}
+	}
+
 	public synchronized VALUE put(KEY key, VALUE value) {
-		System.out.println("adding: " + key + " :: " + value);
 		Map<KEY, VALUE> fragment = getFragmentWithKey(key);
 		if (fragment == null) {
 			fragment = getFragmentToNewData();
@@ -184,12 +217,9 @@ public class FragmentedMap<KEY, VALUE> {
 				this.fragments.add(fragment);
 				int index = this.fragments.indexOf(fragment);
 				this.removedFragmentsIndexes.remove(index);
-				System.out.println("Dodany fragment " + index);
 			}
 		}
 
-		int index = this.fragments.indexOf(fragment);
-		System.out.println("Zmieniono fragment " + index + "   (" + fragment.hashCode() + ")");
 		if (!this.changedFragments.contains(fragment))
 			this.changedFragments.add(fragment);
 		return fragment.put(key, value);

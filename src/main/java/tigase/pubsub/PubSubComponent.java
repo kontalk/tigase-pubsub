@@ -71,6 +71,7 @@ import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
+import tigase.stats.StatRecord;
 import tigase.util.DNSResolver;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -271,6 +272,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		} else {
 			return null;
 		}
+	}
+
+	@Override
+	public List<StatRecord> getStatistics() {
+		List<StatRecord> stats = super.getStatistics();
+
+		this.pubsubRepository.addStats(getName(), stats);
+
+		return stats;
 	}
 
 	protected void init() {

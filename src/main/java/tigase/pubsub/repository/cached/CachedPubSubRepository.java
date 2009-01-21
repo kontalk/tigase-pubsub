@@ -3,9 +3,11 @@ package tigase.pubsub.repository.cached;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
@@ -19,6 +21,7 @@ import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
+import tigase.stats.StatRecord;
 
 public class CachedPubSubRepository implements IPubSubRepository {
 
@@ -47,6 +50,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		this.maxCacheSize = maxCacheSize;
 		Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
 		log.config("Initializing Cached Repository with cache size = " + (maxCacheSize == null ? "OFF" : maxCacheSize));
+	}
+
+	public void addStats(final String name, final List<StatRecord> stats) {
+		stats.add(new StatRecord(name, "Cached nodes", "long", this.nodes.size(), Level.INFO));
+		stats.add(new StatRecord(name, "Unsaved nodes", "long", this.nodesToSave.size(), Level.INFO));
 	}
 
 	@Override

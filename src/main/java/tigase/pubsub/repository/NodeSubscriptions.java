@@ -13,7 +13,7 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	protected final static String DELIMITER = ";";
 
-	public final static int MAX_FRAGMENT_SIZE = 100;
+	public final static int MAX_FRAGMENT_SIZE = 10000;
 
 	public static NodeSubscriptions create() {
 		NodeSubscriptions s = new NodeSubscriptions();
