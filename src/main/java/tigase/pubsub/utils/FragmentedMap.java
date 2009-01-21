@@ -36,7 +36,7 @@ public class FragmentedMap<KEY, VALUE> {
 	public static void main(String[] args) {
 		Map<String, String> x;
 
-		FragmentedMap<String, String> fm = new FragmentedMap<String, String>(10000-1);
+		FragmentedMap<String, String> fm = new FragmentedMap<String, String>(10000 - 1);
 		for (int p = 0; p < 1000; p++) {
 			x = new XMap<String, String>();
 			for (int i = 0; i < 100; i++) {
