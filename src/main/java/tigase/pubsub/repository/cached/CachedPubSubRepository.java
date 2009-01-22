@@ -214,38 +214,40 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				// log.fine("Lazy write thread running... (immediatelly:" +
 				// immediatelly + ")");
 				try {
-					Iterator<Node> nodes = nodesToSave.iterator();
-					while (nodes.hasNext()) {
-						Node node = nodes.next();
-						if (node.isDeleted())
-							continue;
-						if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
-							node.resetNodeAffiliationsChangeTimestamp();
+					synchronized (mutex) {
+						Iterator<Node> nodes = nodesToSave.iterator();
+						while (nodes.hasNext()) {
+							Node node = nodes.next();
+							if (node.isDeleted())
+								continue;
+							if (node.getNodeAffiliationsChangeTimestamp() != null && node.getNodeAffiliationsChangeTimestamp() < border) {
+								node.resetNodeAffiliationsChangeTimestamp();
 
-							dao.updateAffiliations(node.getName(), node.getNodeAffiliations().serialize());
+								dao.updateAffiliations(node.getName(), node.getNodeAffiliations().serialize());
 
-						}
-						if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
-							node.resetNodeSubscriptionsChangeTimestamp();
-							final FragmentedMap<String, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
-							fm.defragment();
-
-							for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
-								dao.removeSubscriptions(node.getName(), deletedIndex);
 							}
-							for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
-								final Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
-								dao.updateSubscriptions(node.getName(), changedIndex, node.getNodeSubscriptions().serialize(ft));
+							if (node.getNodeSubscriptionsChangeTimestamp() != null && node.getNodeSubscriptionsChangeTimestamp() < border) {
+								node.resetNodeSubscriptionsChangeTimestamp();
+								final FragmentedMap<String, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
+								fm.defragment();
+
+								for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
+									dao.removeSubscriptions(node.getName(), deletedIndex);
+								}
+								for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
+									final Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
+									dao.updateSubscriptions(node.getName(), changedIndex, node.getNodeSubscriptions().serialize(ft));
+								}
+								fm.cleanChangingLog();
 							}
-							fm.cleanChangingLog();
-						}
-						if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
-							node.resetNodeConfigChangeTimestamp();
-							dao.updateNodeConfig(node.getName(), node.getNodeConfig().getFormElement().toString());
-						}
-						if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
-								&& node.getNodeAffiliationsChangeTimestamp() == null) {
-							nodes.remove();
+							if (node.getNodeConfigChangeTimestamp() != null && node.getNodeConfigChangeTimestamp() < border) {
+								node.resetNodeConfigChangeTimestamp();
+								dao.updateNodeConfig(node.getName(), node.getNodeConfig().getFormElement().toString());
+							}
+							if (node.getNodeConfigChangeTimestamp() == null && node.getNodeSubscriptionsChangeTimestamp() == null
+									&& node.getNodeAffiliationsChangeTimestamp() == null) {
+								nodes.remove();
+							}
 						}
 					}
 				} catch (Exception e) {
