@@ -59,9 +59,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		long subscriptionsCount = 0;
 		long affiliationsCount = 0;
 
-		for (Node nd : this.nodes.values()) {
-			subscriptionsCount += nd.getNodeSubscriptions().getSubscriptionsMap().size();
-			affiliationsCount += nd.getNodeAffiliations().getAffiliationsMap().size();
+		synchronized (mutex) {
+			for (Node nd : this.nodes.values()) {
+				subscriptionsCount += nd.getNodeSubscriptions().getSubscriptionsMap().size();
+				affiliationsCount += nd.getNodeAffiliations().getAffiliationsMap().size();
+			}
 		}
 
 		stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long", subscriptionsCount, Level.INFO));
