@@ -181,7 +181,8 @@ public abstract class AbstractNodeConfig {
 		form.addField(Field.fieldTextSingle(PUBSUB + "body_xslt", "",
 				"The URL of an XSL transformation which can be applied to payloads in order to generate an appropriate message body element."));
 		form.addField(Field.fieldTextMulti(PUBSUB + "roster_groups_allowed", new String[] {}, "Roster groups allowed to subscribe"));
-
+		form.addField(Field.fieldBoolean(PUBSUB + "notify_sub_aff_state", true,
+				"Notify subscribers when owner change their subscription or affiliation state"));
 	}
 
 	public boolean isCollectionSet() {
@@ -198,6 +199,10 @@ public abstract class AbstractNodeConfig {
 
 	public boolean isNotify_config() {
 		return form.getAsBoolean("pubsub#notify_config");
+	}
+
+	public boolean isTigaseNotifyChangeSubscriptionAffiliationState() {
+		return form.getAsBoolean(PUBSUB + "notify_sub_aff_state");
 	}
 
 	public void read(final UserRepository repository, final PubSubConfig config, final String subnode) throws UserNotFoundException,

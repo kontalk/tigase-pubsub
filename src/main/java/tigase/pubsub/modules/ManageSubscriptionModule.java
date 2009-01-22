@@ -48,7 +48,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.name("iq").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("subscriptions"));
 
-	private static Element createAffiliationNotification(String fromJid, String toJid, String nodeName, Subscription subscription) {
+	private static Element createSubscriptionNotification(String fromJid, String toJid, String nodeName, Subscription subscription) {
 		Element message = new Element("message", new String[] { "from", "to" }, new String[] { fromJid, toJid });
 		Element pubsub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
 		message.addChild(pubsub);
@@ -108,7 +108,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 			if (type.equals("get")) {
 				processGet(element, subscriptions, nodeName, nodeSubscriptions, elementWriter);
 			} else if (type.equals("set")) {
-				processSet(element, subscriptions, nodeName, nodeSubscriptions, elementWriter);
+				processSet(element, subscriptions, nodeName, nodeConfig, nodeSubscriptions, elementWriter);
 			}
 			if (nodeSubscriptions.isChanged()) {
 				this.repository.update(nodeName, nodeSubscriptions);
@@ -145,8 +145,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 		elementWriter.write(iq);
 	}
 
-	private void processSet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions,
-			ElementWriter elementWriter) throws PubSubException, RepositoryException {
+	private void processSet(Element element, Element subscriptions, String nodeName, final AbstractNodeConfig nodeConfig,
+			final ISubscriptions nodeSubscriptions, ElementWriter elementWriter) throws PubSubException, RepositoryException {
 		Element iq = createResultIQ(element);
 		List<Element> subss = subscriptions.getChildren();
 		for (Element a : subss) {
@@ -165,10 +165,12 @@ public class ManageSubscriptionModule extends AbstractModule {
 
 			if (oldSubscription == Subscription.none && newSubscription != Subscription.none) {
 				nodeSubscriptions.addSubscriberJid(jid, newSubscription);
-				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState())
+					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
 			} else {
 				nodeSubscriptions.changeSubscription(jid, newSubscription);
-				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState())
+					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
 			}
 
 		}

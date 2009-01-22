@@ -101,7 +101,7 @@ public class ManageAffiliationsModule extends AbstractModule {
 			if (type.equals("get")) {
 				processGet(element, affiliations, nodeName, nodeAffiliations, elementWriter);
 			} else if (type.equals("set")) {
-				processSet(element, affiliations, nodeName, nodeAffiliations, elementWriter);
+				processSet(element, affiliations, nodeName, nodeConfig, nodeAffiliations, elementWriter);
 			}
 			if (nodeAffiliations.isChanged()) {
 				repository.update(nodeName, nodeAffiliations);
@@ -138,8 +138,8 @@ public class ManageAffiliationsModule extends AbstractModule {
 		elementWriter.write(iq);
 	}
 
-	private void processSet(final Element element, final Element affiliations, final String nodeName, final IAffiliations nodeAffiliations,
-			ElementWriter elementWriter) throws PubSubException, RepositoryException {
+	private void processSet(final Element element, final Element affiliations, final String nodeName, final AbstractNodeConfig nodeConfig,
+			final IAffiliations nodeAffiliations, ElementWriter elementWriter) throws PubSubException, RepositoryException {
 		Element iq = createResultIQ(element);
 
 		List<Element> affs = affiliations.getChildren();
@@ -158,10 +158,12 @@ public class ManageAffiliationsModule extends AbstractModule {
 
 			if (oldAffiliation == Affiliation.none && newAffiliation != Affiliation.none) {
 				nodeAffiliations.addAffiliation(jid, newAffiliation);
-				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
+				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState())
+					elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
 			} else {
 				nodeAffiliations.changeAffiliation(jid, newAffiliation);
-				elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
+				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState())
+					elementWriter.write(createAffiliationNotification(element.getAttribute("to"), jid, nodeName, newAffiliation));
 			}
 
 		}
