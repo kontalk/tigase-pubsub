@@ -34,6 +34,8 @@ public interface IPubSubRepository {
 
 	public abstract void init();
 
+	public void destroy();
+
 	public void removeFromRootCollection(String nodeName) throws RepositoryException;
 
 	public abstract void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException;

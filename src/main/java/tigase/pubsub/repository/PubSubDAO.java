@@ -64,6 +64,7 @@ public class PubSubDAO implements IPubSubDAO {
 		this.config = pubSubConfig;
 	}
 
+	@Override
 	public void addToRootCollection(String nodeName) throws RepositoryException {
 		try {
 			repository.setData(config.getServiceName(), ROOT_COLLECTION_KEY, nodeName, "root");
@@ -80,6 +81,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * java.lang.String, tigase.pubsub.LeafNodeConfig, tigase.pubsub.NodeType,
 	 * java.lang.String)
 	 */
+	@Override
 	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		try {
@@ -103,6 +105,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * tigase.pubsub.repository.PubSubRepository#deleteItem(java.lang.String,
 	 * java.lang.String)
 	 */
+	@Override
 	public void deleteItem(String nodeName, String id) throws RepositoryException {
 		try {
 			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id);
@@ -117,6 +120,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @see
 	 * tigase.pubsub.repository.PubSubRepository#deleteNode(java.lang.String)
 	 */
+	@Override
 	public void deleteNode(String nodeName) throws RepositoryException {
 		try {
 			repository.removeSubnode(config.getServiceName(), NODES_KEY + nodeName);
@@ -164,6 +168,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * tigase.pubsub.repository.PubSubRepository#getItemCreationDate(java.lang
 	 * .String, java.lang.String)
 	 */
+	@Override
 	public Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
 		try {
 			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date");
@@ -196,6 +201,7 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
+	@Override
 	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
 		try {
 			String tmp = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date");
@@ -231,6 +237,7 @@ public class PubSubDAO implements IPubSubDAO {
 
 	}
 
+	@Override
 	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException {
 		try {
 			Form cnfForm = readNodeConfigForm(nodeName);
@@ -273,6 +280,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @see tigase.pubsub.repository.PubSubRepository#getNodesList()
 	 */
+	@Override
 	public String[] getNodesList() throws RepositoryException {
 		try {
 			String[] nodes;
@@ -304,6 +312,7 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
+	@Override
 	public String[] getRootNodes() throws RepositoryException {
 		try {
 			String[] ids = repository.getKeys(config.getServiceName(), ROOT_COLLECTION_KEY);
@@ -340,6 +349,11 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
+	@Override
+	public void destroy() {
+    // Do nothing here, no extra resources have been allocated by the init.
+	}
+
 	private Form readNodeConfigForm(final String nodeName) throws UserNotFoundException, TigaseDBException {
 		String cnfData = repository.getData(config.getServiceName(), NODES_KEY + nodeName, "configuration");
 		if (cnfData == null)
@@ -364,6 +378,7 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
+	@Override
 	public void removeFromRootCollection(String nodeName) throws RepositoryException {
 		try {
 			repository.removeData(config.getServiceName(), ROOT_COLLECTION_KEY, nodeName);
@@ -388,6 +403,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @see tigase.pubsub.repository.PubSubRepository#update(java.lang.String,
 	 * tigase.pubsub.LeafNodeConfig)
 	 */
+	@Override
 	public void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException {
 		String cnf = nodeConfig.getFormElement().toString();
 		updateNodeConfig(nodeName, cnf);
@@ -435,6 +451,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * tigase.pubsub.repository.PubSubRepository#writeItem(java.lang.String,
 	 * long, java.lang.String, java.lang.String, tigase.xml.Element)
 	 */
+	@Override
 	public void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
 			throws RepositoryException {
 		try {

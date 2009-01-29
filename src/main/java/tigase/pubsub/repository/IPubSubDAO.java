@@ -64,6 +64,8 @@ public interface IPubSubDAO {
 
 	public void init() throws RepositoryException;
 
+	public void destroy();
+
 	public void removeFromRootCollection(String nodeName) throws RepositoryException;
 
 	public abstract void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException;
