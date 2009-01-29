@@ -123,7 +123,7 @@ public class FragmentedMap<KEY, VALUE> {
 	}
 
 	public synchronized Map<KEY, VALUE> getFragment(int index) {
-		return this.fragments.get(index);
+		return new HashMap<KEY, VALUE>(this.fragments.get(index));
 	}
 
 	public synchronized int getFragmentsCount() {
