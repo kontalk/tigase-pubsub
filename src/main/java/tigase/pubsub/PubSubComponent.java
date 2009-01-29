@@ -169,12 +169,12 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
 	}
 
-	@Override
-	public void everySecond() {
-		super.everySecond();
-		if (this.pubsubRepository != null)
-			this.pubsubRepository.doLazyWrite();
-	}
+//	@Override
+//	public void everySecond() {
+//		super.everySecond();
+//		if (this.pubsubRepository != null)
+//			this.pubsubRepository.doLazyWrite();
+//	}
 
 	protected String extractNodeName(Element element) {
 		if (element == null)
@@ -429,6 +429,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	public void setProperties(Map<String, Object> props) {
 		super.setProperties(props);
 
+		// Release old resources....
+		if (pubsubRepository != null) {
+			pubsubRepository.destroy();
+		}
+		if (directPubSubRepository != null) {
+			directPubSubRepository.destroy();
+		}
+		modules.clear();
+
 		// String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
 		// if (hostnames == null || hostnames.length == 0) {
 		// log.warning("Hostnames definition is empty, setting 'localhost'");
@@ -450,21 +459,30 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			}
 		}
 
+		// Is there a shared user repository pool? If so I want to use it:
+		userRepository = (UserRepository) props.get(SHARED_USER_REPO_POOL_PROP_KEY);
+		if (userRepository == null) {
+			// Is there shared user repository instance? If so I want to use it:
+			userRepository = (UserRepository) props.get(SHARED_USER_REPO_PROP_KEY);
+		}
 		try {
-			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
-			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
-			// if (!res_uri.contains("autoCreateUser=true")) {
-			// res_uri += "&autoCreateUser=true";
-			// }
-
-			this.userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
-			userRepository.initRepository(res_uri, null);
+			if (userRepository == null) {
+				String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
+				String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
+				// if (!res_uri.contains("autoCreateUser=true")) {
+				// res_uri += "&autoCreateUser=true";
+				// }
+				userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name,
+								res_uri, null);
+				userRepository.initRepository(res_uri, null);
+				log.config("Initialized " + cls_name + " as pubsub repository: " +
+								res_uri);
+			}
 
 			PubSubDAO dao = new PubSubDAO(userRepository, this.config);
 
-			initialize((String[]) props.get(ADMINS_KEY), dao, createPubSubRepository(dao), new LeafNodeConfig("default"));
+			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
 
-			log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
 			e.printStackTrace();
