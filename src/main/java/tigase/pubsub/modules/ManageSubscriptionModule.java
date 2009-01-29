@@ -88,13 +88,13 @@ public class ManageSubscriptionModule extends AbstractModule {
 			if (nodeName == null) {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
-			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 
-			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
-			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(nodeName);
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
 
 			String senderJid = element.getAttribute("from");
 
@@ -111,7 +111,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 				processSet(element, subscriptions, nodeName, nodeConfig, nodeSubscriptions, elementWriter);
 			}
 			if (nodeSubscriptions.isChanged()) {
-				this.repository.update(nodeName, nodeSubscriptions);
+				repository.update(nodeName, nodeSubscriptions);
 			}
 			return null;
 		} catch (PubSubException e1) {
