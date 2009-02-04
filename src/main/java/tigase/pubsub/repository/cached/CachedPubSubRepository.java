@@ -88,7 +88,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
+	public void createNode(String nodeName, String ownerJid,
+					AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
 
