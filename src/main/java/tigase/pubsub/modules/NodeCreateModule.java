@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
+import tigase.form.Form;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
@@ -51,15 +52,14 @@ import tigase.xmpp.Authorization;
  */
 public class NodeCreateModule extends AbstractConfigCreateNode {
 
-	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
+	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(
+			ElementCriteria.name("create"));
 
 	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
 
 	private final PublishItemModule publishModule;
 
-	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
-			PublishItemModule publishItemModule) {
+	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig, PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
 		this.publishModule = publishItemModule;
 	}
@@ -110,7 +110,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			NodeType nodeType = NodeType.leaf;
 			String collection = null;
-			LeafNodeConfig nodeConfig = new LeafNodeConfig(nodeName, defaultNodeConfig);
+			AbstractNodeConfig nodeConfig = new LeafNodeConfig(nodeName, defaultNodeConfig);
 			if (configure != null) {
 				Element x = configure.getChild("x", "jabber:x:data");
 				if (x != null && "submit".equals(x.getAttribute("type"))) {
@@ -133,6 +133,13 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				}
 			}
 
+			if (nodeType == NodeType.collection) {
+				Form f = nodeConfig.getForm();
+				nodeConfig = new CollectionNodeConfig(nodeConfig.getNodeName());
+				nodeConfig.copyFromForm(f);
+				nodeConfig.setNodeType(NodeType.collection);
+			}
+
 			CollectionNodeConfig colNodeConfig = null;
 			if (collection != null) {
 				AbstractNodeConfig absNodeConfig = repository.getNodeConfig(collection);
@@ -147,8 +154,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 
-			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType, collection == null ? ""
-					: collection);
+			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType, collection == null ? "" : collection);
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(nodeName);
@@ -177,8 +183,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
 				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
 
-				elementWriter.write(publishModule.prepareNotification(colE, element.getAttribute("to"), collection, nodeConfig,
-						colNodeAffiliations, colNodeSubscriptions));
+				elementWriter.write(publishModule.prepareNotification(colE, element.getAttribute("to"), collection, nodeConfig, colNodeAffiliations,
+						colNodeSubscriptions));
 
 			}
 
