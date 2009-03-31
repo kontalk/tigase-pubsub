@@ -258,7 +258,7 @@ public abstract class AbstractNodeConfig {
 			String str = (String) data;
 			if (f.getType() == FieldType.bool && !"0".equals(str) && !"1".equals(str) && !"false".equals(str)
 					&& !"true".equals(str))
-				throw new RuntimeException("Boolean fields allows only '1' or '0' values");
+				throw new RuntimeException("Boolean fields allows only '1', '0', 'true' and 'false' values");
 			f.setValues(new String[] { str });
 		} else if (data instanceof Boolean && f.getType() == FieldType.bool) {
 			boolean b = ((Boolean) data).booleanValue();
