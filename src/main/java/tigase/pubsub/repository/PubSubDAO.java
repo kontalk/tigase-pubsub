@@ -53,7 +53,7 @@ public class PubSubDAO implements IPubSubDAO {
 
 	final PubSubConfig config;
 
-	private Logger log = Logger.getLogger(this.getClass().getName());
+	protected Logger log = Logger.getLogger(this.getClass().getName());
 
 	private final SimpleParser parser = SingletonFactory.getParserInstance();
 
@@ -152,13 +152,17 @@ public class PubSubDAO implements IPubSubDAO {
 		try {
 			String itemData = repository.getData(config.getServiceName(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "data");
 			char[] data = itemData.toCharArray();
-			DomBuilderHandler domHandler = new DomBuilderHandler();
-			parser.parse(domHandler, data, 0, data.length);
-			Queue<Element> q = domHandler.getParsedElements();
-			return q.element();
+			return itemDataToElement(data);
 		} catch (Exception e) {
 			throw new RepositoryException("Item reading error", e);
 		}
+	}
+	
+	protected Element itemDataToElement(char[] data) {
+		DomBuilderHandler domHandler = new DomBuilderHandler();
+		parser.parse(domHandler, data, 0, data.length);
+		Queue<Element> q = domHandler.getParsedElements();
+		return q.element();
 	}
 
 	/*

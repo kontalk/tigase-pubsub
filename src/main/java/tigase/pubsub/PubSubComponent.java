@@ -67,6 +67,7 @@ import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
+import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
@@ -466,9 +467,10 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			userRepository = (UserRepository) props.get(SHARED_USER_REPO_PROP_KEY);
 		}
 		try {
+			PubSubDAO dao;
+			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
+			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
 			if (userRepository == null) {
-				String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
-				String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
 				// if (!res_uri.contains("autoCreateUser=true")) {
 				// res_uri += "&autoCreateUser=true";
 				// }
@@ -479,7 +481,12 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 								res_uri);
 			}
 
-			PubSubDAO dao = new PubSubDAO(userRepository, this.config);
+			if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+				dao = new PubSubDAOJDBC(userRepository, this.config, res_uri);
+			}
+			else {
+				dao = new PubSubDAO(userRepository, this.config);
+			}
 
 			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
 
