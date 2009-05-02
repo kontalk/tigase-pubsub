@@ -266,7 +266,6 @@ public class PubSubDAO implements IPubSubDAO {
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration reading error", e);
 		}
-
 	}
 
 	public Date getNodeCreationDate(String nodeName) throws RepositoryException {
@@ -358,8 +357,12 @@ public class PubSubDAO implements IPubSubDAO {
     // Do nothing here, no extra resources have been allocated by the init.
 	}
 
+	protected String readNodeConfigFormData(final String nodeName) throws TigaseDBException {
+		return repository.getData(config.getServiceName(), NODES_KEY + nodeName, "configuration");
+	}
+	
 	private Form readNodeConfigForm(final String nodeName) throws UserNotFoundException, TigaseDBException {
-		String cnfData = repository.getData(config.getServiceName(), NODES_KEY + nodeName, "configuration");
+		String cnfData = readNodeConfigFormData(nodeName);
 		if (cnfData == null)
 			return null;
 		char[] data = cnfData.toCharArray();
