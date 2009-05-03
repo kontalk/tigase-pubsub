@@ -244,9 +244,6 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				create_node_sp.setString(4, serializedNodeConfig);
 				rs = create_node_sp.executeQuery();
 			}
-			
-				update(nodeName, nodeConfig);
-			
 		} catch (SQLIntegrityConstraintViolationException e) {
 			throw new RepositoryException("Error while adding node to repository, already exists?", e);
 		} catch (SQLException e) {
