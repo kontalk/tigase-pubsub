@@ -62,8 +62,20 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	public void addStats(final String name, final List<StatRecord> stats) {
-		stats.add(new StatRecord(name, "Cached nodes", "long", this.nodes.size(), Level.INFO));
-		stats.add(new StatRecord(name, "Unsaved nodes", "long", this.nodesToSave.size(), Level.INFO));
+		if (this.nodes.size() > 0) {
+			stats.add(new StatRecord(name, "Cached nodes", "long",
+							this.nodes.size(), Level.INFO));
+		} else {
+			stats.add(new StatRecord(name, "Cached nodes", "long",
+							this.nodes.size(), Level.FINEST));
+		}
+		if (this.nodesToSave.size() > 0) {
+			stats.add(new StatRecord(name, "Unsaved nodes", "long",
+							this.nodesToSave.size(), Level.INFO));
+		} else {
+			stats.add(new StatRecord(name, "Unsaved nodes", "long",
+							this.nodesToSave.size(), Level.FINEST));
+		}
 
 		long subscriptionsCount = 0;
 		long affiliationsCount = 0;
@@ -77,8 +89,20 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		}
 //		}
 
-		stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long", subscriptionsCount, Level.INFO));
-		stats.add(new StatRecord(name, "Affiliations count (in cache)", "long", affiliationsCount, Level.INFO));
+		if (subscriptionsCount > 0) {
+			stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long",
+							subscriptionsCount, Level.INFO));
+		} else {
+			stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long",
+							subscriptionsCount, Level.FINEST));
+		}
+		if (affiliationsCount > 0) {
+			stats.add(new StatRecord(name, "Affiliations count (in cache)", "long",
+							affiliationsCount, Level.INFO));
+		} else {
+			stats.add(new StatRecord(name, "Affiliations count (in cache)", "long",
+							affiliationsCount, Level.FINEST));
+		}
 	}
 
 	@Override
