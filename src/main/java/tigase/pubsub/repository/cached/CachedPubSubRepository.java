@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
+import tigase.pubsub.Utils;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubDAO;
@@ -44,6 +45,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private final Set<String> rootCollection = new HashSet<String>();
 
 	private LazyWriteThread tlazyWriteThread;
+	private long repo_writes = 0;
+	private long nodes_added = 0;
+	private long writingTime = 0;
 
 	//private final Object writeThreadMutex = new Object();
 
@@ -64,7 +68,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void addStats(final String name, final List<StatRecord> stats) {
 		if (this.nodes.size() > 0) {
 			stats.add(new StatRecord(name, "Cached nodes", "long",
-							this.nodes.size(), Level.INFO));
+							this.nodes.size(), Level.FINE));
 		} else {
 			stats.add(new StatRecord(name, "Cached nodes", "long",
 							this.nodes.size(), Level.FINEST));
@@ -81,7 +85,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		long affiliationsCount = 0;
 
 //		synchronized (mutex) {
-		Map<String, Node> tmp = new LinkedHashMap<String, Node>(nodes);
+		Map<String, Node> tmp = null;
+		synchronized (nodes) {
+			tmp = new LinkedHashMap<String, Node>(nodes);
+		}
 		for (Node nd : tmp.values()) {
 			subscriptionsCount +=
 							nd.getNodeSubscriptions().getSubscriptionsMap().size();
@@ -91,17 +98,47 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		if (subscriptionsCount > 0) {
 			stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long",
-							subscriptionsCount, Level.INFO));
+							subscriptionsCount, Level.FINE));
 		} else {
 			stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long",
 							subscriptionsCount, Level.FINEST));
 		}
 		if (affiliationsCount > 0) {
 			stats.add(new StatRecord(name, "Affiliations count (in cache)", "long",
-							affiliationsCount, Level.INFO));
+							affiliationsCount, Level.FINE));
 		} else {
 			stats.add(new StatRecord(name, "Affiliations count (in cache)", "long",
 							affiliationsCount, Level.FINEST));
+		}
+		if (repo_writes > 0) {
+			stats.add(new StatRecord(name, "Repository writes", "long",
+							repo_writes, Level.FINE));
+		} else {
+			stats.add(new StatRecord(name, "Repository writes", "long",
+							repo_writes, Level.FINEST));
+		}
+		if (nodes_added > 0) {
+			stats.add(new StatRecord(name, "Added new nodes", "long",
+							nodes_added, Level.INFO));
+		} else {
+			stats.add(new StatRecord(name, "Added new nodes", "long",
+							nodes_added, Level.FINEST));
+		}
+		if (nodes_added > 0) {
+			stats.add(new StatRecord(name, "Total writing time", "String",
+							Utils.longToTime(writingTime), Level.INFO));
+		} else {
+			stats.add(new StatRecord(name, "Total writing time", "String",
+							Utils.longToTime(writingTime), Level.FINEST));
+		}
+		if (nodes_added + repo_writes > 0) {
+			if (nodes_added > 0) {
+				stats.add(new StatRecord(name, "Average DB write time [ms]", "long",
+								(writingTime / (nodes_added + repo_writes)), Level.INFO));
+			} else {
+				stats.add(new StatRecord(name, "Average DB write time [ms]", "long",
+								(writingTime / (nodes_added + repo_writes)), Level.FINEST));
+			}
 		}
 	}
 
@@ -115,6 +152,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void createNode(String nodeName, String ownerJid,
 					AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
+		long start = System.currentTimeMillis();
 		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
 
 		NodeAffiliations nodeAffiliations =
@@ -123,7 +161,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 						new NodeSubscriptions(NodeSubscriptions.create());
 		Node node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
 		this.nodes.put(nodeName, node);
-
+		long end = System.currentTimeMillis();
+    ++nodes_added;
+		writingTime += (end - start);
 	}
 
 	@Override
@@ -350,6 +390,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			while (!stop || nodesToSave.size() > 0) {
 				Node node = nodesToSave.pollFirst();
 				if (node != null) {
+					long start = System.currentTimeMillis();
+					++repo_writes;
 					// Prevent node modifications while it is being written to DB
 					synchronized (node) {
 						try {
@@ -389,6 +431,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 							nodesToSave.add(node);
 						}
 					}
+					long end = System.currentTimeMillis();
+					writingTime += (end - start);
 				} else {
 					if (!stop) {
 						try {

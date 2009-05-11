@@ -34,6 +34,18 @@ public class Utils {
 
 	private static SecureRandom numberGenerator;
 
+	public static String longToTime(long time) {
+		long hours = time / 3600000;
+		long mins = (time - (hours * 3600000)) / 60000;
+		long secs = (time - ((hours * 3600000) + (mins * 60000))) /	1000;
+		long millis = (time - ((hours * 3600000) + (mins * 60000) + secs * 1000));
+		return "" + 
+						(hours > 0 ? hours + "h, " : "") +
+						(mins > 0 ? mins + "m, " : "") +
+						(secs > 0 ? secs + "sec, " : "") +
+						(millis > 0 ? millis + "ms" : "");
+	}
+
 	public static String asString(String... array) {
 		StringBuilder sb = new StringBuilder();
 		if (array != null) {
