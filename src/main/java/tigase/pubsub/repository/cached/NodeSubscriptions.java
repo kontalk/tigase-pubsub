@@ -23,7 +23,7 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 
 	@Override
 	public String addSubscriberJid(String jid, Subscription subscription) {
-		final String subid = Utils.createUID();
+		final String subid = Utils.createUID(jid);
 		final String bareJid = JIDUtils.getNodeID(jid);
 		UsersSubscription s = new UsersSubscription(bareJid, subid, subscription);
 		changedSubs.put(bareJid, s);

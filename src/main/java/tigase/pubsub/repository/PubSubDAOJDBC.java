@@ -40,7 +40,6 @@ import tigase.db.UserRepository;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.repository.PubSubDAO;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 

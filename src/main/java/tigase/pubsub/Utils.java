@@ -70,17 +70,24 @@ public class Utils {
 		return false;
 	}
 
-	public static synchronized String createUID() {
-		SecureRandom ng = numberGenerator;
-		if (ng == null) {
-			numberGenerator = ng = new SecureRandom();
-		}
-		String result = "";
-		for (int i = 0; i < 16; i++) {
-			int a = ng.nextInt(CHARSET.length());
-			result += CHARSET.charAt(a);
-		}
-		return result;
+	// This is extremely slow and to make things worse it is synchronized
+//	public static synchronized String createUID() {
+//		SecureRandom ng = numberGenerator;
+//		if (ng == null) {
+//			numberGenerator = ng = new SecureRandom();
+//		}
+//		String result = "";
+//		for (int i = 0; i < 16; i++) {
+//			int a = ng.nextInt(CHARSET.length());
+//			result += CHARSET.charAt(a);
+//		}
+//		return result;
+//	}
+
+	public static String createUID(String jid) {
+		StringBuilder sb = new StringBuilder(jid);
+		sb.append(sb.hashCode());
+		return "" + sb.toString().hashCode();
 	}
 
 	public static boolean isAllowedDomain(final String jid, final String... domains) {

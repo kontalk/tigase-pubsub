@@ -28,7 +28,7 @@ public class NodeSubscriptions implements ISubscriptions {
 	}
 
 	public String addSubscriberJid(final String jid, final Subscription subscription) {
-		final String subid = Utils.createUID();
+		final String subid = Utils.createUID(jid);
 		final String bareJid = JIDUtils.getNodeID(jid);
 		UsersSubscription s = new UsersSubscription(bareJid, subid, subscription);
 		synchronized (this.subs) {

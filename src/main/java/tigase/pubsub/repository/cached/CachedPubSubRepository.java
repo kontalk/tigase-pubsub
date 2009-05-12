@@ -154,7 +154,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			throws RepositoryException {
 		long start = System.currentTimeMillis();
 		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
-
 		NodeAffiliations nodeAffiliations =
 						new NodeAffiliations(NodeAffiliations.create(null));
 		NodeSubscriptions nodeSubscriptions =
