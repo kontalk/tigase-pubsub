@@ -407,13 +407,17 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	protected boolean runModules(final Element element, final ElementWriter writer) throws PubSubException {
 		boolean handled = false;
-		log.finest("Processing packet: " + element.toString());
+		if (log.isLoggable(Level.FINER)) {
+			log.finest("Processing packet: " + element.toString());
+		}
 
 		for (Module module : this.modules) {
 			Criteria criteria = module.getModuleCriteria();
 			if (criteria != null && criteria.match(element)) {
 				handled = true;
-				log.finest("Handled by module " + module.getClass());
+				if (log.isLoggable(Level.FINER)) {
+					log.finest("Handled by module " + module.getClass());
+				}
 				List<Element> result = module.process(element, writer);
 				if (result != null) {
 					for (Element element2 : result) {
@@ -483,12 +487,12 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 			if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
 				dao = new PubSubDAOJDBC(userRepository, this.config, res_uri);
-			}
-			else {
+			} else {
 				dao = new PubSubDAO(userRepository, this.config);
 			}
 
-			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
+			initialize((String[]) props.get(ADMINS_KEY), dao, null,
+							new LeafNodeConfig("default"));
 
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
@@ -509,4 +513,10 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 		log.config("Supported features: " + sb.toString());
 	}
+
+	@Override
+	public int processingThreads() {
+		return 1 + (Runtime.getRuntime().availableProcessors()/2);
+	}
+
 }
