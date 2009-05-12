@@ -68,6 +68,7 @@ import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
+import tigase.pubsub.repository.PubSubDAOPool;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.AbstractMessageReceiver;
@@ -91,6 +92,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+
+	protected static final String PUBSUB_REPO_POOL_SIZE_PROP_KEY = "pubsub-repo-pool-size";
 
 	protected AdHocConfigCommandModule adHocCommandsModule;
 
@@ -484,11 +487,31 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				log.config("Initialized " + cls_name + " as pubsub repository: " +
 								res_uri);
 			}
+			
+			int dao_pool_size = 1;
+			try {
+				dao_pool_size = Integer.parseInt((String) props.get(PUBSUB_REPO_POOL_SIZE_PROP_KEY));
+			} catch (Exception e) {
+				dao_pool_size = 1;
+			}
 
-			if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-				dao = new PubSubDAOJDBC(userRepository, this.config, res_uri);
-			} else {
-				dao = new PubSubDAO(userRepository, this.config);
+			if (dao_pool_size > 1) {
+				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.config);
+				for (int i = 0; i < dao_pool_size; i++) {
+					if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+						dao_pool.addDao(new PubSubDAOJDBC(userRepository, this.config, res_uri));
+					} else {
+						dao_pool.addDao(new PubSubDAO(userRepository, this.config));
+					}
+				}
+				dao = dao_pool;
+			}
+			else {
+				if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+					dao = new PubSubDAOJDBC(userRepository, this.config, res_uri);
+				} else {
+					dao = new PubSubDAO(userRepository, this.config);
+				}
 			}
 
 			initialize((String[]) props.get(ADMINS_KEY), dao, null,
