@@ -87,7 +87,7 @@ public class Utils {
 	public static String createUID(String jid) {
 		StringBuilder sb = new StringBuilder(jid);
 		sb.append(sb.hashCode());
-		return "" + sb.toString().hashCode();
+		return "" + Math.abs(sb.toString().hashCode());
 	}
 
 	public static boolean isAllowedDomain(final String jid, final String... domains) {
