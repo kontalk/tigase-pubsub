@@ -167,3 +167,7 @@ end //
 
 
 delimiter ;
+
+-- Helper function for calculating number of subscriptions in database
+drop function if exists substrCount;
+CREATE FUNCTION substrCount(x mediumtext, delim varchar(12)) returns int return (length(x)-length(REPLACE(x, delim, '')))/length(delim);
