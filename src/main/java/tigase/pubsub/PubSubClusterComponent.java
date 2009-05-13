@@ -320,7 +320,10 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	}
 
 	protected boolean sentToNextNode(ClusterElement clel) {
-		ClusterElement next_clel = ClusterElement.createForNextNode(clel, cluster_nodes, getComponentId());
+		ClusterElement next_clel =
+						ClusterElement.createForNextNode(clel,
+						cluster_nodes.toArray(new String[cluster_nodes.size()]),
+						getComponentId());
 		if (next_clel != null) {
 			// String nextNode = findNextUnvisitedNode(clel);
 			// if (nextNode != null) {
