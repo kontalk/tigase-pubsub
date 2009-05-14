@@ -1,0 +1,37 @@
+tigase-pubsub (1.0.2-b207-xk1) hardy; urgency=low
+
+  * Updated to SVN revision 207:\nAdded function to the schema which
+    helps counting subscriptions Tigase clustering compatibility problem
+    fixed.
+
+ -- Tomasz Sterna <tomek@xiaoka.com>  Wed, 13 May 2009 22:11:07 +0000
+
+tigase-pubsub (1.0.2-b205-xk1) hardy; urgency=low
+
+  * Updated to SVN revision 205:\nTigase server dependency change
+    Chnaged decription for the connection URL Absolute value of the hash
+    code is now used. Implemented PubSubDAOPool.
+
+ -- Tomasz Sterna <tomek@xiaoka.com>  Tue, 12 May 2009 22:11:07 +0000
+
+tigase-pubsub (1.0.2-b201-xk1) hardy; urgency=low
+
+  * Updated to SVN revision 201:\nReduced GC work with logs and added
+    more threads for PubSub component, based on CPU number. createUID
+    rewritten to much faster and non-blocking version.
+
+ -- Tomasz Sterna <tomek@xiaoka.com>  Tue, 12 May 2009 18:11:07 +0000
+
+tigase-pubsub (1.0.2-b199-xk1) hardy; urgency=low
+
+  * Updated to SVN revision 199:\nAdded more statistics useful for load
+    testing and comparing performance.
+
+ -- Tomasz Sterna <tomek@xiaoka.com>  Mon, 11 May 2009 18:11:08 +0000
+
+tigase-pubsub (1.0.2-b198-xk1) hardy; urgency=low
+
+  * Updated to SVN revision 198
+  * Initial Release.
+
+ -- Tomasz Sterna <tomek@xiaoka.com>  Thu, 07 May 2009 13:37:01 +0000

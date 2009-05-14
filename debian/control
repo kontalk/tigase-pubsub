@@ -1,0 +1,11 @@
+Source: tigase-pubsub
+Section: net
+Priority: extra
+Maintainer: Tomasz Sterna <tomek@xiaoka.com>
+Build-Depends: cdbs, debhelper (>= 5), sun-java6-jdk, maven2
+Standards-Version: 3.7.2
+
+Package: tigase-pubsub
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Publish Subscribe component for Tigase
