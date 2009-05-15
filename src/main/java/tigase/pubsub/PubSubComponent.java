@@ -539,7 +539,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	@Override
 	public int processingThreads() {
-		return 1 + (Runtime.getRuntime().availableProcessors()/2);
+//		return 1 + (Runtime.getRuntime().availableProcessors()/2);
+		return 1;
 	}
 
 }
