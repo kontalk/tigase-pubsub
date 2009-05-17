@@ -8,7 +8,7 @@ CREATE  TABLE IF NOT EXISTS tig_pubsub_nodes (
  `creation_date` DATETIME NULL  /* The datetime when the node was created. */ ,
  `configuration` MEDIUMTEXT NULL ,
  `affiliations` MEDIUMTEXT NULL ,
- PRIMARY KEY (`name_sha1`)
+ PRIMARY KEY (`name_sha1`(40))
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
 /* This node table contains attributes which are common to both node types. */
@@ -20,8 +20,7 @@ CREATE  TABLE IF NOT EXISTS tig_pubsub_items (
  `publisher` VARCHAR(2047) NULL,
  `update_date` DATETIME NULL,
  `data` MEDIUMTEXT NULL,
- PRIMARY KEY USING HASH (`node_name_sha1`, `id`(255)),
- INDEX (`node_name_sha1`),
+ PRIMARY KEY USING HASH (`node_name_sha1`(40), `id`(255)),
  INDEX (`id`(255)),
  CONSTRAINT
   FOREIGN KEY (`node_name_sha1`)
@@ -36,8 +35,7 @@ CREATE  TABLE IF NOT EXISTS tig_pubsub_subscriptions (
  `node_name_sha1` CHAR(40) NOT NULL,
  `index` BIGINT NOT NULL,
  `data` MEDIUMTEXT NULL,
- PRIMARY KEY (`node_name_sha1`,`index`),
- INDEX (`node_name_sha1`),
+ PRIMARY KEY (`node_name_sha1`(40),`index`),
  CONSTRAINT
   FOREIGN KEY (`node_name_sha1`)
   REFERENCES `tig_pubsub_nodes`(`name_sha1`)
