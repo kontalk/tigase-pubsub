@@ -35,12 +35,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	private final Integer maxCacheSize;
 
-//	private final Object mutex = new Object();
+	// private final Object mutex = new Object();
 
 	private final Map<String, Node> nodes;
 
-	private final ConcurrentSkipListSet<Node> nodesToSave =
-					new ConcurrentSkipListSet<Node>(new NodeComparator());
+	private final ConcurrentSkipListSet<Node> nodesToSave = new ConcurrentSkipListSet<Node>(new NodeComparator());
 
 	private final Set<String> rootCollection = new HashSet<String>();
 
@@ -49,95 +48,98 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private long nodes_added = 0;
 	private long writingTime = 0;
 
-	//private final Object writeThreadMutex = new Object();
+	// private final Object writeThreadMutex = new Object();
 
-	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {
+	public CachedPubSubRepository(final PubSubDAO dao,
+			final Integer maxCacheSize) {
 		this.dao = dao;
 		this.maxCacheSize = maxCacheSize;
 		nodes = Collections.synchronizedMap(new SizedCache(this.maxCacheSize));
-		//Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
-		log.config("Initializing Cached Repository with cache size = " + (maxCacheSize == null ? "OFF" : maxCacheSize));
+		// Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
+		log.config("Initializing Cached Repository with cache size = "
+				+ (maxCacheSize == null ? "OFF" : maxCacheSize));
 		tlazyWriteThread = makeLazyWriteThread(false);
 		Thread x = new Thread(tlazyWriteThread);
 		x.setName("PubSub-DataWriter");
 		x.setDaemon(true);
 		x.start();
-		//Thread.dumpStack();
+		// Thread.dumpStack();
 	}
 
 	public void addStats(final String name, final List<StatRecord> stats) {
 		if (this.nodes.size() > 0) {
-			stats.add(new StatRecord(name, "Cached nodes", "long",
-							this.nodes.size(), Level.FINE));
+			stats.add(new StatRecord(name, "Cached nodes", "long", this.nodes
+					.size(), Level.FINE));
 		} else {
-			stats.add(new StatRecord(name, "Cached nodes", "long",
-							this.nodes.size(), Level.FINEST));
+			stats.add(new StatRecord(name, "Cached nodes", "long", this.nodes
+					.size(), Level.FINEST));
 		}
 		if (this.nodesToSave.size() > 0) {
 			stats.add(new StatRecord(name, "Unsaved nodes", "long",
-							this.nodesToSave.size(), Level.INFO));
+					this.nodesToSave.size(), Level.INFO));
 		} else {
 			stats.add(new StatRecord(name, "Unsaved nodes", "long",
-							this.nodesToSave.size(), Level.FINEST));
+					this.nodesToSave.size(), Level.FINEST));
 		}
 
 		long subscriptionsCount = 0;
 		long affiliationsCount = 0;
 
-//		synchronized (mutex) {
+		// synchronized (mutex) {
 		Map<String, Node> tmp = null;
 		synchronized (nodes) {
 			tmp = new LinkedHashMap<String, Node>(nodes);
 		}
 		for (Node nd : tmp.values()) {
-			subscriptionsCount +=
-							nd.getNodeSubscriptions().getSubscriptionsMap().size();
+			subscriptionsCount += nd.getNodeSubscriptions().getSubscriptionsMap().size();
 			affiliationsCount += nd.getNodeAffiliations().getAffiliationsMap().size();
 		}
-//		}
+		// }
 
 		if (subscriptionsCount > 0) {
-			stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long",
-							subscriptionsCount, Level.FINE));
+			stats.add(new StatRecord(name, "Subscriptions count (in cache)",
+					"long", subscriptionsCount, Level.FINE));
 		} else {
-			stats.add(new StatRecord(name, "Subscriptions count (in cache)", "long",
-							subscriptionsCount, Level.FINEST));
+			stats.add(new StatRecord(name, "Subscriptions count (in cache)",
+					"long", subscriptionsCount, Level.FINEST));
 		}
 		if (affiliationsCount > 0) {
-			stats.add(new StatRecord(name, "Affiliations count (in cache)", "long",
-							affiliationsCount, Level.FINE));
+			stats.add(new StatRecord(name, "Affiliations count (in cache)",
+					"long", affiliationsCount, Level.FINE));
 		} else {
-			stats.add(new StatRecord(name, "Affiliations count (in cache)", "long",
-							affiliationsCount, Level.FINEST));
+			stats.add(new StatRecord(name, "Affiliations count (in cache)",
+					"long", affiliationsCount, Level.FINEST));
 		}
 		if (repo_writes > 0) {
 			stats.add(new StatRecord(name, "Repository writes", "long",
-							repo_writes, Level.FINE));
+					repo_writes, Level.FINE));
 		} else {
 			stats.add(new StatRecord(name, "Repository writes", "long",
-							repo_writes, Level.FINEST));
+					repo_writes, Level.FINEST));
 		}
 		if (nodes_added > 0) {
 			stats.add(new StatRecord(name, "Added new nodes", "long",
-							nodes_added, Level.INFO));
+					nodes_added, Level.INFO));
 		} else {
 			stats.add(new StatRecord(name, "Added new nodes", "long",
-							nodes_added, Level.FINEST));
+					nodes_added, Level.FINEST));
 		}
 		if (nodes_added > 0) {
 			stats.add(new StatRecord(name, "Total writing time", "String",
-							Utils.longToTime(writingTime), Level.INFO));
+					Utils.longToTime(writingTime), Level.INFO));
 		} else {
 			stats.add(new StatRecord(name, "Total writing time", "String",
-							Utils.longToTime(writingTime), Level.FINEST));
+					Utils.longToTime(writingTime), Level.FINEST));
 		}
 		if (nodes_added + repo_writes > 0) {
 			if (nodes_added > 0) {
-				stats.add(new StatRecord(name, "Average DB write time [ms]", "long",
-								(writingTime / (nodes_added + repo_writes)), Level.INFO));
+				stats.add(new StatRecord(name, "Average DB write time [ms]",
+						"long", (writingTime / (nodes_added + repo_writes)),
+						Level.INFO));
 			} else {
-				stats.add(new StatRecord(name, "Average DB write time [ms]", "long",
-								(writingTime / (nodes_added + repo_writes)), Level.FINEST));
+				stats.add(new StatRecord(name, "Average DB write time [ms]",
+						"long", (writingTime / (nodes_added + repo_writes)),
+						Level.FINEST));
 			}
 		}
 	}
@@ -150,18 +152,18 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	@Override
 	public void createNode(String nodeName, String ownerJid,
-					AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
+			AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		long start = System.currentTimeMillis();
-		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
-		NodeAffiliations nodeAffiliations =
-						new NodeAffiliations(NodeAffiliations.create(null));
-		NodeSubscriptions nodeSubscriptions =
-						new NodeSubscriptions(NodeSubscriptions.create());
+		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType,
+				collection);
+		NodeAffiliations nodeAffiliations = new NodeAffiliations(
+				NodeAffiliations.create(null));
+		NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(NodeSubscriptions.create());
 		Node node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
 		this.nodes.put(nodeName, node);
 		long end = System.currentTimeMillis();
-    ++nodes_added;
+		++nodes_added;
 		writingTime += (end - start);
 	}
 
@@ -175,16 +177,16 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		this.nodes.remove(nodeName);
 	}
 
-//	public void doLazyWrite() {
-//		synchronized (writeThreadMutex) {
-//			if (tlazyWriteThread == null) {
-//				tlazyWriteThread = makeLazyWriteThread(false);
-//				Thread x = new Thread(tlazyWriteThread);
-//				x.setName("PubSub-DataWriter");
-//				x.start();
-//			}
-//		}
-//	}
+	// public void doLazyWrite() {
+	// synchronized (writeThreadMutex) {
+	// if (tlazyWriteThread == null) {
+	// tlazyWriteThread = makeLazyWriteThread(false);
+	// Thread x = new Thread(tlazyWriteThread);
+	// x.setName("PubSub-DataWriter");
+	// x.start();
+	// }
+	// }
+	// }
 
 	@Override
 	public void forgetConfiguration(String nodeName) throws RepositoryException {
@@ -192,12 +194,14 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public String[] getBuddyGroups(String owner, String bareJid) throws RepositoryException {
+	public String[] getBuddyGroups(String owner, String bareJid)
+			throws RepositoryException {
 		return this.dao.getBuddyGroups(owner, bareJid);
 	}
 
 	@Override
-	public String getBuddySubscription(String owner, String buddy) throws RepositoryException {
+	public String getBuddySubscription(String owner, String buddy)
+			throws RepositoryException {
 		return this.dao.getBuddySubscription(owner, buddy);
 	}
 
@@ -212,19 +216,20 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 			node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
 
-//			if (maxCacheSize != null && this.nodes.size() > maxCacheSize) {
-//				Iterator<Entry<String, Node>> it = this.nodes.entrySet().iterator();
-//				int count = 0;
-//				while (it.hasNext() && count < 10) {
-//					Entry<String, Node> e = it.next();
-//					if (nodesToSave.contains(e.getValue())) {
-//						continue;
-//					}
-//					count++;
-//					it.remove();
-//				}
-//
-//			}
+			// if (maxCacheSize != null && this.nodes.size() > maxCacheSize) {
+			// Iterator<Entry<String, Node>> it =
+			// this.nodes.entrySet().iterator();
+			// int count = 0;
+			// while (it.hasNext() && count < 10) {
+			// Entry<String, Node> e = it.next();
+			// if (nodesToSave.contains(e.getValue())) {
+			// continue;
+			// }
+			// count++;
+			// it.remove();
+			// }
+			//
+			// }
 
 			this.nodes.put(nodeName, node);
 		}
@@ -233,13 +238,15 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
+	public IAffiliations getNodeAffiliations(String nodeName)
+			throws RepositoryException {
 		Node node = getNode(nodeName);
 		return node == null ? null : node.getNodeAffiliations();
 	}
 
 	@Override
-	public AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException {
+	public AbstractNodeConfig getNodeConfig(String nodeName)
+			throws RepositoryException {
 		Node node = getNode(nodeName);
 		try {
 			return node == null ? null : node.getNodeConfig().clone();
@@ -255,7 +262,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
+	public ISubscriptions getNodeSubscriptions(String nodeName)
+			throws RepositoryException {
 		Node node = getNode(nodeName);
 		return node == null ? null : node.getNodeSubscriptions();
 	}
@@ -295,47 +303,48 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	private LazyWriteThread makeLazyWriteThread(final boolean immediatelly) {
-		//Thread.dumpStack();
+		// Thread.dumpStack();
 		return new LazyWriteThread();
 	}
 
 	@Override
-	public void removeFromRootCollection(String nodeName) throws RepositoryException {
+	public void removeFromRootCollection(String nodeName)
+			throws RepositoryException {
 		dao.removeFromRootCollection(nodeName);
 		rootCollection.remove(nodeName);
 	}
 
 	@Override
-	public void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
+	public void update(String nodeName, AbstractNodeConfig nodeConfig)
+			throws RepositoryException {
 		Node node = getNode(nodeName);
 		if (node != null) {
 			node.configCopyFrom(nodeConfig);
-//			node.setNodeConfigChangeTimestamp();
-//			synchronized (mutex) {
-				log.finest("Node '" + nodeName + "' added to lazy write queue (config)");
-				nodesToSave.add(node);
+			// node.setNodeConfigChangeTimestamp();
+			// synchronized (mutex) {
+			log.finest("Node '" + nodeName + "' added to lazy write queue (config)");
+			nodesToSave.add(node);
 			tlazyWriteThread.wakeup();
-//			}
+			// }
 		}
 	}
 
 	@Override
-	public void update(String nodeName, IAffiliations nodeAffiliations) throws RepositoryException {
+	public void update(String nodeName, IAffiliations nodeAffiliations)
+			throws RepositoryException {
 		if (nodeAffiliations instanceof NodeAffiliations) {
-			NodeAffiliations affiliations = (NodeAffiliations) nodeAffiliations;
-
 			Node node = getNode(nodeName);
 			if (node != null) {
 				if (node.getNodeAffiliations() != nodeAffiliations) {
 					throw new RuntimeException("INCORRECT");
 				}
 				node.affiliationsMerge();
-//				node.setNodeAffiliationsChangeTimestamp();
-//				synchronized (mutex) {
-					log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations)");
-					nodesToSave.add(node);
+				// node.setNodeAffiliationsChangeTimestamp();
+				// synchronized (mutex) {
+				log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations)");
+				nodesToSave.add(node);
 				tlazyWriteThread.wakeup();
-//				}
+				// }
 			}
 		} else {
 			throw new RuntimeException("Wrong class");
@@ -343,22 +352,21 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	}
 
 	@Override
-	public void update(String nodeName, ISubscriptions nodeSubscriptions) throws RepositoryException {
+	public void update(String nodeName, ISubscriptions nodeSubscriptions)
+			throws RepositoryException {
 		if (nodeSubscriptions instanceof NodeSubscriptions) {
-			NodeSubscriptions subscriptions = (NodeSubscriptions) nodeSubscriptions;
-
 			Node node = getNode(nodeName);
 			if (node != null) {
 				if (node.getNodeSubscriptions() != nodeSubscriptions) {
 					throw new RuntimeException("INCORRECT");
 				}
 				node.subscriptionsMerge();
-//				node.setNodeSubscriptionsChangeTimestamp();
-//				synchronized (mutex) {
-					log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
-					nodesToSave.add(node);
+				// node.setNodeSubscriptionsChangeTimestamp();
+				// synchronized (mutex) {
+				log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
+				nodesToSave.add(node);
 				tlazyWriteThread.wakeup();
-//				}
+				// }
 			}
 		} else {
 			throw new RuntimeException("Wrong class");
@@ -367,9 +375,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	private class LazyWriteThread implements Runnable {
 
-    private boolean stop = false;
+		private boolean stop = false;
 
-		public LazyWriteThread() {}
+		public LazyWriteThread() {
+		}
 
 		public void stop() {
 			log.info("Stopping LazyWriteThread...");
@@ -391,41 +400,43 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				if (node != null) {
 					long start = System.currentTimeMillis();
 					++repo_writes;
-					// Prevent node modifications while it is being written to DB
+					// Prevent node modifications while it is being written to
+					// DB
 					synchronized (node) {
 						try {
 							if (node.isDeleted())
 								continue;
 							if (node.affiliationsNeedsWriting()) {
-								dao.updateAffiliations(node.getName(),
-												node.getNodeAffiliations().serialize());
+								dao.updateAffiliations(node.getName(), node
+										.getNodeAffiliations().serialize());
 								node.affiliationsSaved();
 							}
 							if (node.subscriptionsNeedsWriting()) {
-								FragmentedMap<String, UsersSubscription> fm =
-												node.getNodeSubscriptions().getFragmentedMap();
+								FragmentedMap<String, UsersSubscription> fm = node
+										.getNodeSubscriptions()
+										.getFragmentedMap();
 								fm.defragment();
 								for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
 									dao.removeSubscriptions(node.getName(), deletedIndex);
 								}
 								for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
-									Map<String, UsersSubscription> ft =
-													fm.getFragment(changedIndex);
-									dao.updateSubscriptions(node.getName(), changedIndex,
-													node.getNodeSubscriptions().serialize(ft));
+									Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
+									dao.updateSubscriptions(node.getName(),
+											changedIndex, node.getNodeSubscriptions().serialize(ft));
 								}
 								fm.cleanChangingLog();
 								node.subscriptionsSaved();
 							}
 							if (node.configNeedsWriting()) {
-								dao.updateNodeConfig(node.getName(),
-												node.getNodeConfig().getFormElement().toString());
+								dao.updateNodeConfig(node.getName(), node.getNodeConfig().getFormElement().toString());
 								node.configSaved();
 							}
 						} catch (Exception e) {
-							log.log(Level.WARNING, "Problem saving pubsub data: ", e);
+							log.log(Level.WARNING,
+									"Problem saving pubsub data: ", e);
 						}
-						// If the node still needs writing to the database put it back to the collection
+						// If the node still needs writing to the database put
+						// it back to the collection
 						if (node.needsWriting()) {
 							nodesToSave.add(node);
 						}
@@ -435,11 +446,16 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				} else {
 					if (!stop) {
 						try {
-							synchronized (nodesToSave) { nodesToSave.wait(); }
-							// After awaking sleep for 1 more second to allow for building
-							// up the buffer for saving. This improved performance.
+							synchronized (nodesToSave) {
+								nodesToSave.wait();
+							}
+							// After awaking sleep for 1 more second to allow
+							// for building
+							// up the buffer for saving. This improved
+							// performance.
 							Thread.sleep(1000);
-						} catch (InterruptedException ex) { }
+						} catch (InterruptedException ex) {
+						}
 					}
 				}
 			}
@@ -480,6 +496,5 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		}
 
 	}
-
 
 }

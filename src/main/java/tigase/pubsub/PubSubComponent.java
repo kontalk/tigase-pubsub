@@ -481,11 +481,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				// if (!res_uri.contains("autoCreateUser=true")) {
 				// res_uri += "&autoCreateUser=true";
 				// }
-				userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name,
-								res_uri, null);
+				userRepository = RepositoryFactory.getUserRepository("pubsub", cls_name, res_uri, null);
 				userRepository.initRepository(res_uri, null);
-				log.config("Initialized " + cls_name + " as pubsub repository: " +
-								res_uri);
+				log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 			}
 			
 			int dao_pool_size = 1;
@@ -493,6 +491,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				dao_pool_size = Integer.parseInt((String) props.get(PUBSUB_REPO_POOL_SIZE_PROP_KEY));
 			} catch (Exception e) {
 				dao_pool_size = 1;
+			}
+			if (log.isLoggable(Level.FINE)) {
+				log.fine("PubSubDAO pool size: " + dao_pool_size);
 			}
 
 			if (dao_pool_size > 1) {
