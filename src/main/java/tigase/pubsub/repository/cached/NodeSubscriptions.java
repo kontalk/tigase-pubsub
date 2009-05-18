@@ -1,5 +1,6 @@
 package tigase.pubsub.repository.cached;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -12,7 +13,7 @@ import tigase.util.JIDUtils;
 
 class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 
-	protected final Map<String, UsersSubscription> changedSubs = new HashMap<String, UsersSubscription>();
+	protected final Map<String, UsersSubscription> changedSubs = Collections.synchronizedMap(new HashMap<String, UsersSubscription>());
 
 	private NodeSubscriptions() {
 	}
