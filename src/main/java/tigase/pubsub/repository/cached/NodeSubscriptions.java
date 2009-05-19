@@ -1,6 +1,5 @@
 package tigase.pubsub.repository.cached;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -13,7 +12,7 @@ import tigase.util.JIDUtils;
 
 class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 
-	protected final Map<String, UsersSubscription> changedSubs = Collections.synchronizedMap(new HashMap<String, UsersSubscription>());
+	protected final Map<String, UsersSubscription> changedSubs = new HashMap<String, UsersSubscription>();
 
 	private NodeSubscriptions() {
 	}
@@ -27,7 +26,9 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 		final String subid = Utils.createUID(jid);
 		final String bareJid = JIDUtils.getNodeID(jid);
 		UsersSubscription s = new UsersSubscription(bareJid, subid, subscription);
-		changedSubs.put(bareJid, s);
+		synchronized (changedSubs) {
+			changedSubs.put(bareJid, s);
+		}
 		return subid;
 	}
 
@@ -37,13 +38,18 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 		UsersSubscription s = subs.get(bareJid);
 		if (s != null) {
 			s.setSubscription(subscription);
-			changedSubs.put(s.getJid(), s);
+			synchronized (changedSubs) {
+				changedSubs.put(s.getJid(), s);
+			}
 		}
 	}
 
 	@Override
 	protected UsersSubscription get(final String bareJid) {
-		UsersSubscription us = changedSubs.get(bareJid);
+		UsersSubscription us = null;
+		synchronized (changedSubs) {
+			us = changedSubs.get(bareJid);
+		}
 		if (us == null) {
 			us = subs.get(bareJid);
 			if (us != null)
@@ -61,23 +67,31 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 	public UsersSubscription[] getSubscriptions() {
 		final Set<UsersSubscription> result = new HashSet<UsersSubscription>();
 		result.addAll(this.subs.getAllValues());
-		result.addAll(this.changedSubs.values());
+		synchronized (changedSubs) {
+			result.addAll(this.changedSubs.values());
+		}
 		return result.toArray(new UsersSubscription[] {});
 	}
 
 	@Override
 	public boolean isChanged() {
-		return this.changedSubs.size() > 0;
+		synchronized (changedSubs) {
+			return this.changedSubs.size() > 0;
+		}
 	}
 
 	public void merge() {
-		subs.putAll(changedSubs);
-		changedSubs.clear();
+		synchronized (changedSubs) {
+			subs.putAll(changedSubs);
+			changedSubs.clear();
+		}
 	}
 
 	@Override
 	public void resetChangedFlag() {
-		this.changedSubs.clear();
+		synchronized (changedSubs) {
+			this.changedSubs.clear();
+		}
 	}
 
 }
