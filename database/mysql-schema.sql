@@ -8,7 +8,8 @@ CREATE  TABLE IF NOT EXISTS tig_pubsub_nodes (
  `creation_date` DATETIME NULL  /* The datetime when the node was created. */ ,
  `configuration` MEDIUMTEXT NULL ,
  `affiliations` MEDIUMTEXT NULL ,
- PRIMARY KEY (`name_sha1`(40))
+ PRIMARY KEY (`name_sha1`(40)),
+ INDEX USING HASH (`name`(255))
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
 /* This node table contains attributes which are common to both node types. */
