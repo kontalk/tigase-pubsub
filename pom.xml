@@ -3,7 +3,7 @@
 	<groupId>tigase</groupId>
 	<artifactId>tigase-pubsub</artifactId>
 	<name>tigase-pubsub</name>
-	<version>1.0.2</version>
+	<version>1.0.3-SNAPSHOT</version>
 	<description>Publish Subscribe component for Tigase</description>
 	<url>http://www.tigase.org</url>
 	<inceptionYear>2008</inceptionYear>
@@ -27,9 +27,9 @@
 		</license>
 	</licenses>
 	<scm>
-		<connection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/tags/tigase-pubsub-1.0.2</connection>
-		<developerConnection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/tags/tigase-pubsub-1.0.2</developerConnection>
-		<url>https://svn.tigase.org/reps/tigase-pubsub/tags/tigase-pubsub-1.0.2</url>
+		<connection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/tags/tigase-pubsub-1.0.0</connection>
+		<developerConnection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/tags/tigase-pubsub-1.0.0</developerConnection>
+		<url>https://svn.tigase.org/reps/tigase-pubsub/tags/tigase-pubsub-1.0.0</url>
 	</scm>
 	<organization>
 		<name>Tigase</name>
