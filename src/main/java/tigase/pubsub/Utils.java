@@ -22,7 +22,9 @@
 package tigase.pubsub;
 
 import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Random;
 import java.util.logging.Logger;
 
 import tigase.util.JIDUtils;
@@ -71,22 +73,15 @@ public class Utils {
 				(byte) 0x8d, (byte) 0xf1, (byte) 0x19, (byte) 0x1a, (byte) 0xaa, (byte) 0xc6, (byte) 0x5c, (byte) 0x26,
 				(byte) 0x5a };
 
-		private final SecureRandom random = new SecureRandom();
+		private final Random random;
 
 		private byte s = (byte) 0xde;
 
-		public Spi() {
-			long seed = System.nanoTime();
-			byte[] s = new byte[4];
-			s[3] = (byte) (seed & 0x000000ff);
-			s[2] = (byte) ((seed & 0x0000ff00) >> 8);
-			s[1] = (byte) ((seed & 0x00ff0000) >> 16);
-			s[0] = (byte) ((seed & 0xff000000) >> 24);
-			engineSetSeed(s);
-
-			byte[] s1 = random.generateSeed(768);
-			engineSetSeed(s1);
-
+		public Spi(Random random) {
+			this.random = random;
+			byte[] seed = new byte[768 * 2];
+			random.nextBytes(seed);
+			engineSetSeed(seed);
 		}
 
 		protected byte[] engineGenerateSeed(int numBytes) {
@@ -111,7 +106,8 @@ public class Utils {
 			}
 			if (counter > 16401001) {
 				counter = 0;
-				byte[] s1 = random.generateSeed(768);
+				byte[] s1 = new byte[768];
+				random.nextBytes(s1);
 				engineSetSeed(s1);
 			}
 		}
@@ -137,9 +133,9 @@ public class Utils {
 		}
 	}
 
-	protected static Logger log = Logger.getLogger(Utils.class.getName());
+	private static Utils instance;
 
-	private final static Spi spi = new Spi();
+	protected static Logger log = Logger.getLogger(Utils.class.getName());
 
 	public static String asString(String... array) {
 		StringBuilder sb = new StringBuilder();
@@ -168,15 +164,19 @@ public class Utils {
 	public static String createUID(String jid) {
 		byte[] x = new byte[13];
 
-		spi.engineNextBytes(x, 1);
+		Utils utils = instance();
+
+		utils.spi.engineNextBytes(x, 1);
 		if (jid != null)
-			spi.updateSeed(jid.hashCode());
+			utils.spi.updateSeed(jid.hashCode());
 
 		return (new BigInteger(x)).toString(36);
 	}
 
-	public static void main(String[] args) {
-		System.out.println(createUID("null"));
+	private static Utils instance() {
+		if (instance == null)
+			instance = new Utils();
+		return instance;
 	}
 
 	public static boolean isAllowedDomain(final String jid, final String... domains) {
@@ -200,6 +200,20 @@ public class Utils {
 				+ (millis > 0 ? millis + "ms" : "");
 	}
 
-	private Utils() {
+	public static void main(String[] args) {
+		System.out.println(createUID("null"));
 	}
+
+	private final Spi spi;
+
+	public Utils() {
+		Random random;
+		try {
+			random = SecureRandom.getInstance("SHA1PRNG");
+		} catch (NoSuchAlgorithmException e) {
+			random = new Random();
+		}
+		this.spi = new Spi(random);
+	}
+
 }
