@@ -41,6 +41,7 @@ import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
@@ -68,8 +69,8 @@ public class PublishItemModule extends AbstractModule {
 	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
-	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood", "http://jabber.org/protocol/geoloc",
-			"http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
+	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
+			"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
 
 	private long idCounter = 0;;
 
@@ -141,7 +142,8 @@ public class PublishItemModule extends AbstractModule {
 		return items;
 	}
 
-	private List<Element> pepProcess(final Element element, final Element pubSub, final Element publish) throws RepositoryException {
+	private List<Element> pepProcess(final Element element, final Element pubSub, final Element publish)
+			throws RepositoryException {
 		final String senderJid = element.getAttribute("from");
 		final Element item = publish.getChild("item");
 
@@ -151,14 +153,17 @@ public class PublishItemModule extends AbstractModule {
 		String[] subscribers = getValidBuddies(JIDUtils.getNodeID(senderJid));
 		List<Element> result = prepareNotification(subscribers, items, senderJid, null, publish.getAttribute("node"), null);
 		result.add(createResultIQ(element));
-		result.addAll(prepareNotification(new String[] { senderJid }, items, senderJid, null, publish.getAttribute("node"), null));
+		result.addAll(prepareNotification(new String[] { senderJid }, items, senderJid, null, publish.getAttribute("node"),
+				null));
 
 		return result;
 	}
 
 	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName,
-			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions) throws RepositoryException {
-		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations, nodesSubscriptions);
+			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
+			throws RepositoryException {
+		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations,
+				nodesSubscriptions);
 	}
 
 	public List<Element> prepareNotification(final Element itemToSend, final String jidFrom, final String publisherNodeName,
@@ -199,15 +204,18 @@ public class PublishItemModule extends AbstractModule {
 			if (body != null) {
 				message.addChildren(body);
 			}
-			Element event = new Element("event", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#event" });
+			Element event = new Element("event", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub#event" });
 
 			event.addChild(itemToSend);
 			message.addChild(event);
 
 			if (headers != null && headers.size() > 0) {
-				Element headElem = new Element("headers", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/shim" });
+				Element headElem = new Element("headers", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/shim" });
 				for (Entry<String, String> entry : headers.entrySet()) {
-					Element h = new Element("header", entry.getValue(), new String[] { "name" }, new String[] { entry.getKey() });
+					Element h = new Element("header", entry.getValue(), new String[] { "name" },
+							new String[] { entry.getKey() });
 					headElem.addChild(h);
 				}
 				message.addChild(headElem);
@@ -234,7 +242,8 @@ public class PublishItemModule extends AbstractModule {
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			} else if (nodeConfig.getNodeType() == NodeType.collection) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported", "publish"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"publish"));
 			}
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
 
@@ -248,12 +257,28 @@ public class PublishItemModule extends AbstractModule {
 
 			List<Element> itemsToSend = makeItemsToSend(publish);
 
+			List<Element> result = new ArrayList<Element>();
+			final Element resultIq = createResultIQ(element);
+			result.add(resultIq);
+
 			if (leafNodeConfig.isPersistItem()) {
 				// checking ID
+				Element resPubsub = new Element("pubsub", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/pubsub" });
+				resultIq.addChild(resPubsub);
+
+				Element resPublish = new Element("publish", new String[] { "node" }, new String[] { nodeName });
+				resPubsub.addChild(resPublish);
+
 				for (Element item : itemsToSend) {
 					String id = item.getAttribute("id");
-					if (id == null)
-						throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.ITEM_REQUIRED);
+					if (id == null) {
+						id = Utils.createUID();
+						// throw new PubSubException(Authorization.BAD_REQUEST,
+						// PubSubErrorCondition.ITEM_REQUIRED);
+						item.setAttribute("id", id);
+					}
+					resPublish.addChild(new Element("item", new String[] { "id" }, new String[] { id }));
 				}
 			}
 
@@ -264,16 +289,13 @@ public class PublishItemModule extends AbstractModule {
 			// TODO 7.1.3.5 Bad Payload
 			// TODO 7.1.3.6 Request Does Not Match Configuration
 
-			List<Element> result = new ArrayList<Element>();
-			result.add(createResultIQ(element));
-
 			final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
 			items.addChildren(itemsToSend);
 
 			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 
-			result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, this.repository.getNodeConfig(nodeName),
-					nodeAffiliations, nodeSubscriptions));
+			result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName,
+					this.repository.getNodeConfig(nodeName), nodeAffiliations, nodeSubscriptions));
 			List<String> parents = getParents(nodeName);
 			if (parents != null && parents.size() > 0) {
 				for (String collection : parents) {
