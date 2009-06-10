@@ -367,6 +367,30 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 	}
 
+	/**
+	 * This method overwrites default packet hashCode calculation from
+	 * a destination address to node name if possible so all packets for the
+	 * same pubsub node are processed on the same thread. If there is no node name
+	 * then the source address is used to get a better packets
+	 * distribution to different threads.
+	 * @param packet
+	 * @return
+	 */
+	public int hashCodeForPacket(Packet packet) {
+		List<Element> children = packet.getElemChildren("/iq/pubsub");
+		if (children != null) {
+			for (Element elem : children) {
+				String node_name = elem.getAttribute("node");
+				if (node_name != null) {
+					return node_name.hashCode();
+				}
+			}
+		}
+		return packet.getFrom().hashCode();
+	}
+
+	int lastNodeNo = -1;
+
 	public void process(final Element element, final ElementWriter writer) throws PacketErrorTypeException {
 		try {
 			boolean handled = runModules(element, writer);
@@ -381,8 +405,10 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				}
 			}
 		} catch (PubSubException e) {
-			log.finest("Exception '" + e.getErrorCondition() + "' throwed for request id=" + element.getAttribute("id"));
-			writer.write(e.makeElement(element));
+			log.log(Level.INFO, "Exception thrown for " + element.toString(), e);
+			Element result = e.makeElement(element);
+			log.log(Level.INFO, "Sending back: " + result.toString());
+			writer.write(result);
 		}
 	}
 
@@ -540,7 +566,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	@Override
 	public int processingThreads() {
-//		return 1 + (Runtime.getRuntime().availableProcessors()/2);
+		// Does not support concurrency!!
+		// Test it extensively before switching on, ask for more details if you need
+		//return 1 + (Runtime.getRuntime().availableProcessors() / 2);
 		return 1;
 	}
 
