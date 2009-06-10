@@ -47,6 +47,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private long repo_writes = 0;
 	private long nodes_added = 0;
 	private long writingTime = 0;
+	private long updateSubscriptionsCalled = 0;
 
 	// private final Object writeThreadMutex = new Object();
 
@@ -96,6 +97,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		}
 		// }
 
+		if (updateSubscriptionsCalled > 0) {
+			stats.add(new StatRecord(name, "Update subscriptions calls",
+					"long", updateSubscriptionsCalled, Level.FINE));
+		} else {
+			stats.add(new StatRecord(name, "Update subscriptions calls",
+					"long", updateSubscriptionsCalled, Level.FINEST));
+		}
 		if (subscriptionsCount > 0) {
 			stats.add(new StatRecord(name, "Subscriptions count (in cache)",
 					"long", subscriptionsCount, Level.FINE));
@@ -354,6 +362,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void update(String nodeName, ISubscriptions nodeSubscriptions)
 			throws RepositoryException {
+		++updateSubscriptionsCalled;
 		if (nodeSubscriptions instanceof NodeSubscriptions) {
 			Node node = getNode(nodeName);
 			if (node != null) {
