@@ -173,6 +173,10 @@ public class Utils {
 		return (new BigInteger(x)).toString(36);
 	}
 
+	public static String createUID() {
+		return createUID(null);
+	}
+
 	private static Utils instance() {
 		if (instance == null)
 			instance = new Utils();
