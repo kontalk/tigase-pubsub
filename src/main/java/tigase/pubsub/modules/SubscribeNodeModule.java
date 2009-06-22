@@ -58,7 +58,8 @@ public class SubscribeNodeModule extends AbstractModule {
 	}
 
 	public static Element makeSubscription(String nodeName, String subscriberJid, Subscription newSubscription, String subid) {
-		Element resPubSub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+		Element resPubSub = new Element("pubsub", new String[] { "xmlns" },
+				new String[] { "http://jabber.org/protocol/pubsub" });
 		Element resSubscription = new Element("subscription");
 		resPubSub.addChild(resSubscription);
 		resSubscription.setAttribute("node", nodeName);
@@ -71,15 +72,17 @@ public class SubscribeNodeModule extends AbstractModule {
 
 	private final PendingSubscriptionModule pendingSubscriptionModule;
 
-	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository, PendingSubscriptionModule manageSubscriptionModule) {
+	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository,
+			PendingSubscriptionModule manageSubscriptionModule) {
 		super(config, pubsubRepository);
 		this.pendingSubscriptionModule = manageSubscriptionModule;
 	}
 
 	@Override
 	public String[] getFeatures() {
-		return new String[] { "http://jabber.org/protocol/pubsub#manage-subscriptions", "http://jabber.org/protocol/pubsub#auto-subscribe",
-				"http://jabber.org/protocol/pubsub#subscribe", "http://jabber.org/protocol/pubsub#subscription-notifications" };
+		return new String[] { "http://jabber.org/protocol/pubsub#manage-subscriptions",
+				"http://jabber.org/protocol/pubsub#auto-subscribe", "http://jabber.org/protocol/pubsub#subscribe",
+				"http://jabber.org/protocol/pubsub#subscription-notifications" };
 	}
 
 	@Override
@@ -100,7 +103,8 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
-			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
+			if (nodeConfig.getNodeAccessModel() == AccessModel.open
+					&& !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
@@ -133,11 +137,12 @@ public class SubscribeNodeModule extends AbstractModule {
 			if (subscription != null) {
 				if (subscription == Subscription.pending
 						&& !(this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || senderAffiliation.getAffiliation() == Affiliation.owner)) {
-					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION, "Subscription is pending");
+					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION,
+							"Subscription is pending");
 				}
 			}
 			if (accessModel == AccessModel.whitelist
-					&& (senderAffiliation == null || senderAffiliation.getAffiliation() == Affiliation.none)) {
+					&& (senderAffiliation == null || senderAffiliation.getAffiliation() == Affiliation.none || senderAffiliation.getAffiliation() == Affiliation.outcast)) {
 				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
 			}
 
@@ -166,6 +171,9 @@ public class SubscribeNodeModule extends AbstractModule {
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
 				newSubscription = Subscription.subscribed;
 				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
+			} else if (accessModel == AccessModel.whitelist) {
+				newSubscription = Subscription.subscribed;
+				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
 			} else {
 				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, "AccessModel '" + accessModel.name()
 						+ "' is not implemented yet");
@@ -177,8 +185,8 @@ public class SubscribeNodeModule extends AbstractModule {
 				nodeAffiliations.addAffiliation(jid, affiliation);
 				if (accessModel == AccessModel.authorize
 						&& !(this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || senderAffiliation.getAffiliation() == Affiliation.owner)) {
-					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, element.getAttribute("to"), subid,
-							jid, nodeAffiliations));
+					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName,
+							element.getAttribute("to"), subid, jid, nodeAffiliations));
 				}
 
 			} else {
