@@ -22,6 +22,7 @@
 package tigase.pubsub;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -79,21 +80,27 @@ public abstract class AbstractModule implements Module {
 		return best;
 	}
 
-	public String[] getActiveSubscribers(final IAffiliations affiliations, final ISubscriptions subscriptions) throws RepositoryException {
+	public List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final IAffiliations affiliations,
+			final ISubscriptions subscriptions) throws RepositoryException {
 		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
 		if (subscribers == null)
-			return new String[] {};
+			return Collections.emptyList();
 		String[] jids = new String[subscribers.length];
 		for (int i = 0; i < subscribers.length; i++) {
 			jids[i] = subscribers[i].getJid();
 		}
-		return getActiveSubscribers(jids, affiliations, subscriptions);
+		return getActiveSubscribers(nodeConfig, jids, affiliations, subscriptions);
 	}
 
-	public String[] getActiveSubscribers(final String[] jids, final IAffiliations affiliations, final ISubscriptions subscriptions) {
+	public List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final String[] jids,
+			final IAffiliations affiliations, final ISubscriptions subscriptions) {
 		List<String> result = new ArrayList<String>();
+		final boolean presenceExpired = nodeConfig.isPresenceExpired();
 		if (jids != null) {
 			for (String jid : jids) {
+				if (presenceExpired) {
+
+				}
 				UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
 				// /* && affiliation.getAffiliation() != Affiliation.none */
 				if (affiliation.getAffiliation() != Affiliation.outcast) {
@@ -105,11 +112,11 @@ public abstract class AbstractModule implements Module {
 
 			}
 		}
-		return result.toArray(new String[] {});
+		return result;
 	}
 
-	protected boolean hasSenderSubscription(final String jid, final IAffiliations affiliations, final ISubscriptions subscriptions)
-			throws RepositoryException {
+	protected boolean hasSenderSubscription(final String jid, final IAffiliations affiliations,
+			final ISubscriptions subscriptions) throws RepositoryException {
 		final UsersSubscription[] subscribers = subscriptions.getSubscriptions();
 		final String bareJid = JIDUtils.getNodeID(jid);
 		for (UsersSubscription owner : subscribers) {

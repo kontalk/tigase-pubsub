@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,10 +38,12 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
 import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -159,6 +162,12 @@ public class PublishItemModule extends AbstractModule {
 		return result;
 	}
 
+	protected void beforePrepareNotification(final AbstractNodeConfig nodeConfig, final ISubscriptions nodesSubscriptions) {
+		if (nodeConfig.isPresenceExpired()) {
+
+		}
+	}
+
 	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName,
 			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
 			throws RepositoryException {
@@ -169,7 +178,30 @@ public class PublishItemModule extends AbstractModule {
 	public List<Element> prepareNotification(final Element itemToSend, final String jidFrom, final String publisherNodeName,
 			final Map<String, String> headers, AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations,
 			ISubscriptions nodesSubscriptions) throws RepositoryException {
-		String[] subscribers = getActiveSubscribers(nodeAffiliations, nodesSubscriptions);
+		beforePrepareNotification(nodeConfig, nodesSubscriptions);
+		List<String> tmp = getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions);
+		boolean updateSubscriptions = false;
+		if (true || nodeConfig.isPresenceExpired()) {
+			Iterator<String> it = tmp.iterator();
+			while (it.hasNext()) {
+				final String jid = it.next();
+				boolean available = this.presenceCollector.isJidAvailable(jid);
+				final UsersAffiliation afi = nodeAffiliations.getSubscriberAffiliation(jid);
+				if (afi == null || !available && afi.getAffiliation() == Affiliation.member) {
+					it.remove();
+					nodesSubscriptions.changeSubscription(jid, Subscription.none);
+					updateSubscriptions = true;
+					if (log.isLoggable(Level.FINE))
+						log.fine("Subscriptione expired. Node: " + nodeConfig.getNodeName() + ", jid: " + jid);
+				}
+			}
+		}
+
+		if (updateSubscriptions)
+			this.repository.update(nodeConfig.getNodeName(), nodesSubscriptions);
+
+		String[] subscribers = tmp.toArray(new String[] {});
+
 		if (nodeConfig.isDeliverPresenceBased()) {
 			List<String> s = new ArrayList<String>();
 			for (String jid : subscribers) {
@@ -185,6 +217,7 @@ public class PublishItemModule extends AbstractModule {
 
 	public List<Element> prepareNotification(final String[] subscribers, final Element itemToSend, final String jidFrom,
 			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
+
 		ArrayList<Element> result = new ArrayList<Element>();
 
 		List<Element> body = null;

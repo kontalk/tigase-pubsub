@@ -33,6 +33,8 @@ public abstract class AbstractNodeConfig {
 
 	public static final String PUBSUB = "pubsub#";
 
+	public static final String TIGASE = "tigase#";
+
 	/**
 	 * List with do-not-write elements
 	 */
@@ -179,6 +181,9 @@ public abstract class AbstractNodeConfig {
 		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
 				"Whether to deliver notifications to available users only"));
 
+		form.addField(Field.fieldBoolean(TIGASE + "presence_expired", false,
+				"Whether to subscription expired when subscriber going offline."));
+
 		form.addField(Field.fieldTextMulti(PUBSUB + "embedded_body_xslt", new String[] {},
 				"The XSL transformation which can be applied to payloads in order to generate an appropriate message body element."));
 
@@ -204,6 +209,11 @@ public abstract class AbstractNodeConfig {
 
 	public boolean isNotify_config() {
 		return form.getAsBoolean("pubsub#notify_config");
+	}
+
+	public boolean isPresenceExpired() {
+		Boolean x = form.getAsBoolean(TIGASE + "presence_expired");
+		return x == null ? false : x.booleanValue();
 	}
 
 	public boolean isTigaseNotifyChangeSubscriptionAffiliationState() {

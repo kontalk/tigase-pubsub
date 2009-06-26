@@ -60,6 +60,12 @@ public class PresenceCollectorModule implements Module {
 		return result;
 	}
 
+	public boolean isJidAvailable(final String jid) {
+		final String bareJid = JIDUtils.getNodeID(jid);
+		final Set<String> resources = this.resources.get(bareJid);
+		return resources != null && resources.size() > 0;
+	}
+
 	public List<String> getAllAvailableResources(final String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
 		final List<String> result = new ArrayList<String>();
@@ -84,7 +90,8 @@ public class PresenceCollectorModule implements Module {
 		String to = presence.getAttribute("from");
 		if (to != null) {
 			String jid = JIDUtils.getNodeID(to);
-			Element p = new Element("presence", new String[] { "to", "from" }, new String[] { jid, presence.getAttribute("to") });
+			Element p = new Element("presence", new String[] { "to", "from" },
+					new String[] { jid, presence.getAttribute("to") });
 			if (type != null) {
 				p.setAttribute("type", type);
 			}
@@ -102,13 +109,14 @@ public class PresenceCollectorModule implements Module {
 		if (type == null) {
 			boolean added = addJid(jid);
 			if (added) {
-				Element p = new Element("presence", new String[] { "to", "from" }, new String[] { jid, element.getAttribute("to") });
+				Element p = new Element("presence", new String[] { "to", "from" }, new String[] { jid,
+						element.getAttribute("to") });
 				result.add(p);
 			}
 		} else if ("unavailable".equals(type)) {
 			removeJid(jid);
-			Element p = new Element("presence", new String[] { "to", "from", "type" }, new String[] { jid, element.getAttribute("to"),
-					"unavailable" });
+			Element p = new Element("presence", new String[] { "to", "from", "type" }, new String[] { jid,
+					element.getAttribute("to"), "unavailable" });
 			result.add(p);
 		} else if ("subscribe".equals(type)) {
 			log.finest("Contact " + jid + " wants to subscribe PubSub");
