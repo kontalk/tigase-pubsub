@@ -181,7 +181,7 @@ public class PublishItemModule extends AbstractModule {
 		beforePrepareNotification(nodeConfig, nodesSubscriptions);
 		List<String> tmp = getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions);
 		boolean updateSubscriptions = false;
-		if (true || nodeConfig.isPresenceExpired()) {
+		if (nodeConfig.isPresenceExpired()) {
 			Iterator<String> it = tmp.iterator();
 			while (it.hasNext()) {
 				final String jid = it.next();
