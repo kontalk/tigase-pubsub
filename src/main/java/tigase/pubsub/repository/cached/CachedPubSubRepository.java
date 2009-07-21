@@ -24,6 +24,7 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
 import tigase.stats.StatRecord;
+import tigase.stats.StatisticsList;
 
 public class CachedPubSubRepository implements IPubSubRepository {
 
@@ -67,20 +68,20 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		// Thread.dumpStack();
 	}
 
-	public void addStats(final String name, final List<StatRecord> stats) {
+	public void addStats(final String name, final StatisticsList stats) {
 		if (this.nodes.size() > 0) {
-			stats.add(new StatRecord(name, "Cached nodes", "long", this.nodes
-					.size(), Level.FINE));
+			stats.add(name, "Cached nodes", this.nodes
+					.size(), Level.FINE);
 		} else {
-			stats.add(new StatRecord(name, "Cached nodes", "long", this.nodes
-					.size(), Level.FINEST));
+			stats.add(name, "Cached nodes", this.nodes
+					.size(), Level.FINEST);
 		}
 		if (this.nodesToSave.size() > 0) {
-			stats.add(new StatRecord(name, "Unsaved nodes", "long",
-					this.nodesToSave.size(), Level.INFO));
+			stats.add(name, "Unsaved nodes", 
+					this.nodesToSave.size(), Level.INFO);
 		} else {
-			stats.add(new StatRecord(name, "Unsaved nodes", "long",
-					this.nodesToSave.size(), Level.FINEST));
+			stats.add(name, "Unsaved nodes", 
+					this.nodesToSave.size(), Level.FINEST);
 		}
 
 		long subscriptionsCount = 0;
@@ -98,56 +99,56 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		// }
 
 		if (updateSubscriptionsCalled > 0) {
-			stats.add(new StatRecord(name, "Update subscriptions calls",
-					"long", updateSubscriptionsCalled, Level.FINE));
+			stats.add(name, "Update subscriptions calls",
+					updateSubscriptionsCalled, Level.FINE);
 		} else {
-			stats.add(new StatRecord(name, "Update subscriptions calls",
-					"long", updateSubscriptionsCalled, Level.FINEST));
+			stats.add(name, "Update subscriptions calls",
+					updateSubscriptionsCalled, Level.FINEST);
 		}
 		if (subscriptionsCount > 0) {
-			stats.add(new StatRecord(name, "Subscriptions count (in cache)",
-					"long", subscriptionsCount, Level.FINE));
+			stats.add(name, "Subscriptions count (in cache)",
+					subscriptionsCount, Level.FINE);
 		} else {
-			stats.add(new StatRecord(name, "Subscriptions count (in cache)",
-					"long", subscriptionsCount, Level.FINEST));
+			stats.add(name, "Subscriptions count (in cache)",
+					subscriptionsCount, Level.FINEST);
 		}
 		if (affiliationsCount > 0) {
-			stats.add(new StatRecord(name, "Affiliations count (in cache)",
-					"long", affiliationsCount, Level.FINE));
+			stats.add(name, "Affiliations count (in cache)",
+					affiliationsCount, Level.FINE);
 		} else {
-			stats.add(new StatRecord(name, "Affiliations count (in cache)",
-					"long", affiliationsCount, Level.FINEST));
+			stats.add(name, "Affiliations count (in cache)",
+					affiliationsCount, Level.FINEST);
 		}
 		if (repo_writes > 0) {
-			stats.add(new StatRecord(name, "Repository writes", "long",
-					repo_writes, Level.FINE));
+			stats.add(name, "Repository writes", 
+					repo_writes, Level.FINE);
 		} else {
-			stats.add(new StatRecord(name, "Repository writes", "long",
-					repo_writes, Level.FINEST));
+			stats.add(name, "Repository writes",
+					repo_writes, Level.FINEST);
 		}
 		if (nodes_added > 0) {
-			stats.add(new StatRecord(name, "Added new nodes", "long",
-					nodes_added, Level.INFO));
+			stats.add(name, "Added new nodes", 
+					nodes_added, Level.INFO);
 		} else {
-			stats.add(new StatRecord(name, "Added new nodes", "long",
-					nodes_added, Level.FINEST));
+			stats.add(name, "Added new nodes", 
+					nodes_added, Level.FINEST);
 		}
 		if (nodes_added > 0) {
-			stats.add(new StatRecord(name, "Total writing time", "String",
-					Utils.longToTime(writingTime), Level.INFO));
+			stats.add(name, "Total writing time", 
+					Utils.longToTime(writingTime), Level.INFO);
 		} else {
-			stats.add(new StatRecord(name, "Total writing time", "String",
-					Utils.longToTime(writingTime), Level.FINEST));
+			stats.add(name, "Total writing time", 
+					Utils.longToTime(writingTime), Level.FINEST);
 		}
 		if (nodes_added + repo_writes > 0) {
 			if (nodes_added > 0) {
-				stats.add(new StatRecord(name, "Average DB write time [ms]",
-						"long", (writingTime / (nodes_added + repo_writes)),
-						Level.INFO));
+				stats.add(name, "Average DB write time [ms]",
+						(writingTime / (nodes_added + repo_writes)),
+						Level.INFO);
 			} else {
-				stats.add(new StatRecord(name, "Average DB write time [ms]",
-						"long", (writingTime / (nodes_added + repo_writes)),
-						Level.FINEST));
+				stats.add(name, "Average DB write time [ms]",
+						(writingTime / (nodes_added + repo_writes)),
+						Level.FINEST);
 			}
 		}
 	}
