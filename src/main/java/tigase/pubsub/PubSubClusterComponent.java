@@ -25,12 +25,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import tigase.cluster.ClusterController;
 import tigase.cluster.ClusterElement;
 import tigase.cluster.ClusteredComponent;
 import tigase.db.TigaseDBException;
@@ -159,12 +161,11 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		return false;
 	}
 
-	public void nodesConnected(Set<String> node_hostnames) {
-		for (String node : node_hostnames) {
+	@Override
+	public void nodeConnected(String node) {
 			log.finest("Node connected: " + node + " (" + getName() + "@" + node + ")");
 			cluster_nodes.add(getName() + "@" + node);
 			sendAvailableJidsToNode(getName() + "@" + node);
-		}
 	}
 
 	public void nodesDisconnected(Set<String> node_hostnames) {
@@ -322,7 +323,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	protected boolean sentToNextNode(ClusterElement clel) {
 		ClusterElement next_clel =
 						ClusterElement.createForNextNode(clel,
-						cluster_nodes.toArray(new String[cluster_nodes.size()]),
+						new LinkedList<String>(cluster_nodes),
 						getComponentId());
 		if (next_clel != null) {
 			// String nextNode = findNextUnvisitedNode(clel);
@@ -365,5 +366,17 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public void nodeDisconnected(String node) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setClusterController(ClusterController clController) {
+		// TODO Auto-generated method stub
+		
 	}
 }
