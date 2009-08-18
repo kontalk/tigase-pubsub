@@ -67,7 +67,7 @@ public class Node {
 
 	public void configCopyFrom(AbstractNodeConfig nodeConfig) {
 		synchronized (this) {
-			nodeConfig.copyFrom(nodeConfig);
+			this.nodeConfig.copyFrom(nodeConfig);
 			conNeedsWriting = true;
 		}
 	}
