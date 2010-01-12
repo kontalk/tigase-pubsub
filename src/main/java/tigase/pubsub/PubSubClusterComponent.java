@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.cluster.ClusterController;
@@ -44,8 +45,10 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.server.Packet;
+import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
+import tigase.xmpp.JID;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
@@ -67,7 +70,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		return nodesNames.toArray(new String[] {});
 	}
 
-	private final Set<String> cluster_nodes = new LinkedHashSet<String>();
+	private final Set<JID> cluster_nodes = new LinkedHashSet<JID>();
 
 	protected final ClusterNodeMap nodeMap;
 
@@ -82,12 +85,12 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	}
 
 	private String findNextUnvisitedNode(final ClusterElement clel) {
-		final String comp_id = getComponentId();
+		final JID comp_id = getComponentId();
 		if (cluster_nodes.size() > 0) {
 			String next_node = null;
-			for (String cluster_node : cluster_nodes) {
-				if (!clel.isVisitedNode(cluster_node) && !cluster_node.equals(comp_id)) {
-					next_node = cluster_node;
+			for (JID cluster_node : cluster_nodes) {
+				if (!clel.isVisitedNode(cluster_node.toString()) && !cluster_node.equals(comp_id)) {
+					next_node = cluster_node.toString();
 					log.finest("Found next cluster node: " + next_node);
 					break;
 				}
@@ -97,22 +100,22 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		return null;
 	}
 
-	@Override
-	public String getComponentId() {
-		String name;
-		if (System.getProperty("test", "no").equals("yes")) {
-			name = super.getComponentId().replace("@", ".");
-		} else
-			name = super.getComponentId();
-
-		return name;
-	}
+//	@Override
+//	public String getComponentId() {
+//		String name;
+//		if (System.getProperty("test", "no").equals("yes")) {
+//			name = super.getComponentId().replace("@", ".");
+//		} else
+//			name = super.getComponentId();
+//
+//		return name;
+//	}
 
 	protected String getFirstClusterNode() {
 		String cluster_node = null;
-		for (String node : cluster_nodes) {
+		for (JID node : cluster_nodes) {
 			if (!node.equals(getComponentId())) {
-				cluster_node = node;
+				cluster_node = node.toString();
 				break;
 			}
 		}
@@ -132,7 +135,11 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			log.config(msh);
 			for (String string : n) {
 				log.config("Test Node connected: " + string);
-				cluster_nodes.add(string);
+				try {
+					cluster_nodes.add(new JID(string));
+				} catch (TigaseStringprepException ex) {
+					log.info("Node addressing problem, stringprep failed: " + string);
+				}
 			}
 		}
 		super.init();
@@ -163,15 +170,25 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	@Override
 	public void nodeConnected(String node) {
+		try {
 			log.finest("Node connected: " + node + " (" + getName() + "@" + node + ")");
-			cluster_nodes.add(getName() + "@" + node);
+			cluster_nodes.add(new JID(getName(), node, null));
 			sendAvailableJidsToNode(getName() + "@" + node);
+		} catch (TigaseStringprepException ex) {
+			log.info("Packet addressing problem, stringprep failed: " + getName()
+					+ "@" + node);
+		}
 	}
 
 	public void nodesDisconnected(Set<String> node_hostnames) {
 		for (String node : node_hostnames) {
 			log.finest("Node disconnected: " + node + " (" + getName() + "@" + node + ")");
-			cluster_nodes.remove(getName() + "@" + node);
+			try {
+				cluster_nodes.remove(new JID(getName(), node, null));
+			} catch (TigaseStringprepException ex) {
+				log.info("Packet addressing problem, stringprep failed: " + getName()
+						+ "@" + node);
+			}
 		}
 	}
 
@@ -222,10 +239,15 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 						log.throwing("PubSub Service", "processPacket (sending internal-server-error)", e);
 					}
 				}
-			} else
+			} else {
 				for (Element element : elements) {
-					super.processPacket(new Packet(element));
+					try {
+						super.processPacket(Packet.packetInstance(element));
+					} catch (TigaseStringprepException ex) {
+						log.info("Packet addressing problem, stringprep failed: " + element);
+					}
 				}
+			}
 		} else if (this.cluster_nodes == null || this.cluster_nodes.size() == 0) {
 			super.processPacket(packet);
 		} else {
@@ -277,18 +299,29 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			++counter;
 			params.put("jid." + counter, jid);
 			if (params.size() > 99) {
-				ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
-						METHOD_PRESENCE_COLLECTION, params);
-				addOutPacket(new Packet(call.getClusterElement()));
-
-				params = new HashMap<String, String>();
+				ClusterElement call =
+						ClusterElement.createClusterMethodCall(getComponentId().toString(),
+						node, StanzaType.set, METHOD_PRESENCE_COLLECTION, params);
+				try {
+					addOutPacket(Packet.packetInstance(call.getClusterElement()));
+					params = new HashMap<String, String>();
+				} catch (TigaseStringprepException ex) {
+					log.info("Packet addressing problem, stringprep failed: "
+							+ call.getClusterElement());
+				}
 			}
 
 		}
 		if (params.size() != 0) {
-			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), node, StanzaType.set,
+			ClusterElement call = ClusterElement.createClusterMethodCall(
+					getComponentId().toString(), node, StanzaType.set,
 					METHOD_PRESENCE_COLLECTION, params);
-			addOutPacket(new Packet(call.getClusterElement()));
+			try {
+				addOutPacket(Packet.packetInstance(call.getClusterElement()));
+			} catch (TigaseStringprepException ex) {
+				log.info("Packet addressing problem, stringprep failed: "
+						+ call.getClusterElement());
+			}
 		}
 	}
 
@@ -300,7 +333,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		params.put("clusterNodeId", clusterNode);
 		params.put("pubsubNodeName", pubsubNode);
 
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), cluster_node, StanzaType.set, METHOD_SET_OWNERSHIP,
+		ClusterElement call = ClusterElement.createClusterMethodCall(
+				getComponentId().toString(), cluster_node, StanzaType.set, METHOD_SET_OWNERSHIP,
 				params);
 		sentToNextNode(call);
 	}
@@ -309,28 +343,39 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		Map<String, String> params = new HashMap<String, String>();
 		params.put("uuid", uuid);
 
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(), firstNode, StanzaType.result, METHOD_RESULT, params);
-		addOutPacket(new Packet(call.getClusterElement()));
+		ClusterElement call = ClusterElement.createClusterMethodCall(
+				getComponentId().toString(), firstNode, StanzaType.result, METHOD_RESULT, params);
+		try {
+			addOutPacket(Packet.packetInstance(call.getClusterElement()));
+		} catch (TigaseStringprepException ex) {
+			log.info("Packet addressing problem, stringprep failed: "
+					+ call.getClusterElement());
+		}
 	}
 
 	protected void sentBroadcast(final Packet packet) {
 		log.finest("Send broadcast with: " + packet.toString());
-		for (String cNN : this.cluster_nodes) {
-			sentToNode(packet, cNN);
+		for (JID cNN : this.cluster_nodes) {
+			sentToNode(packet, cNN.toString());
 		}
 	}
 
 	protected boolean sentToNextNode(ClusterElement clel) {
 		ClusterElement next_clel =
 						ClusterElement.createForNextNode(clel,
-						new LinkedList<String>(cluster_nodes),
+						new LinkedList<JID>(cluster_nodes),
 						getComponentId());
 		if (next_clel != null) {
 			// String nextNode = findNextUnvisitedNode(clel);
 			// if (nextNode != null) {
 			// ClusterElement next_clel = clel.nextClusterNode(nextNode);
-			next_clel.addVisitedNode(getComponentId());
-			addOutPacket(new Packet(next_clel.getClusterElement()));
+			next_clel.addVisitedNode(getComponentId().toString());
+			try {
+				addOutPacket(Packet.packetInstance(next_clel.getClusterElement()));
+			} catch (TigaseStringprepException ex) {
+				log.info("Packet addressing problem, stringprep failed: "
+						+ next_clel.getClusterElement());
+			}
 			return true;
 		} else {
 			return false;
@@ -339,13 +384,19 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 	protected boolean sentToNextNode(Packet packet) {
 		if (cluster_nodes.size() > 0) {
-			String sess_man_id = getComponentId();
+			JID sess_man_id = getComponentId();
 			String cluster_node = getFirstClusterNode();
 			if (cluster_node != null) {
-				ClusterElement clel = new ClusterElement(sess_man_id, cluster_node, StanzaType.set, packet);
-				clel.addVisitedNode(sess_man_id);
+				ClusterElement clel = new ClusterElement(sess_man_id.toString(),
+						cluster_node, StanzaType.set, packet);
+				clel.addVisitedNode(sess_man_id.toString());
 				log.finest("Sending packet to next node [" + cluster_node + "]");
-				addOutPacket(new Packet(clel.getClusterElement()));
+				try {
+					addOutPacket(Packet.packetInstance(clel.getClusterElement()));
+				} catch (TigaseStringprepException ex) {
+					log.info("Packet addressing problem, stringprep failed: "
+							+ clel.getClusterElement());
+				}
 				return true;
 			}
 		}
@@ -353,15 +404,21 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	}
 
 	protected boolean sentToNode(final Packet packet, final String cluster_node) {
-		if (cluster_node.equals(getComponentId())) {
+		if (cluster_node.equals(getComponentId().toString())) {
 			super.processPacket(packet);
 		} else if (cluster_nodes.size() > 0) {
-			String sess_man_id = getComponentId();
+			JID sess_man_id = getComponentId();
 			if (cluster_node != null) {
-				ClusterElement clel = new ClusterElement(sess_man_id, cluster_node, StanzaType.set, packet);
-				clel.addVisitedNode(sess_man_id);
+				ClusterElement clel = new ClusterElement(sess_man_id.toString(),
+						cluster_node, StanzaType.set, packet);
+				clel.addVisitedNode(sess_man_id.toString());
 				log.finest("Sending packet to next node [" + cluster_node + "]");
-				addOutPacket(new Packet(clel.getClusterElement()));
+				try {
+					addOutPacket(Packet.packetInstance(clel.getClusterElement()));
+				} catch (TigaseStringprepException ex) {
+					log.info("Packet addressing problem, stringprep failed: "
+							+ clel.getClusterElement());
+				}
 				return true;
 			}
 		}

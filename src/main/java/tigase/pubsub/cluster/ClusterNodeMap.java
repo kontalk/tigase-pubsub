@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
+import tigase.xmpp.JID;
 
 public class ClusterNodeMap {
 
@@ -15,13 +16,13 @@ public class ClusterNodeMap {
 		private String clusterNodeId;
 	}
 
-	private final Set<String> clusterNodes;
+	private final Set<JID> clusterNodes;
 
 	private final Map<String, NodeInfo> nodesMap = new HashMap<String, NodeInfo>();
 
 	private final Random random = new SecureRandom();
 
-	public ClusterNodeMap(Set<String> cluster_nodes) {
+	public ClusterNodeMap(Set<JID> cluster_nodes) {
 		this.clusterNodes = cluster_nodes;
 	}
 
@@ -30,10 +31,11 @@ public class ClusterNodeMap {
 	}
 
 	public void addPubSubNode(final String[] nodeNames) {
-		if (nodeNames != null)
+		if (nodeNames != null) {
 			for (String string : nodeNames) {
 				addPubSubNode(string);
 			}
+		}
 	}
 
 	public void assign(final String clusterNodeId, final String pubSubNodeName) {
@@ -47,22 +49,24 @@ public class ClusterNodeMap {
 
 	public String getClusterNodeId(final String pubsubNodeName) {
 		NodeInfo i = this.nodesMap.get(pubsubNodeName);
-		if (i != null)
+		if (i != null) {
 			return i.clusterNodeId;
-		else
+		}
+		else {
 			return null;
+		}
 	}
 
 	public Map<String, Integer> getClusterNodesLoad() {
 		final Map<String, Integer> nodeLoad = new HashMap<String, Integer>();
 		// init
-		for (String n : this.clusterNodes)
-			nodeLoad.put(n, new Integer(0));
+		for (JID n : this.clusterNodes) {
+			nodeLoad.put(n.toString(), new Integer(0));
+		}
 
 		// counting
 		for (Entry<String, NodeInfo> entry : this.nodesMap.entrySet()) {
-			if (entry.getValue().clusterNodeId == null)
-				continue;
+			if (entry.getValue().clusterNodeId == null)	continue;
 			Integer a = nodeLoad.get(entry.getValue().clusterNodeId);
 			if (a != null) {
 				a++;

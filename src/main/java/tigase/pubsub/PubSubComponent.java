@@ -77,8 +77,10 @@ import tigase.server.Packet;
 import tigase.stats.StatRecord;
 import tigase.stats.StatisticsList;
 import tigase.util.DNSResolver;
+import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
+import tigase.xmpp.JID;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
@@ -154,17 +156,26 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		setName("pubsub");
 		this.elementWriter = new ElementWriter() {
 
+			@Override
 			public void write(Collection<Element> elements) {
-				if (elements != null)
+				if (elements != null) {
 					for (Element element : elements) {
-						if (element != null)
+						if (element != null) {
 							write(element);
+						}
 					}
+				}
 			}
 
+			@Override
 			public void write(final Element element) {
-				if (element != null)
-					addOutPacket(new Packet(element));
+				if (element != null) {
+					try {
+						addOutPacket(Packet.packetInstance(element));
+					} catch (TigaseStringprepException ex) {
+						log.info("Packet addressing problem, stringprep failed: " + element);
+					}
+				}
 			}
 		};
 	}
@@ -266,12 +277,12 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	}
 
 	@Override
-	public Element getDiscoInfo(String node, String jid) {
+	public Element getDiscoInfo(String node, JID jid) {
 		return null;
 	}
 
 	@Override
-	public List<Element> getDiscoItems(String node, String jid) {
+	public List<Element> getDiscoItems(String node, JID jid) {
 		if (node == null) {
 			Element result = serviceEntity.getDiscoItem(null, getName() + "." + jid);
 			return Arrays.asList(result);
