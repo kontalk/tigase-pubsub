@@ -19,12 +19,14 @@
  * Last modified by $Author$
  * $Date$
  */
+
 package tigase.pubsub.modules;
 
-import java.util.List;
+//~--- non-JDK imports --------------------------------------------------------
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
+
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
@@ -39,67 +41,136 @@ import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
+
 import tigase.util.JIDUtils;
+
 import tigase.xml.Element;
+
 import tigase.xmpp.Authorization;
 
+//~--- JDK imports ------------------------------------------------------------
+
+import java.util.List;
+
+//~--- classes ----------------------------------------------------------------
+
+/**
+ * Class description
+ *
+ *
+ * @version        5.0.0, 2010.03.27 at 05:25:49 GMT
+ * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ */
 public class ManageSubscriptionModule extends AbstractModule {
+	private static final Criteria CRIT =
+		ElementCriteria.name("iq").add(ElementCriteria.name("pubsub",
+			"http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("subscriptions"));
 
-	private static final Criteria CRIT = ElementCriteria.name("iq").add(
-			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("subscriptions"));
+	//~--- constructors ---------------------------------------------------------
 
-	private static Element createSubscriptionNotification(String fromJid, String toJid, String nodeName, Subscription subscription) {
-		Element message = new Element("message", new String[] { "from", "to" }, new String[] { fromJid, toJid });
-		Element pubsub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
-		message.addChild(pubsub);
-		Element affilations = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
-		pubsub.addChild(affilations);
-		affilations.addChild(new Element("subscription", new String[] { "jid", "subscription" },
-				new String[] { toJid, subscription.name() }));
-		return message;
-	}
-
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param config
+	 * @param pubsubRepository
+	 */
 	public ManageSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
+	//~--- methods --------------------------------------------------------------
+
+	private static Element createSubscriptionNotification(String fromJid, String toJid,
+			String nodeName, Subscription subscription) {
+		Element message = new Element("message", new String[] { "from", "to" },
+			new String[] { fromJid,
+				toJid });
+		Element pubsub = new Element("pubsub", new String[] { "xmlns" },
+			new String[] { "http://jabber.org/protocol/pubsub" });
+
+		message.addChild(pubsub);
+
+		Element affilations = new Element("subscriptions", new String[] { "node" },
+			new String[] { nodeName });
+
+		pubsub.addChild(affilations);
+		affilations.addChild(new Element("subscription", new String[] { "jid", "subscription" },
+				new String[] { toJid,
+				subscription.name() }));
+
+		return message;
+	}
+
+	//~--- get methods ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/pubsub#manage-subscriptions" };
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	@Override
 	public Criteria getModuleCriteria() {
 		return CRIT;
 	}
 
+	//~--- methods --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param element
+	 * @param elementWriter
+	 *
+	 * @return
+	 *
+	 * @throws PubSubException
+	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter)
+			throws PubSubException {
 		try {
 			Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
 			Element subscriptions = pubsub.getChild("subscriptions");
 			String nodeName = subscriptions.getAttribute("node");
 			String type = element.getAttribute("type");
 
-			if (type == null || !type.equals("get") && !type.equals("set")) {
+			if ((type == null) ||(!type.equals("get") &&!type.equals("set"))) {
 				throw new PubSubException(Authorization.BAD_REQUEST);
 			}
 
 			if (nodeName == null) {
-				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
+				throw new PubSubException(Authorization.BAD_REQUEST,
+						PubSubErrorCondition.NODE_REQUIRED);
 			}
+
 			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
-
 			String senderJid = element.getAttribute("from");
 
-			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			if ( !this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
+				UsersAffiliation senderAffiliation =
+					nodeAffiliations.getSubscriberAffiliation(senderJid);
+
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
@@ -107,37 +178,53 @@ public class ManageSubscriptionModule extends AbstractModule {
 
 			if (type.equals("get")) {
 				processGet(element, subscriptions, nodeName, nodeSubscriptions, elementWriter);
-			} else if (type.equals("set")) {
-				processSet(element, subscriptions, nodeName, nodeConfig, nodeSubscriptions, elementWriter);
+			} else {
+				if (type.equals("set")) {
+					processSet(element, subscriptions, nodeName, nodeConfig, nodeSubscriptions,
+							elementWriter);
+				}
 			}
+
 			if (nodeSubscriptions.isChanged()) {
 				repository.update(nodeName, nodeSubscriptions);
 			}
+
 			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
 			e.printStackTrace();
+
 			throw new RuntimeException(e);
 		}
 	}
 
-	private void processGet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions,
-			ElementWriter elementWriter) throws RepositoryException {
+	private void processGet(Element element, Element subscriptions, String nodeName,
+			final ISubscriptions nodeSubscriptions, ElementWriter elementWriter)
+			throws RepositoryException {
 		Element iq = createResultIQ(element);
-		Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
+		Element ps = new Element("pubsub", new String[] { "xmlns" },
+			new String[] { "http://jabber.org/protocol/pubsub#owner" });
+
 		iq.addChild(ps);
-		Element afr = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
+
+		Element afr = new Element("subscriptions", new String[] { "node" },
+			new String[] { nodeName });
+
 		ps.addChild(afr);
 
 		UsersSubscription[] subscribers = nodeSubscriptions.getSubscriptions();
+
 		if (subscribers != null) {
 			for (UsersSubscription usersSubscription : subscribers) {
 				if (usersSubscription.getSubscription() == Subscription.none) {
 					continue;
 				}
-				Element subscription = new Element("subscription", new String[] { "jid", "subscription" }, new String[] {
-						usersSubscription.getJid(), usersSubscription.getSubscription().name() });
+
+				Element subscription = new Element("subscription", new String[] { "jid",
+						"subscription" }, new String[] { usersSubscription.getJid().toString(),
+						usersSubscription.getSubscription().name() });
+
 				afr.addChild(subscription);
 			}
 		}
@@ -145,35 +232,55 @@ public class ManageSubscriptionModule extends AbstractModule {
 		elementWriter.write(iq);
 	}
 
-	private void processSet(Element element, Element subscriptions, String nodeName, final AbstractNodeConfig nodeConfig,
-			final ISubscriptions nodeSubscriptions, ElementWriter elementWriter) throws PubSubException, RepositoryException {
+	private void processSet(Element element, Element subscriptions, String nodeName,
+			final AbstractNodeConfig nodeConfig, final ISubscriptions nodeSubscriptions,
+				ElementWriter elementWriter)
+			throws PubSubException, RepositoryException {
 		Element iq = createResultIQ(element);
 		List<Element> subss = subscriptions.getChildren();
+
 		for (Element a : subss) {
-			if (!"subscription".equals(a.getName()))
+			if ( !"subscription".equals(a.getName())) {
 				throw new PubSubException(Authorization.BAD_REQUEST);
+			}
 		}
+
 		for (Element af : subss) {
 			String strSubscription = af.getAttribute("subscription");
 			String jid = af.getAttribute("jid");
-			if (strSubscription == null)
+
+			if (strSubscription == null) {
 				continue;
+			}
+
 			Subscription newSubscription = Subscription.valueOf(strSubscription);
 			Subscription oldSubscription = nodeSubscriptions.getSubscription(jid);
 
-			oldSubscription = oldSubscription == null ? Subscription.none : oldSubscription;
+			oldSubscription = (oldSubscription == null) ? Subscription.none : oldSubscription;
 
-			if (oldSubscription == Subscription.none && newSubscription != Subscription.none) {
+			if ((oldSubscription == Subscription.none) && (newSubscription != Subscription.none)) {
 				nodeSubscriptions.addSubscriberJid(jid, newSubscription);
-				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState())
-					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
+
+				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
+					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid,
+							nodeName, newSubscription));
+				}
 			} else {
 				nodeSubscriptions.changeSubscription(jid, newSubscription);
-				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState())
-					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid, nodeName, newSubscription));
-			}
 
+				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
+					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid,
+							nodeName, newSubscription));
+				}
+			}
 		}
+
 		elementWriter.write(iq);
 	}
 }
+
+
+//~ Formatted in Sun Code Convention
+
+
+//~ Formatted by Jindent --- http://www.jindent.com
