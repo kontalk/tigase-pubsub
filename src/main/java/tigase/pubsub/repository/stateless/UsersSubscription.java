@@ -19,45 +19,125 @@
  * Last modified by $Author$
  * $Date$
  */
+
 package tigase.pubsub.repository.stateless;
+
+//~--- non-JDK imports --------------------------------------------------------
 
 import tigase.pubsub.Subscription;
 
+import tigase.xmpp.BareJID;
+
+//~--- classes ----------------------------------------------------------------
+
+/**
+ * Class description
+ *
+ *
+ * @version        5.0.0, 2010.03.27 at 05:23:47 GMT
+ * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ */
 public class UsersSubscription implements Cloneable {
-
-	private final String jid;
-
+	private final BareJID jid;
 	private final String subid;
-
 	private Subscription subscription;
 
-	public UsersSubscription(String jid, String subid, Subscription subscriptionType) {
+	//~--- constructors ---------------------------------------------------------
+
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param jid
+	 * @param subid
+	 * @param subscriptionType
+	 */
+	public UsersSubscription(BareJID jid, String subid, Subscription subscriptionType) {
 		super();
 		this.jid = jid;
 		this.subid = subid;
 		this.subscription = subscriptionType;
 	}
 
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param jid
+	 * @param subid
+	 * @param subscriptionType
+	 */
+	public UsersSubscription(String jid, String subid, Subscription subscriptionType) {
+		super();
+		this.jid = BareJID.bareJIDInstanceNS(jid);
+		this.subid = subid;
+		this.subscription = subscriptionType;
+	}
+
+	//~--- methods --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 *
+	 * @throws CloneNotSupportedException
+	 */
 	@Override
 	public UsersSubscription clone() throws CloneNotSupportedException {
 		UsersSubscription a = new UsersSubscription(jid, subid, subscription);
+
 		return a;
 	}
 
-	public String getJid() {
+	//~--- get methods ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
+	public BareJID getJid() {
 		return jid;
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	public String getSubid() {
 		return subid;
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	public Subscription getSubscription() {
 		return subscription;
 	}
 
+	//~--- set methods ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param subscriptionType
+	 */
 	public void setSubscription(Subscription subscriptionType) {
 		this.subscription = subscriptionType;
 	}
-
 }
+
+
+//~ Formatted in Sun Code Convention
+
+
+//~ Formatted by Jindent --- http://www.jindent.com

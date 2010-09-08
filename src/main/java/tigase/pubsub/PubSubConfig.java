@@ -19,37 +19,101 @@
  * Last modified by $Author$
  * $Date$
  */
+
 package tigase.pubsub;
 
-public class PubSubConfig {
+//~--- non-JDK imports --------------------------------------------------------
 
+import tigase.xmpp.BareJID;
+
+//~--- classes ----------------------------------------------------------------
+
+/**
+ * Class description
+ *
+ *
+ * @version        5.0.0, 2010.03.27 at 05:10:54 GMT
+ * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ */
+public class PubSubConfig {
 	private String[] admins;
+	private BareJID serviceBareJID;
 	private String serviceName;
 
+	//~--- get methods ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	public String[] getAdmins() {
 		return admins;
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
+	public BareJID getServiceBareJID() {
+		return serviceBareJID;
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	public String getServiceName() {
 		return serviceName;
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param jid
+	 *
+	 * @return
+	 */
 	public boolean isAdmin(final String jid) {
-		if (jid == null || this.admins == null)
+		if ((jid == null) || (this.admins == null)) {
 			return false;
-		for (String adj : this.admins) {
-			if (jid.equals(adj))
-				return true;
 		}
+
+		for (String adj : this.admins) {
+			if (jid.equals(adj)) {
+				return true;
+			}
+		}
+
 		return false;
 	}
 
+	//~--- set methods ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param strings
+	 */
 	public void setAdmins(String[] strings) {
 		this.admins = strings;
 	}
 
 	void setServiceName(String serviceName) {
 		this.serviceName = serviceName;
+		serviceBareJID = BareJID.bareJIDInstanceNS(serviceName);
 	}
-
 }
+
+
+//~ Formatted in Sun Code Convention
+
+
+//~ Formatted by Jindent --- http://www.jindent.com
