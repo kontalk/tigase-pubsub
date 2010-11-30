@@ -30,8 +30,8 @@
 		</license>
 	</licenses>
 	<scm>
-		<connection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/branches/tigase-pubsub-5.1.0</connection>
-		<developerConnection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/branches/tigase-pubsub-5.1.0</developerConnection>
+		<connection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/trunk</connection>
+		<developerConnection>scm:svn:https://svn.tigase.org/reps/tigase-pubsub/trunk</developerConnection>
 		<url>https://svn.tigase.org/reps/tigase-pubsub</url>
 	</scm>
 	<organization>
