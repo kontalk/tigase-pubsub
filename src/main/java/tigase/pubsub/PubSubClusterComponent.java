@@ -24,9 +24,9 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import tigase.cluster.ClusterController;
-import tigase.cluster.ClusterElement;
-import tigase.cluster.ClusteredComponent;
+import tigase.cluster.api.ClusterControllerIfc;
+import tigase.cluster.api.ClusterElement;
+import tigase.cluster.api.ClusteredComponentIfc;
 
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
@@ -58,9 +58,9 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 //~--- classes ----------------------------------------------------------------
@@ -72,7 +72,7 @@ import java.util.logging.Logger;
  * @version        5.0.0, 2010.02.04 at 12:50:29 GMT
  * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponent {
+public class PubSubClusterComponent extends PubSubComponent implements ClusteredComponentIfc {
 	private static final String METHOD_PRESENCE_COLLECTION = "pubsub.presenceCollection";
 	private static final String METHOD_RESULT = "pubsub.result";
 	private static final String METHOD_SET_OWNERSHIP = "pubsub.setOwnership";
@@ -198,7 +198,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			log.finest("Handling as internal cluster message");
 
 			final ClusterElement clel = new ClusterElement(packet.getElement());
-			List<Element> elements = clel.getDataPackets();
+			Queue<Element> elements = clel.getDataPackets();
 
 			if (clel.getMethodName() != null) {
 				try {
@@ -283,7 +283,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 	 * @param clController
 	 */
 	@Override
-	public void setClusterController(ClusterController clController) {
+	public void setClusterController(ClusterControllerIfc clController) {
 
 		// TODO Auto-generated method stub
 	}
@@ -385,8 +385,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 			if (params.size() > 99) {
 				ClusterElement call =
-					ClusterElement.createClusterMethodCall(getComponentId().toString(),
-								node,
+					ClusterElement.createClusterMethodCall(getComponentId(),
+								JID.jidInstanceNS(node),
 								StanzaType.set,
 								METHOD_PRESENCE_COLLECTION,
 								params);
@@ -402,8 +402,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		}
 
 		if (params.size() != 0) {
-			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId().toString(),
-							node,
+			ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(),
+					JID.jidInstanceNS(node),
 							StanzaType.set,
 							METHOD_PRESENCE_COLLECTION,
 							params);
@@ -434,7 +434,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			// String nextNode = findNextUnvisitedNode(clel);
 			// if (nextNode != null) {
 			// ClusterElement next_clel = clel.nextClusterNode(nextNode);
-			next_clel.addVisitedNode(getComponentId().toString());
+			next_clel.addVisitedNode(getComponentId());
 
 			try {
 				addOutPacket(Packet.packetInstance(next_clel.getClusterElement()));
@@ -455,12 +455,12 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			String cluster_node = getFirstClusterNode();
 
 			if (cluster_node != null) {
-				ClusterElement clel = new ClusterElement(sess_man_id.toString(),
-								cluster_node,
+				ClusterElement clel = new ClusterElement(sess_man_id,
+								JID.jidInstanceNS(cluster_node),
 								StanzaType.set,
 								packet);
 
-				clel.addVisitedNode(sess_man_id.toString());
+				clel.addVisitedNode(sess_man_id);
 				log.finest("Sending packet to next node [" + cluster_node + "]");
 
 				try {
@@ -485,12 +485,12 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 				JID sess_man_id = getComponentId();
 
 				if (cluster_node != null) {
-					ClusterElement clel = new ClusterElement(sess_man_id.toString(),
-									cluster_node,
+					ClusterElement clel = new ClusterElement(sess_man_id,
+									JID.jidInstanceNS(cluster_node),
 									StanzaType.set,
 									packet);
 
-					clel.addVisitedNode(sess_man_id.toString());
+					clel.addVisitedNode(sess_man_id);
 					log.finest("Sending packet to next node [" + cluster_node + "]");
 
 					try {
@@ -515,7 +515,7 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 			String next_node = null;
 
 			for (JID cluster_node : cluster_nodes) {
-				if ( !clel.isVisitedNode(cluster_node.toString()) &&!cluster_node.equals(comp_id)) {
+				if ( !clel.isVisitedNode(cluster_node) &&!cluster_node.equals(comp_id)) {
 					next_node = cluster_node.toString();
 					log.finest("Found next cluster node: " + next_node);
 
@@ -554,8 +554,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 		params.put("clusterNodeId", clusterNode);
 		params.put("pubsubNodeName", pubsubNode);
 
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId().toString(),
-						cluster_node,
+		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(),
+						JID.jidInstanceNS(cluster_node),
 						StanzaType.set,
 						METHOD_SET_OWNERSHIP,
 						params);
@@ -568,8 +568,8 @@ public class PubSubClusterComponent extends PubSubComponent implements Clustered
 
 		params.put("uuid", uuid);
 
-		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId().toString(),
-						firstNode,
+		ClusterElement call = ClusterElement.createClusterMethodCall(getComponentId(),
+						JID.jidInstanceNS(firstNode),
 						StanzaType.result,
 						METHOD_RESULT,
 						params);
