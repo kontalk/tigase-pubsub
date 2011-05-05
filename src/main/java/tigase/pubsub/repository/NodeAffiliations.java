@@ -95,6 +95,7 @@ public class NodeAffiliations implements IAffiliations {
 		return a;
 	}
 
+	@Override
 	public boolean isChanged() {
 		return changed;
 	}
@@ -143,6 +144,7 @@ public class NodeAffiliations implements IAffiliations {
 		this.changed = false;
 	}
 
+	@Override
 	public String serialize() {
 		StringBuilder sb = new StringBuilder();
 		synchronized (this.affs) {

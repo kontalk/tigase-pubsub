@@ -117,8 +117,8 @@ public class PendingSubscriptionModule extends AbstractModule {
 				this.repository.update(node, nodeAffiliations);
 			}
 
-			Element msg = new Element("message", new String[] { "from", "to", "id" }, new String[] { message.getAttribute("to"),
-					subscriberJid, Utils.createUID(subscriberJid) });
+			Element msg = new Element("message", new String[] { "from", "to", "id" }, new String[] {
+					message.getAttribute("to"), subscriberJid, Utils.createUID(subscriberJid) });
 			msg.addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid, subscription, null));
 			return makeArray(msg);
 		} catch (PubSubException e1) {
@@ -144,9 +144,8 @@ public class PendingSubscriptionModule extends AbstractModule {
 		if (affiliations != null) {
 			for (UsersAffiliation affiliation : affiliations) {
 				if (affiliation.getAffiliation() == Affiliation.owner) {
-					Element message = new Element("message", new String[] { "id", "to", "from" }, 
-									new String[]{Utils.createUID(affiliation.getJid()),
-										affiliation.getJid(), fromJid});
+					Element message = new Element("message", new String[] { "id", "to", "from" }, new String[] {
+							Utils.createUID(affiliation.getJid()), affiliation.getJid(), fromJid });
 					message.addChild(x.getElement());
 					result.add(message);
 				}

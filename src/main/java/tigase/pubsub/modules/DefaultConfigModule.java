@@ -60,12 +60,13 @@ public class DefaultConfigModule extends AbstractModule {
 	@Override
 	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
-			Element pubsub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
+			Element pubsub = new Element("pubsub", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub#owner" });
 			Element def = new Element("default");
 			Element x = defaultNodeConfig.getFormElement();
 			if (x == null) {
-				throw new PubSubException(element, Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
-						"config-node"));
+				throw new PubSubException(element, Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition(
+						"unsupported", "config-node"));
 			}
 			def.addChild(x);
 			pubsub.addChild(def);

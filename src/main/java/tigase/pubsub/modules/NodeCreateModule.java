@@ -52,14 +52,15 @@ import tigase.xmpp.Authorization;
  */
 public class NodeCreateModule extends AbstractConfigCreateNode {
 
-	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(
-			ElementCriteria.name("create"));
+	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
 	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
 
 	private final PublishItemModule publishModule;
 
-	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig, PublishItemModule publishItemModule) {
+	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+			PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
 		this.publishModule = publishItemModule;
 	}
@@ -76,11 +77,12 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 	@Override
 	public String[] getFeatures() {
-		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure", "http://jabber.org/protocol/pubsub#collections",
-				"http://jabber.org/protocol/pubsub#create-nodes", "http://jabber.org/protocol/pubsub#instant-nodes",
-				"http://jabber.org/protocol/pubsub#multi-collection", "http://jabber.org/protocol/pubsub#access-authorize",
-				"http://jabber.org/protocol/pubsub#access-open", "http://jabber.org/protocol/pubsub#access-presence",
-				"http://jabber.org/protocol/pubsub#access-roster", "http://jabber.org/protocol/pubsub#access-whitelist",
+		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure",
+				"http://jabber.org/protocol/pubsub#collections", "http://jabber.org/protocol/pubsub#create-nodes",
+				"http://jabber.org/protocol/pubsub#instant-nodes", "http://jabber.org/protocol/pubsub#multi-collection",
+				"http://jabber.org/protocol/pubsub#access-authorize", "http://jabber.org/protocol/pubsub#access-open",
+				"http://jabber.org/protocol/pubsub#access-presence", "http://jabber.org/protocol/pubsub#access-roster",
+				"http://jabber.org/protocol/pubsub#access-whitelist",
 
 		};
 	}
@@ -154,7 +156,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if (nodeType != NodeType.leaf && nodeType != NodeType.collection)
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 
-			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType, collection == null ? "" : collection);
+			repository.createNode(nodeName, JIDUtils.getNodeID(element.getAttribute("from")), nodeConfig, nodeType,
+					collection == null ? "" : collection);
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(nodeName);
@@ -183,13 +186,14 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
 				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
 
-				elementWriter.write(publishModule.prepareNotification(colE, element.getAttribute("to"), collection, nodeConfig, colNodeAffiliations,
-						colNodeSubscriptions));
+				elementWriter.write(publishModule.prepareNotification(colE, element.getAttribute("to"), collection, nodeConfig,
+						colNodeAffiliations, colNodeSubscriptions));
 
 			}
 
 			if (instantNode) {
-				Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+				Element ps = new Element("pubsub", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/pubsub" });
 				Element cr = new Element("create", new String[] { "node" }, new String[] { nodeName });
 				ps.addChild(cr);
 				result.addChild(ps);

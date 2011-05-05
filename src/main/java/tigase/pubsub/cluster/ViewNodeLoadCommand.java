@@ -33,7 +33,8 @@ public class ViewNodeLoadCommand implements AdHocCommand {
 			Form form = new Form("result", "Cluster nodes load", "Statistics of cluster nodes");
 
 			for (Entry<String, Integer> entry : this.nodeMap.getClusterNodesLoad().entrySet()) {
-				Field field = Field.fieldTextSingle("tigase#node-" + entry.getKey(), entry.getValue().toString(), entry.getKey());
+				Field field = Field.fieldTextSingle("tigase#node-" + entry.getKey(), entry.getValue().toString(),
+						entry.getKey());
 				form.addField(field);
 
 			}

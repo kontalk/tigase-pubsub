@@ -47,57 +47,27 @@ public class PubSubDAOPool extends PubSubDAO {
 		daoPool.offer(dao);
 	}
 
-	public PubSubDAO takeDao() {
-		try {
-			return daoPool.take();
-		} catch (InterruptedException ex) {
-			log.log(Level.WARNING, "Couldn't obtain PubSub DAO from the pool", ex);
+	@Override
+	public void addToRootCollection(String nodeName) throws RepositoryException {
+		PubSubDAO dao = takeDao();
+		if (dao != null) {
+			try {
+				dao.addToRootCollection(nodeName);
+			} finally {
+				addDao(dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + daoPool.size());
 		}
-		return null;
 	}
-
-	@Override
-	public void init() throws RepositoryException { }
-
-	@Override
-	public void destroy() { }
 
 	@Override
 	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-		throws RepositoryException {
-		PubSubDAO dao = takeDao();
-		if (dao != null) {
-			try {
-				dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
-			} finally {
-				addDao(dao);
-			}
-		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
-		}
-	}
-
-	@Override
-	public void deleteNode(String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao();
-		if (dao != null) {
-			try {
-				dao.deleteNode(nodeName);
-			} finally {
-				addDao(dao);
-			}
-		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
-		}
-	}
-
-	@Override
-	public void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
 			throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
-				dao.writeItem(nodeName, timeInMilis, id, publisher, item);
+				dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
 			} finally {
 				addDao(dao);
 			}
@@ -121,18 +91,21 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public String[] getItemsIds(String nodeName) throws RepositoryException {
+	public void deleteNode(String nodeName) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
-				return dao.getItemsIds(nodeName);
+				dao.deleteNode(nodeName);
 			} finally {
 				addDao(dao);
 			}
 		} else {
 			log.warning("dao is NULL, pool empty? - " + daoPool.size());
 		}
-		return null;
+	}
+
+	@Override
+	public void destroy() {
 	}
 
 	@Override
@@ -166,6 +139,21 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
+	public String[] getItemsIds(String nodeName) throws RepositoryException {
+		PubSubDAO dao = takeDao();
+		if (dao != null) {
+			try {
+				return dao.getItemsIds(nodeName);
+			} finally {
+				addDao(dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+		}
+		return null;
+	}
+
+	@Override
 	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
@@ -179,28 +167,13 @@ public class PubSubDAOPool extends PubSubDAO {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public NodeAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
 				return dao.getNodeAffiliations(nodeName);
-			} finally {
-				addDao(dao);
-			}
-		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
-		}
-		return null;
-	}
-
-	@Override
-	protected String readNodeConfigFormData(final String nodeName) throws TigaseDBException {
-		PubSubDAO dao = takeDao();
-		if (dao != null) {
-			try {
-				return dao.readNodeConfigFormData(nodeName);
 			} finally {
 				addDao(dao);
 			}
@@ -226,6 +199,21 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
+	public NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
+		PubSubDAO dao = takeDao();
+		if (dao != null) {
+			try {
+				return dao.getNodeSubscriptions(nodeName);
+			} finally {
+				addDao(dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+		}
+		return null;
+	}
+
+	@Override
 	public String[] getRootNodes() throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
@@ -241,11 +229,30 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void addToRootCollection(String nodeName) throws RepositoryException {
+	public void init() throws RepositoryException {
+	}
+
+	@Override
+	protected String readNodeConfigFormData(final String nodeName) throws TigaseDBException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
-				dao.addToRootCollection(nodeName);
+				return dao.readNodeConfigFormData(nodeName);
+			} finally {
+				addDao(dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+		}
+		return null;
+	}
+
+	@Override
+	public void removeAllFromRootCollection() throws RepositoryException {
+		PubSubDAO dao = takeDao();
+		if (dao != null) {
+			try {
+				dao.removeAllFromRootCollection();
 			} finally {
 				addDao(dao);
 			}
@@ -269,11 +276,34 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void removeAllFromRootCollection() throws RepositoryException {
+	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
-				dao.removeAllFromRootCollection();
+				dao.removeSubscriptions(nodeName, changedIndex);
+			} finally {
+				addDao(dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+		}
+	}
+
+	public PubSubDAO takeDao() {
+		try {
+			return daoPool.take();
+		} catch (InterruptedException ex) {
+			log.log(Level.WARNING, "Couldn't obtain PubSub DAO from the pool", ex);
+		}
+		return null;
+	}
+
+	@Override
+	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
+		PubSubDAO dao = takeDao();
+		if (dao != null) {
+			try {
+				dao.updateAffiliations(nodeName, serializedData);
 			} finally {
 				addDao(dao);
 			}
@@ -297,20 +327,6 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
-		PubSubDAO dao = takeDao();
-		if (dao != null) {
-			try {
-				dao.updateAffiliations(nodeName, serializedData);
-			} finally {
-				addDao(dao);
-			}
-		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
-		}
-	}
-
-	@Override
 	public void updateSubscriptions(String nodeName, int changedIndex, String serializedData) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
@@ -325,26 +341,12 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
+	public void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
+			throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
-				return dao.getNodeSubscriptions(nodeName);
-			} finally {
-				addDao(dao);
-			}
-		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
-		}
-		return null;
-	}
-
-	@Override
-	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
-		PubSubDAO dao = takeDao();
-		if (dao != null) {
-			try {
-				dao.removeSubscriptions(nodeName, changedIndex);
+				dao.writeItem(nodeName, timeInMilis, id, publisher, item);
 			} finally {
 				addDao(dao);
 			}

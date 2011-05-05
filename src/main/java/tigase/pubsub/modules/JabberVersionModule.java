@@ -34,7 +34,8 @@ import tigase.xml.Element;
 
 public class JabberVersionModule implements Module {
 
-	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(ElementCriteria.name("query", "jabber:iq:version"));
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
+			ElementCriteria.name("query", "jabber:iq:version"));
 
 	@Override
 	public String[] getFeatures() {
@@ -49,14 +50,14 @@ public class JabberVersionModule implements Module {
 	@Override
 	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		List<Element> result = new ArrayList<Element>();
-		Element iq = new Element("iq", new String[] { "to", "from", "id", "type" }, new String[] { element.getAttribute("from"),
-				element.getAttribute("to"), element.getAttribute("id"), "result" });
+		Element iq = new Element("iq", new String[] { "to", "from", "id", "type" }, new String[] {
+				element.getAttribute("from"), element.getAttribute("to"), element.getAttribute("id"), "result" });
 		Element query = new Element("query", new String[] { "xmlns" }, new String[] { "jabber:iq:version" });
 		query.addChild(new Element("name", "Tigase PubSub"));
 		query.addChild(new Element("version", PubSubVersion.getVersion()));
 		query.addChild(new Element("os", System.getProperty("os.name") + "-" + System.getProperty("os.arch") + "-"
-				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-" + System.getProperty("java.version")
-				+ " " + System.getProperty("java.vm.vendor")));
+				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-"
+				+ System.getProperty("java.version") + " " + System.getProperty("java.vm.vendor")));
 
 		iq.addChild(query);
 		result.add(iq);

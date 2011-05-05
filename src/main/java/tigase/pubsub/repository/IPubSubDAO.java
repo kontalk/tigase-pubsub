@@ -24,235 +24,229 @@ package tigase.pubsub.repository;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.Date;
+
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
-
 import tigase.xml.Element;
-
 import tigase.xmpp.BareJID;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.Date;
 
 //~--- interfaces -------------------------------------------------------------
 
 /**
  * Interface description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:16:25 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:16:25 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public interface IPubSubDAO {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
-	 * @param ownerJid
-	 * @param nodeConfig
-	 * @param nodeType
-	 * @param collection
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract void createNode(String nodeName, String ownerJid,
-			AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException;
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param nodeName
-	 * @param id
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract void deleteItem(String nodeName, String id) throws RepositoryException;
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param nodeName
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract void deleteNode(String nodeName) throws RepositoryException;
-
-	//~--- get methods ----------------------------------------------------------
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param nodeName
-	 * @param id
-	 *
-	 * @return
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract Date getItemCreationDate(final String nodeName, final String id)
-			throws RepositoryException;
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param nodeName
-	 * @param id
-	 *
-	 * @return
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract Date getItemUpdateDate(final String nodeName, final String id)
-			throws RepositoryException;
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @return
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract String[] getNodesList() throws RepositoryException;
-
-	//~--- methods --------------------------------------------------------------
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param nodeName
-	 * @param nodeConfig
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract void update(final String nodeName, final AbstractNodeConfig nodeConfig)
-			throws RepositoryException;
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param nodeName
-	 * @param timeInMilis
-	 * @param id
-	 * @param publisher
-	 * @param item
-	 *
-	 * @throws RepositoryException
-	 */
-	public abstract void writeItem(final String nodeName, long timeInMilis, final String id,
-			final String publisher, final Element item)
-			throws RepositoryException;
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param nodeName
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
 	public void addToRootCollection(String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
-	 *
+	 * 
+	 * 
+	 * @param nodeName
+	 * @param ownerJid
+	 * @param nodeConfig
+	 * @param nodeType
+	 * @param collection
+	 * 
+	 * @throws RepositoryException
 	 */
-	public void destroy();
-
-	//~--- get methods ----------------------------------------------------------
+	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
+			String collection) throws RepositoryException;
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
-	 *
+	 * @param id
+	 * 
+	 * @throws RepositoryException
+	 */
+	public abstract void deleteItem(String nodeName, String id) throws RepositoryException;
+
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeName
+	 * 
+	 * @throws RepositoryException
+	 */
+	public abstract void deleteNode(String nodeName) throws RepositoryException;
+
+	/**
+	 * Method description
+	 * 
+	 */
+	public void destroy();
+
+	String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException;
+
+	// ~--- methods
+	// --------------------------------------------------------------
+
+	String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException;
+
+	Element getItem(String nodeName, String id) throws RepositoryException;
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeName
+	 * @param id
+	 * 
 	 * @return
-	 *
+	 * 
+	 * @throws RepositoryException
+	 */
+	public abstract Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException;
+
+	String[] getItemsIds(String nodeName) throws RepositoryException;
+
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeName
+	 * @param id
+	 * 
+	 * @return
+	 * 
+	 * @throws RepositoryException
+	 */
+	public abstract Date getItemUpdateDate(final String nodeName, final String id) throws RepositoryException;
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeName
+	 * 
+	 * @return
+	 * 
 	 * @throws RepositoryException
 	 */
 	public NodeAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
 	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException;
 
+	// ~--- methods
+	// --------------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
-	 *
+	 * 
+	 * @throws RepositoryException
+	 */
+	public abstract String[] getNodesList() throws RepositoryException;
+
+	NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @return
+	 * 
 	 * @throws RepositoryException
 	 */
 	public String[] getRootNodes() throws RepositoryException;
 
-	//~--- methods --------------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	String[] getUserRoster(BareJID owner) throws RepositoryException;
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @throws RepositoryException
 	 */
 	public void init() throws RepositoryException;
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
 	public void removeFromRootCollection(String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
+	 * @param nodeName
+	 * @param nodeConfig
+	 * 
+	 * @throws RepositoryException
+	 */
+	public abstract void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException;
+
+	/**
+	 * Method description
+	 * 
+	 * 
 	 * @param nodeName
 	 * @param affiliations
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
 	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException;
 
-	//~--- get methods ----------------------------------------------------------
-
-	String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException;
-
-	String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException;
-
-	Element getItem(String nodeName, String id) throws RepositoryException;
-
-	String[] getItemsIds(String nodeName) throws RepositoryException;
-
-	NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
-
-	String[] getUserRoster(BareJID owner) throws RepositoryException;
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeName
+	 * @param timeInMilis
+	 * @param id
+	 * @param publisher
+	 * @param item
+	 * 
+	 * @throws RepositoryException
+	 */
+	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher,
+			final Element item) throws RepositoryException;
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

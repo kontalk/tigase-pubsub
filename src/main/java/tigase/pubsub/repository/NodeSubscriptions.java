@@ -2,26 +2,23 @@ package tigase.pubsub.repository;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.HashMap;
+import java.util.Map;
+
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
-
 import tigase.util.JIDUtils;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.HashMap;
-import java.util.Map;
 
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:27:46 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:27:46 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class NodeSubscriptions implements ISubscriptions {
 	protected final static String DELIMITER = ";";
@@ -29,22 +26,13 @@ public class NodeSubscriptions implements ISubscriptions {
 	/** Field description */
 	public final static int MAX_FRAGMENT_SIZE = 10000;
 
-	//~--- fields ---------------------------------------------------------------
-
-	private boolean changed = false;
-	protected final FragmentedMap<String, UsersSubscription> subs = new FragmentedMap<String,
-		UsersSubscription>(MAX_FRAGMENT_SIZE);
-
-	//~--- constructors ---------------------------------------------------------
-
-	protected NodeSubscriptions() {}
-
-	//~--- methods --------------------------------------------------------------
+	// ~--- fields
+	// ---------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public static NodeSubscriptions create() {
@@ -53,15 +41,30 @@ public class NodeSubscriptions implements ISubscriptions {
 		return s;
 	}
 
+	private boolean changed = false;
+
+	// ~--- constructors
+	// ---------------------------------------------------------
+
+	protected final FragmentedMap<String, UsersSubscription> subs = new FragmentedMap<String, UsersSubscription>(
+			MAX_FRAGMENT_SIZE);
+
+	// ~--- methods
+	// --------------------------------------------------------------
+
+	protected NodeSubscriptions() {
+	}
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
 	 * @param subscription
-	 *
+	 * 
 	 * @return
 	 */
+	@Override
 	public String addSubscriberJid(final String jid, final Subscription subscription) {
 		final String subid = Utils.createUID(jid);
 		final String bareJid = JIDUtils.getNodeID(jid);
@@ -78,11 +81,12 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
 	 * @param subscription
 	 */
+	@Override
 	public void changeSubscription(String jid, Subscription subscription) {
 		final String bareJid = JIDUtils.getNodeID(jid);
 		UsersSubscription s = get(bareJid);
@@ -93,12 +97,23 @@ public class NodeSubscriptions implements ISubscriptions {
 		}
 	}
 
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	protected UsersSubscription get(final String jid) {
+		final String bareJid = JIDUtils.getNodeID(jid);
+
+		synchronized (this.subs) {
+			UsersSubscription s = this.subs.get(bareJid);
+
+			return s;
+		}
+	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public FragmentedMap<String, UsersSubscription> getFragmentedMap() {
@@ -107,12 +122,13 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
+	@Override
 	public Subscription getSubscription(String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
 		UsersSubscription s = get(bareJid);
@@ -126,12 +142,13 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
+	@Override
 	public String getSubscriptionId(String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
 		UsersSubscription s = get(bareJid);
@@ -145,10 +162,11 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
+	@Override
 	public UsersSubscription[] getSubscriptions() {
 		synchronized (this.subs) {
 			return this.subs.getAllValues().toArray(new UsersSubscription[] {});
@@ -157,30 +175,32 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public Map<String, UsersSubscription> getSubscriptionsMap() {
 		return subs.getMap();
 	}
 
+	// ~--- methods
+	// --------------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
+	@Override
 	public boolean isChanged() {
 		return changed;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param data
 	 */
 	public void parse(String data) {
@@ -225,8 +245,8 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeSubscriptions
 	 */
 	public void replaceBy(final ISubscriptions nodeSubscriptions) {
@@ -248,20 +268,24 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/**
 	 * Method description
-	 *
+	 * 
 	 */
 	public void resetChangedFlag() {
 		this.changed = false;
 	}
 
+	// ~--- get methods
+	// ----------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param fragment
-	 *
+	 * 
 	 * @return
 	 */
+	@Override
 	public String serialize(Map<String, UsersSubscription> fragment) {
 		StringBuilder sb = new StringBuilder();
 
@@ -278,22 +302,8 @@ public class NodeSubscriptions implements ISubscriptions {
 
 		return sb.toString();
 	}
-
-	//~--- get methods ----------------------------------------------------------
-
-	protected UsersSubscription get(final String jid) {
-		final String bareJid = JIDUtils.getNodeID(jid);
-
-		synchronized (this.subs) {
-			UsersSubscription s = this.subs.get(bareJid);
-
-			return s;
-		}
-	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

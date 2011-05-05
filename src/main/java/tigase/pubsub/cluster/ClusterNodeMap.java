@@ -5,9 +5,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.Map.Entry;
+
 import tigase.xmpp.JID;
 
 public class ClusterNodeMap {
@@ -51,8 +52,7 @@ public class ClusterNodeMap {
 		NodeInfo i = this.nodesMap.get(pubsubNodeName);
 		if (i != null) {
 			return i.clusterNodeId;
-		}
-		else {
+		} else {
 			return null;
 		}
 	}
@@ -66,7 +66,8 @@ public class ClusterNodeMap {
 
 		// counting
 		for (Entry<String, NodeInfo> entry : this.nodesMap.entrySet()) {
-			if (entry.getValue().clusterNodeId == null)	continue;
+			if (entry.getValue().clusterNodeId == null)
+				continue;
 			Integer a = nodeLoad.get(entry.getValue().clusterNodeId);
 			if (a != null) {
 				a++;

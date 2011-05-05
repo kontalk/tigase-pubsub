@@ -30,22 +30,23 @@ import tigase.xmpp.BareJID;
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:10:54 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:10:54 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class PubSubConfig {
 	private String[] admins;
 	private BareJID serviceBareJID;
 	private String serviceName;
 
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String[] getAdmins() {
@@ -54,8 +55,8 @@ public class PubSubConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public BareJID getServiceBareJID() {
@@ -64,8 +65,8 @@ public class PubSubConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String getServiceName() {
@@ -74,10 +75,10 @@ public class PubSubConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
 	public boolean isAdmin(final String jid) {
@@ -94,12 +95,13 @@ public class PubSubConfig {
 		return false;
 	}
 
-	//~--- set methods ----------------------------------------------------------
+	// ~--- set methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param strings
 	 */
 	public void setAdmins(String[] strings) {
@@ -112,8 +114,6 @@ public class PubSubConfig {
 	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

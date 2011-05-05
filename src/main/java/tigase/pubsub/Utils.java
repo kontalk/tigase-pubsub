@@ -161,6 +161,10 @@ public class Utils {
 		return false;
 	}
 
+	public static String createUID() {
+		return createUID(null);
+	}
+
 	public static String createUID(String jid) {
 		byte[] x = new byte[13];
 
@@ -171,10 +175,6 @@ public class Utils {
 			utils.spi.updateSeed(jid.hashCode());
 
 		return (new BigInteger(x)).toString(36);
-	}
-
-	public static String createUID() {
-		return createUID(null);
 	}
 
 	private static Utils instance() {

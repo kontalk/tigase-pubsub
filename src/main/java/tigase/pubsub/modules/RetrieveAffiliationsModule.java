@@ -48,8 +48,8 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/pubsub#retrieve-affiliations",
-				"http://jabber.org/protocol/pubsub#publisher-affiliation", "http://jabber.org/protocol/pubsub#outcast-affiliation",
-				"http://jabber.org/protocol/pubsub#member-affiliation" };
+				"http://jabber.org/protocol/pubsub#publisher-affiliation",
+				"http://jabber.org/protocol/pubsub#outcast-affiliation", "http://jabber.org/protocol/pubsub#member-affiliation" };
 	}
 
 	@Override
@@ -81,8 +81,8 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 						for (UsersAffiliation usersAffiliation : affilitaions) {
 							if (senderBareJid.equals(usersAffiliation.getJid())) {
 								Affiliation affiliation = usersAffiliation.getAffiliation();
-								Element a = new Element("affiliation", new String[] { "node", "affiliation" }, new String[] { node,
-										affiliation.name() });
+								Element a = new Element("affiliation", new String[] { "node", "affiliation" }, new String[] {
+										node, affiliation.name() });
 								affiliationsResult.addChild(a);
 							}
 						}

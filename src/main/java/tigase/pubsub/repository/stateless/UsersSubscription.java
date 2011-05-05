@@ -25,29 +25,29 @@ package tigase.pubsub.repository.stateless;
 //~--- non-JDK imports --------------------------------------------------------
 
 import tigase.pubsub.Subscription;
-
 import tigase.xmpp.BareJID;
 
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:23:47 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:23:47 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class UsersSubscription implements Cloneable {
 	private final BareJID jid;
 	private final String subid;
 	private Subscription subscription;
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- constructors
+	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
 	 * @param subid
 	 * @param subscriptionType
@@ -61,8 +61,8 @@ public class UsersSubscription implements Cloneable {
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
 	 * @param subid
 	 * @param subscriptionType
@@ -74,14 +74,15 @@ public class UsersSubscription implements Cloneable {
 		this.subscription = subscriptionType;
 	}
 
-	//~--- methods --------------------------------------------------------------
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws CloneNotSupportedException
 	 */
 	@Override
@@ -91,12 +92,13 @@ public class UsersSubscription implements Cloneable {
 		return a;
 	}
 
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public BareJID getJid() {
@@ -105,8 +107,8 @@ public class UsersSubscription implements Cloneable {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String getSubid() {
@@ -115,20 +117,21 @@ public class UsersSubscription implements Cloneable {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public Subscription getSubscription() {
 		return subscription;
 	}
 
-	//~--- set methods ----------------------------------------------------------
+	// ~--- set methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param subscriptionType
 	 */
 	public void setSubscription(Subscription subscriptionType) {
@@ -136,8 +139,6 @@ public class UsersSubscription implements Cloneable {
 	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

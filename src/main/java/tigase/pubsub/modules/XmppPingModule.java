@@ -35,8 +35,8 @@ import tigase.xml.Element;
 public class XmppPingModule implements Module {
 
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
-			new Or(ElementCriteria.name("ping", "http://www.xmpp.org/extensions/xep-0199.html#ns"), ElementCriteria.name("ping",
-					"urn:xmpp:ping")));
+			new Or(ElementCriteria.name("ping", "http://www.xmpp.org/extensions/xep-0199.html#ns"), ElementCriteria.name(
+					"ping", "urn:xmpp:ping")));
 
 	@Override
 	public String[] getFeatures() {
@@ -50,8 +50,8 @@ public class XmppPingModule implements Module {
 
 	@Override
 	public List<Element> process(Element iq, ElementWriter elementWriter) throws PubSubException {
-		Element reposnse = new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
-				iq.getAttribute("from"), iq.getAttribute("id") });
+		Element reposnse = new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result",
+				iq.getAttribute("to"), iq.getAttribute("from"), iq.getAttribute("id") });
 		List<Element> x = new ArrayList<Element>();
 		x.add(reposnse);
 		return x;

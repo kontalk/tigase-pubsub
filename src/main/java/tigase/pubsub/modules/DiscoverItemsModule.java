@@ -67,7 +67,8 @@ public class DiscoverItemsModule extends AbstractModule {
 			final String senderJid = element.getAttribute("from");
 
 			Element resultIq = createResultIQ(element);
-			Element resultQuery = new Element("query", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/disco#items" });
+			Element resultQuery = new Element("query", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/disco#items" });
 			resultIq.addChild(resultQuery);
 
 			if ("http://jabber.org/protocol/commands".equals(nodeName)) {
@@ -95,8 +96,8 @@ public class DiscoverItemsModule extends AbstractModule {
 						for (String node : nodes) {
 							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(node);
 							if (childNodeConfig != null) {
-								boolean allowed = (senderJid == null || childNodeConfig == null) ? true : Utils.isAllowedDomain(senderJid,
-										childNodeConfig.getDomains());
+								boolean allowed = (senderJid == null || childNodeConfig == null) ? true
+										: Utils.isAllowedDomain(senderJid, childNodeConfig.getDomains());
 								String collection = childNodeConfig.getCollection();
 								if (allowed) {
 									String name = childNodeConfig.getTitle();

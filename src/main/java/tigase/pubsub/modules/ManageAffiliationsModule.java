@@ -51,7 +51,8 @@ public class ManageAffiliationsModule extends AbstractModule {
 		message.addChild(pubsub);
 		Element affilations = new Element("affiliations", new String[] { "node" }, new String[] { nodeName });
 		pubsub.addChild(affilations);
-		affilations.addChild(new Element("affilation", new String[] { "jid", "affiliation" }, new String[] { toJid, affilation.name() }));
+		affilations.addChild(new Element("affilation", new String[] { "jid", "affiliation" }, new String[] { toJid,
+				affilation.name() }));
 		return message;
 	}
 
@@ -129,8 +130,8 @@ public class ManageAffiliationsModule extends AbstractModule {
 				if (affi.getAffiliation() == Affiliation.none) {
 					continue;
 				}
-				Element affiliation = new Element("affiliation", new String[] { "jid", "affiliation" }, new String[] { affi.getJid(),
-						affi.getAffiliation().name() });
+				Element affiliation = new Element("affiliation", new String[] { "jid", "affiliation" }, new String[] {
+						affi.getJid(), affi.getAffiliation().name() });
 				afr.addChild(affiliation);
 			}
 		}
@@ -138,8 +139,9 @@ public class ManageAffiliationsModule extends AbstractModule {
 		elementWriter.write(iq);
 	}
 
-	private void processSet(final Element element, final Element affiliations, final String nodeName, final AbstractNodeConfig nodeConfig,
-			final IAffiliations nodeAffiliations, ElementWriter elementWriter) throws PubSubException, RepositoryException {
+	private void processSet(final Element element, final Element affiliations, final String nodeName,
+			final AbstractNodeConfig nodeConfig, final IAffiliations nodeAffiliations, ElementWriter elementWriter)
+			throws PubSubException, RepositoryException {
 		Element iq = createResultIQ(element);
 
 		List<Element> affs = affiliations.getChildren();

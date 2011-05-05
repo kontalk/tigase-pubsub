@@ -2,48 +2,47 @@ package tigase.pubsub.repository.cached;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
-import tigase.pubsub.repository.stateless.UsersSubscription;
-
-import tigase.util.JIDUtils;
-
-//~--- JDK imports ------------------------------------------------------------
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import tigase.pubsub.Subscription;
+import tigase.pubsub.Utils;
+import tigase.pubsub.repository.stateless.UsersSubscription;
+import tigase.util.JIDUtils;
+
 //~--- classes ----------------------------------------------------------------
 
 class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
-	protected final Map<String, UsersSubscription> changedSubs = new HashMap<String,
-		UsersSubscription>();
+	protected final Map<String, UsersSubscription> changedSubs = new HashMap<String, UsersSubscription>();
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- constructors
+	// ---------------------------------------------------------
+
+	private NodeSubscriptions() {
+	}
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeSubscriptions
 	 */
 	public NodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions nodeSubscriptions) {
 		subs.putAll(nodeSubscriptions.getSubscriptionsMap());
 	}
 
-	private NodeSubscriptions() {}
-
-	//~--- methods --------------------------------------------------------------
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
 	 * @param subscription
-	 *
+	 * 
 	 * @return
 	 */
 	@Override
@@ -61,8 +60,8 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
 	 * @param subscription
 	 */
@@ -80,65 +79,8 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 		}
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @return
-	 */
-	@Override
-	public UsersSubscription[] getSubscriptions() {
-		final Set<UsersSubscription> result = new HashSet<UsersSubscription>();
-
-		result.addAll(this.subs.getAllValues());
-
-		synchronized (changedSubs) {
-			result.addAll(this.changedSubs.values());
-		}
-
-		return result.toArray(new UsersSubscription[] {});
-	}
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @return
-	 */
-	@Override
-	public boolean isChanged() {
-		synchronized (changedSubs) {
-			return this.changedSubs.size() > 0;
-		}
-	}
-
-	//~--- methods --------------------------------------------------------------
-
-	/**
-	 * Method description
-	 *
-	 */
-	public void merge() {
-		synchronized (changedSubs) {
-			subs.putAll(changedSubs);
-			changedSubs.clear();
-		}
-	}
-
-	/**
-	 * Method description
-	 *
-	 */
-	@Override
-	public void resetChangedFlag() {
-		synchronized (changedSubs) {
-			this.changedSubs.clear();
-		}
-	}
-
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	@Override
 	protected UsersSubscription get(final String bareJid) {
@@ -164,10 +106,68 @@ class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 
 		return us;
 	}
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @return
+	 */
+	@Override
+	public UsersSubscription[] getSubscriptions() {
+		final Set<UsersSubscription> result = new HashSet<UsersSubscription>();
+
+		result.addAll(this.subs.getAllValues());
+
+		synchronized (changedSubs) {
+			result.addAll(this.changedSubs.values());
+		}
+
+		return result.toArray(new UsersSubscription[] {});
+	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @return
+	 */
+	@Override
+	public boolean isChanged() {
+		synchronized (changedSubs) {
+			return this.changedSubs.size() > 0;
+		}
+	}
+
+	/**
+	 * Method description
+	 * 
+	 */
+	public void merge() {
+		synchronized (changedSubs) {
+			subs.putAll(changedSubs);
+			changedSubs.clear();
+		}
+	}
+
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 * 
+	 */
+	@Override
+	public void resetChangedFlag() {
+		synchronized (changedSubs) {
+			this.changedSubs.clear();
+		}
+	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

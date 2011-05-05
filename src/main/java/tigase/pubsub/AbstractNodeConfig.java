@@ -27,21 +27,19 @@ package tigase.pubsub;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
-
 import tigase.form.Field;
 import tigase.form.Field.FieldType;
 import tigase.form.Form;
-
 import tigase.xml.Element;
 
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:11:05 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:11:05 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public abstract class AbstractNodeConfig {
 
@@ -51,7 +49,8 @@ public abstract class AbstractNodeConfig {
 	/** Field description */
 	public static final String TIGASE = "tigase#";
 
-	//~--- fields ---------------------------------------------------------------
+	// ~--- fields
+	// ---------------------------------------------------------------
 
 	/**
 	 * List with do-not-write elements
@@ -59,12 +58,13 @@ public abstract class AbstractNodeConfig {
 	protected final Form form = new Form("form", null, null);
 	private final String nodeName;
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- constructors
+	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
 	 */
 	public AbstractNodeConfig(final String nodeName) {
@@ -74,8 +74,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
 	 * @param config
 	 */
@@ -85,28 +85,39 @@ public abstract class AbstractNodeConfig {
 		copyFrom(config);
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
-	protected abstract AbstractNodeConfig getInstance(String nodeName);
-
-	//~--- methods --------------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param f
 	 */
 	public void add(Field f) {
 		form.addField(f);
 	}
 
+	// ~--- methods
+	// --------------------------------------------------------------
+
+	protected String[] asStrinTable(Enum<?>[] values) {
+		String[] result = new String[values.length];
+		int i = 0;
+
+		for (Enum<?> v : values) {
+			result[i++] = v.name();
+		}
+
+		return result;
+	}
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws CloneNotSupportedException
 	 */
 	@Override
@@ -120,8 +131,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param c
 	 */
 	public void copyFrom(AbstractNodeConfig c) {
@@ -130,20 +141,21 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param f
 	 */
 	public void copyFromForm(Form f) {
 		form.copyValuesFrom(f);
 	}
 
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String getBodyXslt() {
@@ -152,8 +164,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String getBodyXsltEmbedded() {
@@ -174,8 +186,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String[] getChildren() {
@@ -184,8 +196,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String getCollection() {
@@ -196,8 +208,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String[] getDomains() {
@@ -208,8 +220,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public Form getForm() {
@@ -218,18 +230,20 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public Element getFormElement() {
 		return form.getElement();
 	}
 
+	protected abstract AbstractNodeConfig getInstance(String nodeName);
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public AccessModel getNodeAccessModel() {
@@ -244,8 +258,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String getNodeName() {
@@ -254,8 +268,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public NodeType getNodeType() {
@@ -268,10 +282,20 @@ public abstract class AbstractNodeConfig {
 		}
 	}
 
+	public PublisherModel getPublisherModel() {
+		String tmp = form.getAsString("pubsub#publish_model");
+
+		if (tmp == null) {
+			return null;
+		} else {
+			return PublisherModel.valueOf(tmp);
+		}
+	}
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String[] getRosterGroupsAllowed() {
@@ -280,18 +304,58 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String getTitle() {
 		return form.getAsString("pubsub#title");
 	}
 
+	protected void init() {
+		form.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#node_config"));
+		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null, new String[] { NodeType.leaf.name(),
+				NodeType.collection.name() }));
+		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));
+		form.addField(Field.fieldBoolean(PUBSUB + "deliver_payloads", true,
+				"Whether to deliver payloads with event notifications"));
+		form.addField(Field.fieldBoolean(PUBSUB + "notify_config", false,
+				"Notify subscribers when the node configuration changes"));
+		form.addField(Field.fieldBoolean(PUBSUB + "notify_delete", false, "Notify subscribers when the node is deleted"));
+		form.addField(Field.fieldBoolean(PUBSUB + "notify_retract", false,
+				"Notify subscribers when items are removed from the node"));
+		form.addField(Field.fieldBoolean(PUBSUB + "persist_items", true, "Persist items to storage"));
+		form.addField(Field.fieldTextSingle(PUBSUB + "max_items", "10", "Max # of items to persist"));
+		form.addField(Field.fieldBoolean(PUBSUB + "subscribe", true, "Whether to allow subscriptions"));
+		form.addField(Field.fieldTextSingle(PUBSUB + "collection", "", "The collection with which a node is affiliated"));
+		form.addField(Field.fieldListSingle(PUBSUB + "access_model", AccessModel.open.name(), "Specify the subscriber model",
+				null, asStrinTable(AccessModel.values())));
+		form.addField(Field.fieldListSingle(PUBSUB + "publish_model", PublisherModel.publishers.name(),
+				"Specify the publisher model", null, asStrinTable(PublisherModel.values())));
+		form.addField(Field.fieldListSingle(PUBSUB + "send_last_published_item", SendLastPublishedItem.on_sub.name(),
+				"When to send the last published item", null, asStrinTable(PublisherModel.values())));
+		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
+				"The domains allowed to access this node (blank for any)"));
+		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
+				"Whether to deliver notifications to available users only"));
+		form.addField(Field.fieldBoolean(TIGASE + "presence_expired", false,
+				"Whether to subscription expired when subscriber going offline."));
+		form.addField(Field.fieldTextMulti(PUBSUB + "embedded_body_xslt", new String[] {},
+				"The XSL transformation which can be applied to payloads in order to generate an "
+						+ "appropriate message body element."));
+		form.addField(Field.fieldTextSingle(PUBSUB + "body_xslt", "",
+				"The URL of an XSL transformation which can be applied to payloads in order to "
+						+ "generate an appropriate message body element."));
+		form.addField(Field.fieldTextMulti(PUBSUB + "roster_groups_allowed", new String[] {},
+				"Roster groups allowed to subscribe"));
+		form.addField(Field.fieldBoolean(PUBSUB + "notify_sub_aff_state", true,
+				"Notify subscribers when owner change their subscription or affiliation state"));
+	}
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public boolean isCollectionSet() {
@@ -300,18 +364,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
-	 * @return
-	 */
-	public boolean isDeliverPresenceBased() {
-		return form.getAsBoolean("pubsub#presence_based_delivery");
-	}
-
-	/**
-	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public boolean isDeliver_payloads() {
@@ -320,8 +374,21 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
+	 * @return
+	 */
+	public boolean isDeliverPresenceBased() {
+		return form.getAsBoolean("pubsub#presence_based_delivery");
+	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 * 
+	 * 
 	 * @return
 	 */
 	public boolean isNotify_config() {
@@ -330,8 +397,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public boolean isPresenceExpired() {
@@ -340,31 +407,31 @@ public abstract class AbstractNodeConfig {
 		return (x == null) ? false : x.booleanValue();
 	}
 
+	// ~--- set methods
+	// ----------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public boolean isTigaseNotifyChangeSubscriptionAffiliationState() {
 		return form.getAsBoolean(PUBSUB + "notify_sub_aff_state");
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param repository
 	 * @param config
 	 * @param subnode
-	 *
+	 * 
 	 * @throws TigaseDBException
 	 * @throws UserNotFoundException
 	 */
-	public void read(final UserRepository repository, final PubSubConfig config,
-			final String subnode)
+	public void read(final UserRepository repository, final PubSubConfig config, final String subnode)
 			throws UserNotFoundException, TigaseDBException {
 		if (repository == null) {
 			return;
@@ -383,19 +450,17 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
+	 * 
 	 */
 	public void reset() {
 		form.clear();
 		init();
 	}
 
-	//~--- set methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param xslt
 	 */
 	public void setBodyXsltEmbedded(String xslt) {
@@ -404,8 +469,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param collectionNew
 	 */
 	public void setCollection(String collectionNew) {
@@ -414,18 +479,21 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param domains
 	 */
 	public void setDomains(String... domains) {
 		setValues(PUBSUB + "domains", domains);
 	}
 
+	// ~--- methods
+	// --------------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeType
 	 */
 	public void setNodeType(NodeType nodeType) {
@@ -434,8 +502,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param var
 	 * @param data
 	 */
@@ -445,8 +513,8 @@ public abstract class AbstractNodeConfig {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param var
 	 * @param data
 	 */
@@ -462,10 +530,9 @@ public abstract class AbstractNodeConfig {
 				if (data instanceof String) {
 					String str = (String) data;
 
-					if ((f.getType() == FieldType.bool) &&!"0".equals(str) &&!"1".equals(str)
-							&&!"false".equals(str) &&!"true".equals(str)) {
-						throw new RuntimeException("Boolean fields allows only '1', '0', 'true' "
-								+ "and 'false' values");
+					if ((f.getType() == FieldType.bool) && !"0".equals(str) && !"1".equals(str) && !"false".equals(str)
+							&& !"true".equals(str)) {
+						throw new RuntimeException("Boolean fields allows only '1', '0', 'true' " + "and 'false' values");
 					}
 
 					f.setValues(new String[] { str });
@@ -476,106 +543,19 @@ public abstract class AbstractNodeConfig {
 						f.setValues(new String[] { b ? "1" : "0" });
 					} else {
 						if ((data instanceof String[])
-								&& ((f.getType() == FieldType.list_multi)
-									|| (f.getType() == FieldType.text_multi))) {
+								&& ((f.getType() == FieldType.list_multi) || (f.getType() == FieldType.text_multi))) {
 							String[] d = (String[]) data;
 
 							f.setValues(d);
 						} else {
-							throw new RuntimeException("Cannot match type "
-									+ data.getClass().getCanonicalName() + " to field type "
-										+ f.getType().name());
+							throw new RuntimeException("Cannot match type " + data.getClass().getCanonicalName()
+									+ " to field type " + f.getType().name());
 						}
 					}
 				}
 			}
 		}
 	}
-
-	//~--- methods --------------------------------------------------------------
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param repo
-	 * @param config
-	 * @param subnode
-	 *
-	 * @throws TigaseDBException
-	 * @throws UserNotFoundException
-	 */
-	public void write(final UserRepository repo, final PubSubConfig config, final String subnode)
-			throws UserNotFoundException, TigaseDBException {
-		if (repo == null) {
-			return;
-		}
-
-		repo.setData(config.getServiceBareJID(), subnode, "configuration",
-				form.getElement().toString());
-	}
-
-	protected String[] asStrinTable(Enum<?>[] values) {
-		String[] result = new String[values.length];
-		int i = 0;
-
-		for (Enum<?> v : values) {
-			result[i++] = v.name();
-		}
-
-		return result;
-	}
-
-	protected void init() {
-		form.addField(Field.fieldHidden("FORM_TYPE",
-				"http://jabber.org/protocol/pubsub#node_config"));
-		form.addField(Field.fieldListSingle(PUBSUB + "node_type", null, null, null,
-				new String[] { NodeType.leaf.name(),
-				NodeType.collection.name() }));
-		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));
-		form.addField(Field.fieldBoolean(PUBSUB + "deliver_payloads", true,
-				"Whether to deliver payloads with event notifications"));
-		form.addField(Field.fieldBoolean(PUBSUB + "notify_config", false,
-				"Notify subscribers when the node configuration changes"));
-		form.addField(Field.fieldBoolean(PUBSUB + "notify_delete", false,
-				"Notify subscribers when the node is deleted"));
-		form.addField(Field.fieldBoolean(PUBSUB + "notify_retract", false,
-				"Notify subscribers when items are removed from the node"));
-		form.addField(Field.fieldBoolean(PUBSUB + "persist_items", true,
-				"Persist items to storage"));
-		form.addField(Field.fieldTextSingle(PUBSUB + "max_items", "10",
-				"Max # of items to persist"));
-		form.addField(Field.fieldBoolean(PUBSUB + "subscribe", true,
-				"Whether to allow subscriptions"));
-		form.addField(Field.fieldTextSingle(PUBSUB + "collection", "",
-				"The collection with which a node is affiliated"));
-		form.addField(Field.fieldListSingle(PUBSUB + "access_model", AccessModel.open.name(),
-				"Specify the subscriber model", null, asStrinTable(AccessModel.values())));
-		form.addField(Field.fieldListSingle(PUBSUB + "publish_model",
-				PublisherModel.publishers.name(), "Specify the publisher model", null,
-					asStrinTable(PublisherModel.values())));
-		form.addField(Field.fieldListSingle(PUBSUB + "send_last_published_item",
-				SendLastPublishedItem.on_sub.name(), "When to send the last published item", null,
-					asStrinTable(PublisherModel.values())));
-		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
-				"The domains allowed to access this node (blank for any)"));
-		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
-				"Whether to deliver notifications to available users only"));
-		form.addField(Field.fieldBoolean(TIGASE + "presence_expired", false,
-				"Whether to subscription expired when subscriber going offline."));
-		form.addField(Field.fieldTextMulti(PUBSUB + "embedded_body_xslt", new String[] {},
-				"The XSL transformation which can be applied to payloads in order to generate an "
-					+ "appropriate message body element."));
-		form.addField(Field.fieldTextSingle(PUBSUB + "body_xslt", "",
-				"The URL of an XSL transformation which can be applied to payloads in order to "
-					+ "generate an appropriate message body element."));
-		form.addField(Field.fieldTextMulti(PUBSUB + "roster_groups_allowed", new String[] {},
-				"Roster groups allowed to subscribe"));
-		form.addField(Field.fieldBoolean(PUBSUB + "notify_sub_aff_state", true,
-				"Notify subscribers when owner change their subscription or affiliation state"));
-	}
-
-	//~--- set methods ----------------------------------------------------------
 
 	private void setValues(String var, String[] data) {
 		if ((data == null) || (data.length > 1)) {
@@ -588,10 +568,31 @@ public abstract class AbstractNodeConfig {
 			}
 		}
 	}
+
+	// ~--- set methods
+	// ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param repo
+	 * @param config
+	 * @param subnode
+	 * 
+	 * @throws TigaseDBException
+	 * @throws UserNotFoundException
+	 */
+	public void write(final UserRepository repo, final PubSubConfig config, final String subnode) throws UserNotFoundException,
+			TigaseDBException {
+		if (repo == null) {
+			return;
+		}
+
+		repo.setData(config.getServiceBareJID(), subnode, "configuration", form.getElement().toString());
+	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

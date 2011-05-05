@@ -6,71 +6,65 @@ import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocResponse;
 import tigase.adhoc.AdhHocRequest;
-
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
-
 import tigase.form.Field;
 import tigase.form.Form;
-
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
-
 import tigase.util.JIDUtils;
-
 import tigase.xml.Element;
-
 import tigase.xmpp.Authorization;
 
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:11:57 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:11:57 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class DeleteAllNodesCommand implements AdHocCommand {
 	private final PubSubConfig config;
 	private final PubSubDAO dao;
 	private final UserRepository userRepo;
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- constructors
+	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param directPubSubRepository
 	 * @param userRepo
 	 */
-	public DeleteAllNodesCommand(PubSubConfig config, PubSubDAO directPubSubRepository,
-			UserRepository userRepo) {
+	public DeleteAllNodesCommand(PubSubConfig config, PubSubDAO directPubSubRepository, UserRepository userRepo) {
 		this.dao = directPubSubRepository;
 		this.config = config;
 		this.userRepo = userRepo;
 	}
 
-	//~--- methods --------------------------------------------------------------
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param request
 	 * @param response
-	 *
+	 * 
 	 * @throws AdHocCommandException
 	 */
 	@Override
-	public void execute(AdhHocRequest request, AdHocResponse response)
-			throws AdHocCommandException {
+	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
-			if ( !config.isAdmin(JIDUtils.getNodeID(request.getSender()))) {
+			if (!config.isAdmin(JIDUtils.getNodeID(request.getSender()))) {
 				throw new AdHocCommandException(Authorization.FORBIDDEN);
 			}
 
@@ -80,8 +74,7 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 				response.cancelSession();
 			} else {
 				if (data == null) {
-					Form form = new Form("result", "Delete all nodes",
-						"To DELETE ALL NODES please check checkbox.");
+					Form form = new Form("result", "Delete all nodes", "To DELETE ALL NODES please check checkbox.");
 
 					form.addField(Field.fieldBoolean("tigase-pubsub#delete-all", Boolean.FALSE,
 							"YES! I'm sure! I want to delete all nodes"));
@@ -118,12 +111,13 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 		}
 	}
 
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -133,8 +127,8 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -142,17 +136,15 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 		return "delete-all-nodes";
 	}
 
-	//~--- methods --------------------------------------------------------------
+	// ~--- methods
+	// --------------------------------------------------------------
 
-	private void startRemoving()
-			throws RepositoryException, UserNotFoundException, TigaseDBException {
+	private void startRemoving() throws RepositoryException, UserNotFoundException, TigaseDBException {
 		dao.removeAllFromRootCollection();
 		userRepo.removeSubnode(config.getServiceBareJID(), "nodes");
 	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

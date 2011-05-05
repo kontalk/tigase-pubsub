@@ -30,7 +30,9 @@ import tigase.xml.Element;
 public class AdHocResponse {
 
 	static enum State {
-		canceled, completed, executing
+		canceled,
+		completed,
+		executing
 	}
 
 	private final State currentState;

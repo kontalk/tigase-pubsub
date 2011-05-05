@@ -24,36 +24,6 @@ package tigase.pubsub.modules;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import tigase.criteria.Criteria;
-import tigase.criteria.ElementCriteria;
-
-import tigase.pubsub.AbstractModule;
-import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.Affiliation;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.NodeType;
-import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
-import tigase.pubsub.exceptions.PubSubErrorCondition;
-import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.stateless.UsersAffiliation;
-
-import tigase.util.JIDUtils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
-
-//~--- JDK imports ------------------------------------------------------------
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -67,45 +37,86 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import tigase.criteria.Criteria;
+import tigase.criteria.ElementCriteria;
+import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
+import tigase.pubsub.ElementWriter;
+import tigase.pubsub.LeafNodeConfig;
+import tigase.pubsub.NodeType;
+import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.PublisherModel;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.Utils;
+import tigase.pubsub.exceptions.PubSubErrorCondition;
+import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IItems;
+import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
+import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.util.JIDUtils;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
+import tigase.xmpp.BareJID;
+
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:21:54 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:21:54 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class PublishItemModule extends AbstractModule {
-	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq",
-		"set").add(ElementCriteria.name("pubsub",
-			"http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
+	private static class Item {
+		final String id;
+		final Date updateDate;
+
+		// ~--- constructors
+		// -------------------------------------------------------
+
+		Item(String id, Date date) {
+			this.updateDate = date;
+			this.id = id;
+		}
+	}
+
+	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
+
+	// ~--- fields
+	// ---------------------------------------------------------------
 
 	/** Field description */
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
-			"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity",
-			"http://jabber.org/protocol/tune" };
-
-	//~--- fields ---------------------------------------------------------------
-
-	private long idCounter = 0;;
+			"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };;
+	private long idCounter = 0;
 	private final Set<String> pepNodes = new HashSet<String>();
 	private final PresenceCollectorModule presenceCollector;
+
+	// ~--- constructors
+	// ---------------------------------------------------------
+
 	private final XsltTool xslTransformer;
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 * @param xsltTool
 	 * @param presenceCollector
 	 */
-	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-			XsltTool xsltTool, PresenceCollectorModule presenceCollector) {
+	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, XsltTool xsltTool,
+			PresenceCollectorModule presenceCollector) {
 		super(config, pubsubRepository);
 		this.xslTransformer = xsltTool;
 		this.presenceCollector = presenceCollector;
@@ -115,12 +126,15 @@ public class PublishItemModule extends AbstractModule {
 		}
 	}
 
-	//~--- get methods ----------------------------------------------------------
+	protected void beforePrepareNotification(final AbstractNodeConfig nodeConfig, final ISubscriptions nodesSubscriptions) {
+		if (nodeConfig.isPresenceExpired()) {
+		}
+	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -128,10 +142,13 @@ public class PublishItemModule extends AbstractModule {
 		return new String[] { "http://jabber.org/protocol/pubsub#publish", };
 	}
 
+	// ~--- methods
+	// --------------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -139,47 +156,114 @@ public class PublishItemModule extends AbstractModule {
 		return CRIT_PUBLISH;
 	}
 
+	protected List<String> getParents(final String nodeName) throws RepositoryException {
+		ArrayList<String> result = new ArrayList<String>();
+		AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+		String cn = nodeConfig.getCollection();
+
+		while ((cn != null) && !"".equals(cn)) {
+			result.add(cn);
+
+			AbstractNodeConfig nc = repository.getNodeConfig(cn);
+
+			cn = nc.getCollection();
+		}
+		;
+
+		return result;
+	}
+
+	protected String[] getValidBuddies(String jid) throws RepositoryException {
+		ArrayList<String> result = new ArrayList<String>();
+		BareJID id = BareJID.bareJIDInstanceNS(jid);
+		String[] rosterJids = this.repository.getUserRoster(id);
+
+		if (rosterJids != null) {
+			for (String j : rosterJids) {
+				String sub = this.repository.getBuddySubscription(id, j);
+
+				if ((sub != null) && (sub.equals("both") || sub.equals("from"))) {
+					result.add(j);
+				}
+			}
+		}
+
+		return result.toArray(new String[] {});
+	}
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
-	 *
+	 * 
 	 * @return
 	 */
 	public boolean isPEPNodeName(String nodeName) {
 		return this.pepNodes.contains(nodeName);
 	}
 
-	//~--- methods --------------------------------------------------------------
+	private List<Element> makeItemsToSend(Element publish) {
+		List<Element> items = new ArrayList<Element>();
+
+		for (Element si : publish.getChildren()) {
+			if (!"item".equals(si.getName())) {
+				continue;
+			}
+
+			items.add(si);
+		}
+
+		return items;
+	}
+
+	private List<Element> pepProcess(final Element element, final Element pubSub, final Element publish)
+			throws RepositoryException {
+		final String senderJid = element.getAttribute("from");
+		final Element item = publish.getChild("item");
+		final Element items = new Element("items", new String[] { "node" }, new String[] { publish.getAttribute("node") });
+
+		items.addChild(item);
+
+		String[] subscribers = getValidBuddies(JIDUtils.getNodeID(senderJid));
+		List<Element> result = prepareNotification(subscribers, items, senderJid, null, publish.getAttribute("node"), null);
+
+		result.add(createResultIQ(element));
+		result.addAll(prepareNotification(new String[] { senderJid }, items, senderJid, null, publish.getAttribute("node"),
+				null));
+
+		return result;
+	}
+
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param itemToSend
 	 * @param jidFrom
 	 * @param publisherNodeName
 	 * @param nodeConfig
 	 * @param nodeAffiliations
 	 * @param nodesSubscriptions
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
-	public List<Element> prepareNotification(Element itemToSend, final String jidFrom,
-			final String publisherNodeName, AbstractNodeConfig nodeConfig,
-				IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
+	public List<Element> prepareNotification(Element itemToSend, final String jidFrom, final String publisherNodeName,
+			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
 			throws RepositoryException {
-		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig,
-				nodeAffiliations, nodesSubscriptions);
+		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations,
+				nodesSubscriptions);
 	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param itemToSend
 	 * @param jidFrom
 	 * @param publisherNodeName
@@ -187,16 +271,14 @@ public class PublishItemModule extends AbstractModule {
 	 * @param nodeConfig
 	 * @param nodeAffiliations
 	 * @param nodesSubscriptions
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
-	public List<Element> prepareNotification(final Element itemToSend, final String jidFrom,
-			final String publisherNodeName, final Map<String, String> headers,
-				AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations,
-					ISubscriptions nodesSubscriptions)
-			throws RepositoryException {
+	public List<Element> prepareNotification(final Element itemToSend, final String jidFrom, final String publisherNodeName,
+			final Map<String, String> headers, AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations,
+			ISubscriptions nodesSubscriptions) throws RepositoryException {
 		beforePrepareNotification(nodeConfig, nodesSubscriptions);
 
 		List<String> tmp = getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions);
@@ -210,14 +292,13 @@ public class PublishItemModule extends AbstractModule {
 				boolean available = this.presenceCollector.isJidAvailable(jid);
 				final UsersAffiliation afi = nodeAffiliations.getSubscriberAffiliation(jid);
 
-				if ((afi == null) ||(!available && (afi.getAffiliation() == Affiliation.member))) {
+				if ((afi == null) || (!available && (afi.getAffiliation() == Affiliation.member))) {
 					it.remove();
 					nodesSubscriptions.changeSubscription(jid, Subscription.none);
 					updateSubscriptions = true;
 
 					if (log.isLoggable(Level.FINE)) {
-						log.fine("Subscriptione expired. Node: " + nodeConfig.getNodeName() + ", jid: "
-								+ jid);
+						log.fine("Subscriptione expired. Node: " + nodeConfig.getNodeName() + ", jid: " + jid);
 					}
 				}
 			}
@@ -241,26 +322,27 @@ public class PublishItemModule extends AbstractModule {
 			subscribers = s.toArray(new String[] {});
 		}
 
-		return prepareNotification(subscribers, itemToSend, jidFrom, nodeConfig,
-				publisherNodeName, headers);
+		return prepareNotification(subscribers, itemToSend, jidFrom, nodeConfig, publisherNodeName, headers);
 	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param subscribers
 	 * @param itemToSend
 	 * @param jidFrom
 	 * @param nodeConfig
 	 * @param publisherNodeName
 	 * @param headers
-	 *
+	 * 
 	 * @return
 	 */
-	public List<Element> prepareNotification(final String[] subscribers,
-			final Element itemToSend, final String jidFrom, AbstractNodeConfig nodeConfig,
-				final String publisherNodeName, final Map<String, String> headers) {
+	public List<Element> prepareNotification(final String[] subscribers, final Element itemToSend, final String jidFrom,
+			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
 		ArrayList<Element> result = new ArrayList<Element>();
 		List<Element> body = null;
 
@@ -274,27 +356,26 @@ public class PublishItemModule extends AbstractModule {
 		}
 
 		for (String jid : subscribers) {
-			Element message = new Element("message", new String[] { "from", "to", "id" },
-				new String[] { jidFrom,
-					jid, String.valueOf(++this.idCounter) });
+			Element message = new Element("message", new String[] { "from", "to", "id" }, new String[] { jidFrom, jid,
+					String.valueOf(++this.idCounter) });
 
 			if (body != null) {
 				message.addChildren(body);
 			}
 
 			Element event = new Element("event", new String[] { "xmlns" },
-				new String[] { "http://jabber.org/protocol/pubsub#event" });
+					new String[] { "http://jabber.org/protocol/pubsub#event" });
 
 			event.addChild(itemToSend);
 			message.addChild(event);
 
 			if ((headers != null) && (headers.size() > 0)) {
 				Element headElem = new Element("headers", new String[] { "xmlns" },
-					new String[] { "http://jabber.org/protocol/shim" });
+						new String[] { "http://jabber.org/protocol/shim" });
 
 				for (Entry<String, String> entry : headers.entrySet()) {
 					Element h = new Element("header", entry.getValue(), new String[] { "name" },
-						new String[] { entry.getKey() });
+							new String[] { entry.getKey() });
 
 					headElem.addChild(h);
 				}
@@ -310,18 +391,17 @@ public class PublishItemModule extends AbstractModule {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param element
 	 * @param elementWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
-			throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element publish = pubSub.getChild("publish");
 		final String nodeName = publish.getAttribute("node");
@@ -337,17 +417,21 @@ public class PublishItemModule extends AbstractModule {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			} else {
 				if (nodeConfig.getNodeType() == NodeType.collection) {
-					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-							new PubSubErrorCondition("unsupported", "publish"));
+					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+							"publish"));
 				}
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
-			final UsersAffiliation senderAffiliation =
-				nodeAffiliations.getSubscriberAffiliation(element.getAttribute("from"));
+			final UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(element.getAttribute("from"));
+			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 
-			if ( !senderAffiliation.getAffiliation().isPublishItem()) {
-				throw new PubSubException(Authorization.FORBIDDEN);
+			// XXX #125
+			final PublisherModel publisherModel = nodeConfig.getPublisherModel();
+			if (!senderAffiliation.getAffiliation().isPublishItem()) {
+				if (publisherModel == PublisherModel.publishers || publisherModel == PublisherModel.subscribers
+						&& nodeSubscriptions.getSubscription(element.getAttribute("from")) != Subscription.subscribed)
+					throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
 			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
@@ -361,12 +445,11 @@ public class PublishItemModule extends AbstractModule {
 
 				// checking ID
 				Element resPubsub = new Element("pubsub", new String[] { "xmlns" },
-					new String[] { "http://jabber.org/protocol/pubsub" });
+						new String[] { "http://jabber.org/protocol/pubsub" });
 
 				resultIq.addChild(resPubsub);
 
-				Element resPublish = new Element("publish", new String[] { "node" },
-					new String[] { nodeName });
+				Element resPublish = new Element("publish", new String[] { "node" }, new String[] { nodeName });
 
 				resPubsub.addChild(resPublish);
 
@@ -385,18 +468,9 @@ public class PublishItemModule extends AbstractModule {
 				}
 			}
 
-			// TODO 7.1.3.1 Insufficient Privileges
-			// TODO 7.1.3.2 Item Publication Not Supported
-			// TODO 7.1.3.3 Node Does Not Exist
-			// TODO 7.1.3.4 Payload Too Big
-			// TODO 7.1.3.5 Bad Payload
-			// TODO 7.1.3.6 Request Does Not Match Configuration
-			final Element items = new Element("items", new String[] { "node" },
-				new String[] { nodeName });
+			final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
 
 			items.addChildren(itemsToSend);
-
-			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 
 			result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName,
 					this.repository.getNodeConfig(nodeName), nodeAffiliations, nodeSubscriptions));
@@ -410,12 +484,11 @@ public class PublishItemModule extends AbstractModule {
 					headers.put("Collection", collection);
 
 					AbstractNodeConfig colNodeConfig = this.repository.getNodeConfig(collection);
-					ISubscriptions colNodeSubscriptions =
-						this.repository.getNodeSubscriptions(collection);
+					ISubscriptions colNodeSubscriptions = this.repository.getNodeSubscriptions(collection);
 					IAffiliations colNodeAffiliations = this.repository.getNodeAffiliations(collection);
 
-					result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName,
-							headers, colNodeConfig, colNodeAffiliations, colNodeSubscriptions));
+					result.addAll(prepareNotification(items, element.getAttribute("to"), nodeName, headers, colNodeConfig,
+							colNodeAffiliations, colNodeSubscriptions));
 				}
 			}
 
@@ -425,8 +498,7 @@ public class PublishItemModule extends AbstractModule {
 				for (Element item : itemsToSend) {
 					final String id = item.getAttribute("id");
 
-					nodeItems.writeItem(System.currentTimeMillis(), id, element.getAttribute("from"),
-							item);
+					nodeItems.writeItem(System.currentTimeMillis(), id, element.getAttribute("from"), item);
 				}
 
 				if (leafNodeConfig.getMaxItems() != null) {
@@ -444,17 +516,19 @@ public class PublishItemModule extends AbstractModule {
 		}
 	}
 
+	// ~--- inner classes
+	// --------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeItems
 	 * @param maxItems
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
-	public void trimItems(final IItems nodeItems, final Integer maxItems)
-			throws RepositoryException {
+	public void trimItems(final IItems nodeItems, final Integer maxItems) throws RepositoryException {
 		final String[] ids = nodeItems.getItemsIds();
 
 		if ((ids == null) || (ids.length <= maxItems)) {
@@ -486,103 +560,8 @@ public class PublishItemModule extends AbstractModule {
 			nodeItems.deleteItem(it.id);
 		}
 	}
-
-	protected void beforePrepareNotification(final AbstractNodeConfig nodeConfig,
-			final ISubscriptions nodesSubscriptions) {
-		if (nodeConfig.isPresenceExpired()) {}
-	}
-
-	//~--- get methods ----------------------------------------------------------
-
-	protected List<String> getParents(final String nodeName) throws RepositoryException {
-		ArrayList<String> result = new ArrayList<String>();
-		AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
-		String cn = nodeConfig.getCollection();
-
-		while ((cn != null) &&!"".equals(cn)) {
-			result.add(cn);
-
-			AbstractNodeConfig nc = repository.getNodeConfig(cn);
-
-			cn = nc.getCollection();
-		}
-		;
-
-		return result;
-	}
-
-	protected String[] getValidBuddies(String jid) throws RepositoryException {
-		ArrayList<String> result = new ArrayList<String>();
-		BareJID id = BareJID.bareJIDInstanceNS(jid);
-		String[] rosterJids = this.repository.getUserRoster(id);
-
-		if (rosterJids != null) {
-			for (String j : rosterJids) {
-				String sub = this.repository.getBuddySubscription(id, j);
-
-				if ((sub != null) && (sub.equals("both") || sub.equals("from"))) {
-					result.add(j);
-				}
-			}
-		}
-
-		return result.toArray(new String[] {});
-	}
-
-	//~--- methods --------------------------------------------------------------
-
-	private List<Element> makeItemsToSend(Element publish) {
-		List<Element> items = new ArrayList<Element>();
-
-		for (Element si : publish.getChildren()) {
-			if ( !"item".equals(si.getName())) {
-				continue;
-			}
-
-			items.add(si);
-		}
-
-		return items;
-	}
-
-	private List<Element> pepProcess(final Element element, final Element pubSub,
-			final Element publish)
-			throws RepositoryException {
-		final String senderJid = element.getAttribute("from");
-		final Element item = publish.getChild("item");
-		final Element items = new Element("items", new String[] { "node" },
-			new String[] { publish.getAttribute("node") });
-
-		items.addChild(item);
-
-		String[] subscribers = getValidBuddies(JIDUtils.getNodeID(senderJid));
-		List<Element> result = prepareNotification(subscribers, items, senderJid, null,
-			publish.getAttribute("node"), null);
-
-		result.add(createResultIQ(element));
-		result.addAll(prepareNotification(new String[] { senderJid }, items, senderJid, null,
-				publish.getAttribute("node"), null));
-
-		return result;
-	}
-
-	//~--- inner classes --------------------------------------------------------
-
-	private static class Item {
-		final String id;
-		final Date updateDate;
-
-		//~--- constructors -------------------------------------------------------
-
-		Item(String id, Date date) {
-			this.updateDate = date;
-			this.id = id;
-		}
-	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

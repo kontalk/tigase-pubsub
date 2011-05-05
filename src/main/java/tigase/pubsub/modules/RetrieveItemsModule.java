@@ -102,7 +102,8 @@ public class RetrieveItemsModule extends AbstractModule {
 			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
 			if (nodeConfig == null)
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
-			if (nodeConfig.getNodeAccessModel() == AccessModel.open && !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
+			if (nodeConfig.getNodeAccessModel() == AccessModel.open
+					&& !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains()))
 				throw new PubSubException(Authorization.FORBIDDEN);
 
 			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(nodeName);
@@ -114,7 +115,8 @@ public class RetrieveItemsModule extends AbstractModule {
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
 			Subscription senderSubscription = nodeSubscriptions.getSubscription(senderJid);
 
-			if (nodeConfig.getNodeAccessModel() == AccessModel.whitelist && !senderAffiliation.getAffiliation().isRetrieveItem()) {
+			if (nodeConfig.getNodeAccessModel() == AccessModel.whitelist
+					&& !senderAffiliation.getAffiliation().isRetrieveItem()) {
 				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.authorize
 					&& (senderSubscription != Subscription.subscribed || !senderAffiliation.getAffiliation().isRetrieveItem())) {
@@ -130,15 +132,17 @@ public class RetrieveItemsModule extends AbstractModule {
 			}
 
 			if (nodeConfig instanceof CollectionNodeConfig) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported", "retrieve-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"retrieve-items"));
 			} else if ((nodeConfig instanceof LeafNodeConfig) && !((LeafNodeConfig) nodeConfig).isPersistItem()) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-						new PubSubErrorCondition("unsupported", "persistent-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"persistent-items"));
 			}
 
 			List<String> requestedId = extractItemsIds(items);
 			final Element iq = createResultIQ(element);
-			final Element rpubsub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+			final Element rpubsub = new Element("pubsub", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub" });
 			final Element ritems = new Element("items", new String[] { "node" }, new String[] { nodeName });
 			rpubsub.addChild(ritems);
 			iq.addChild(rpubsub);

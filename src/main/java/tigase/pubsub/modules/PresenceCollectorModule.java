@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import tigase.criteria.Criteria;
@@ -60,12 +60,6 @@ public class PresenceCollectorModule implements Module {
 		return result;
 	}
 
-	public boolean isJidAvailable(final String jid) {
-		final String bareJid = JIDUtils.getNodeID(jid);
-		final Set<String> resources = this.resources.get(bareJid);
-		return resources != null && resources.size() > 0;
-	}
-
 	public List<String> getAllAvailableResources(final String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
 		final List<String> result = new ArrayList<String>();
@@ -78,12 +72,20 @@ public class PresenceCollectorModule implements Module {
 		return result;
 	}
 
+	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/pubsub#presence-notifications" };
 	}
 
+	@Override
 	public Criteria getModuleCriteria() {
 		return CRIT;
+	}
+
+	public boolean isJidAvailable(final String jid) {
+		final String bareJid = JIDUtils.getNodeID(jid);
+		final Set<String> resources = this.resources.get(bareJid);
+		return resources != null && resources.size() > 0;
 	}
 
 	private Element preparePresence(final Element presence, String type) {
@@ -101,6 +103,7 @@ public class PresenceCollectorModule implements Module {
 		return null;
 	}
 
+	@Override
 	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		final String type = element.getAttribute("type");
 		final String jid = element.getAttribute("from");

@@ -24,9 +24,10 @@ package tigase.pubsub.modules;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.List;
+
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
@@ -41,37 +42,50 @@ import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-
 import tigase.util.JIDUtils;
-
 import tigase.xml.Element;
-
 import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.List;
 
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:25:49 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:25:49 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class ManageSubscriptionModule extends AbstractModule {
-	private static final Criteria CRIT =
-		ElementCriteria.name("iq").add(ElementCriteria.name("pubsub",
-			"http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("subscriptions"));
+	private static final Criteria CRIT = ElementCriteria.name("iq").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(
+			ElementCriteria.name("subscriptions"));
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- constructors
+	// ---------------------------------------------------------
+
+	private static Element createSubscriptionNotification(String fromJid, String toJid, String nodeName,
+			Subscription subscription) {
+		Element message = new Element("message", new String[] { "from", "to" }, new String[] { fromJid, toJid });
+		Element pubsub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+
+		message.addChild(pubsub);
+
+		Element affilations = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
+
+		pubsub.addChild(affilations);
+		affilations.addChild(new Element("subscription", new String[] { "jid", "subscription" }, new String[] { toJid,
+				subscription.name() }));
+
+		return message;
+	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 */
@@ -79,35 +93,13 @@ public class ManageSubscriptionModule extends AbstractModule {
 		super(config, pubsubRepository);
 	}
 
-	//~--- methods --------------------------------------------------------------
-
-	private static Element createSubscriptionNotification(String fromJid, String toJid,
-			String nodeName, Subscription subscription) {
-		Element message = new Element("message", new String[] { "from", "to" },
-			new String[] { fromJid,
-				toJid });
-		Element pubsub = new Element("pubsub", new String[] { "xmlns" },
-			new String[] { "http://jabber.org/protocol/pubsub" });
-
-		message.addChild(pubsub);
-
-		Element affilations = new Element("subscriptions", new String[] { "node" },
-			new String[] { nodeName });
-
-		pubsub.addChild(affilations);
-		affilations.addChild(new Element("subscription", new String[] { "jid", "subscription" },
-				new String[] { toJid,
-				subscription.name() }));
-
-		return message;
-	}
-
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -117,8 +109,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -126,35 +118,34 @@ public class ManageSubscriptionModule extends AbstractModule {
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param element
 	 * @param elementWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
-			throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
 			Element subscriptions = pubsub.getChild("subscriptions");
 			String nodeName = subscriptions.getAttribute("node");
 			String type = element.getAttribute("type");
 
-			if ((type == null) ||(!type.equals("get") &&!type.equals("set"))) {
+			if ((type == null) || (!type.equals("get") && !type.equals("set"))) {
 				throw new PubSubException(Authorization.BAD_REQUEST);
 			}
 
 			if (nodeName == null) {
-				throw new PubSubException(Authorization.BAD_REQUEST,
-						PubSubErrorCondition.NODE_REQUIRED);
+				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
 
 			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
@@ -167,9 +158,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(nodeName);
 			String senderJid = element.getAttribute("from");
 
-			if ( !this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				UsersAffiliation senderAffiliation =
-					nodeAffiliations.getSubscriberAffiliation(senderJid);
+			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
@@ -180,8 +170,7 @@ public class ManageSubscriptionModule extends AbstractModule {
 				processGet(element, subscriptions, nodeName, nodeSubscriptions, elementWriter);
 			} else {
 				if (type.equals("set")) {
-					processSet(element, subscriptions, nodeName, nodeConfig, nodeSubscriptions,
-							elementWriter);
+					processSet(element, subscriptions, nodeName, nodeConfig, nodeSubscriptions, elementWriter);
 				}
 			}
 
@@ -199,17 +188,14 @@ public class ManageSubscriptionModule extends AbstractModule {
 		}
 	}
 
-	private void processGet(Element element, Element subscriptions, String nodeName,
-			final ISubscriptions nodeSubscriptions, ElementWriter elementWriter)
-			throws RepositoryException {
+	private void processGet(Element element, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions,
+			ElementWriter elementWriter) throws RepositoryException {
 		Element iq = createResultIQ(element);
-		Element ps = new Element("pubsub", new String[] { "xmlns" },
-			new String[] { "http://jabber.org/protocol/pubsub#owner" });
+		Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
 
 		iq.addChild(ps);
 
-		Element afr = new Element("subscriptions", new String[] { "node" },
-			new String[] { nodeName });
+		Element afr = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
 
 		ps.addChild(afr);
 
@@ -221,9 +207,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 					continue;
 				}
 
-				Element subscription = new Element("subscription", new String[] { "jid",
-						"subscription" }, new String[] { usersSubscription.getJid().toString(),
-						usersSubscription.getSubscription().name() });
+				Element subscription = new Element("subscription", new String[] { "jid", "subscription" }, new String[] {
+						usersSubscription.getJid().toString(), usersSubscription.getSubscription().name() });
 
 				afr.addChild(subscription);
 			}
@@ -232,15 +217,13 @@ public class ManageSubscriptionModule extends AbstractModule {
 		elementWriter.write(iq);
 	}
 
-	private void processSet(Element element, Element subscriptions, String nodeName,
-			final AbstractNodeConfig nodeConfig, final ISubscriptions nodeSubscriptions,
-				ElementWriter elementWriter)
-			throws PubSubException, RepositoryException {
+	private void processSet(Element element, Element subscriptions, String nodeName, final AbstractNodeConfig nodeConfig,
+			final ISubscriptions nodeSubscriptions, ElementWriter elementWriter) throws PubSubException, RepositoryException {
 		Element iq = createResultIQ(element);
 		List<Element> subss = subscriptions.getChildren();
 
 		for (Element a : subss) {
-			if ( !"subscription".equals(a.getName())) {
+			if (!"subscription".equals(a.getName())) {
 				throw new PubSubException(Authorization.BAD_REQUEST);
 			}
 		}
@@ -262,15 +245,15 @@ public class ManageSubscriptionModule extends AbstractModule {
 				nodeSubscriptions.addSubscriberJid(jid, newSubscription);
 
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
-					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid,
-							nodeName, newSubscription));
+					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid, nodeName,
+							newSubscription));
 				}
 			} else {
 				nodeSubscriptions.changeSubscription(jid, newSubscription);
 
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
-					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid,
-							nodeName, newSubscription));
+					elementWriter.write(createSubscriptionNotification(element.getAttribute("to"), jid, nodeName,
+							newSubscription));
 				}
 			}
 		}
@@ -279,8 +262,6 @@ public class ManageSubscriptionModule extends AbstractModule {
 	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

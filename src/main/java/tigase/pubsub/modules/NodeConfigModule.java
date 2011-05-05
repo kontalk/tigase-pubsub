@@ -175,8 +175,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 				result.addChild(rPubSub);
 			} else if ("set".equals(type)) {
-				String[] children = nodeConfig.getChildren() == null ? new String[] {} : Arrays.copyOf(nodeConfig.getChildren(),
-						nodeConfig.getChildren().length);
+				String[] children = nodeConfig.getChildren() == null ? new String[] {} : Arrays.copyOf(
+						nodeConfig.getChildren(), nodeConfig.getChildren().length);
 				final String collectionOld = nodeConfig.getCollection() == null ? "" : nodeConfig.getCollection();
 
 				parseConf(nodeConfig, configure);
@@ -200,8 +200,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(colNodeConfig.getNodeName());
 
 						Element associateNotification = createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
-						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"), nodeName,
-								nodeConfig, colNodeAffiliations, colNodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"),
+								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 					}
 
 					if (nodeConfig.getCollection().equals("")) {
@@ -218,8 +218,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(colNodeConfig.getNodeName());
 
 						Element disassociateNotification = createDisassociateNotification(collectionOld, nodeName);
-						resultArray.addAll(publishModule.prepareNotification(disassociateNotification, element.getAttribute("to"),
-								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(disassociateNotification,
+								element.getAttribute("to"), nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 
 					}
 
@@ -228,7 +228,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				if (nodeConfig instanceof CollectionNodeConfig) {
 					final String[] removedChildNodes = diff(children == null ? new String[] {} : children,
 							nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren());
-					final String[] addedChildNodes = diff(nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
+					final String[] addedChildNodes = diff(
+							nodeConfig.getChildren() == null ? new String[] {} : nodeConfig.getChildren(),
 							children == null ? new String[] {} : children);
 
 					for (String ann : addedChildNodes) {
@@ -255,8 +256,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						repository.update(nc.getNodeName(), nc);
 
 						Element associateNotification = createAssociateNotification(nodeName, ann);
-						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"), nodeName,
-								nodeConfig, nodeAffiliations, nodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, element.getAttribute("to"),
+								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 
 					}
 
@@ -268,8 +269,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						}
 						if (rnn != null && rnn.length() != 0) {
 							Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
-							resultArray.addAll(publishModule.prepareNotification(disassociateNotification, element.getAttribute("to"),
-									nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+							resultArray.addAll(publishModule.prepareNotification(disassociateNotification,
+									element.getAttribute("to"), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 						}
 					}
 

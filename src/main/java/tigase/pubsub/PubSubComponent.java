@@ -24,19 +24,23 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import tigase.conf.Configurable;
-
 import tigase.criteria.Criteria;
-
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
-
 import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
 import tigase.disco.XMPPService;
-
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.AdHocConfigCommandModule;
 import tigase.pubsub.modules.DefaultConfigModule;
@@ -70,45 +74,29 @@ import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
-
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
-
-import tigase.stats.StatRecord;
 import tigase.stats.StatisticsList;
-
 import tigase.util.DNSResolver;
 import tigase.util.TigaseStringprepException;
-
 import tigase.xml.Element;
-
 import tigase.xmpp.Authorization;
 import tigase.xmpp.JID;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.1.0, 2010.11.02 at 01:05:02 MDT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.1.0, 2010.11.02 at 01:05:02 MDT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PubSubComponent extends AbstractMessageReceiver
-		implements XMPPService, Configurable, DisableDisco, DefaultNodeConfigListener {
+public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco,
+		DefaultNodeConfigListener {
 
 	/** Field description */
 	public static final String ADMINS_KEY = "admin";
@@ -117,25 +105,26 @@ public class PubSubComponent extends AbstractMessageReceiver
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
-	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
 	protected static final String PUBSUB_REPO_POOL_SIZE_PROP_KEY = "pubsub-repo-pool-size";
+	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
 
-	//~--- fields ---------------------------------------------------------------
+	// ~--- fields
+	// ---------------------------------------------------------------
 
-	/** Field description */
-	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
-	protected final PubSubConfig config = new PubSubConfig();
-	int lastNodeNo = -1;
-	protected Logger log = Logger.getLogger(this.getClass().getName());
-	protected final ArrayList<Module> modules = new ArrayList<Module>();
 	protected AdHocConfigCommandModule adHocCommandsModule;
+	protected final PubSubConfig config = new PubSubConfig();
 	protected DefaultConfigModule defaultConfigModule;
 	protected LeafNodeConfig defaultNodeConfig;
 	protected PubSubDAO directPubSubRepository;
 	protected final ElementWriter elementWriter;
+	/** Field description */
+	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
+	int lastNodeNo = -1;
+	protected Logger log = Logger.getLogger(this.getClass().getName());
 	protected ManageAffiliationsModule manageAffiliationsModule;
 	protected ManageSubscriptionModule manageSubscriptionModule;
 	private Integer maxRepositoryCacheSize;
+	protected final ArrayList<Module> modules = new ArrayList<Module>();
 	protected NodeConfigModule nodeConfigModule;
 	protected NodeCreateModule nodeCreateModule;
 	protected NodeDeleteModule nodeDeleteModule;
@@ -152,11 +141,12 @@ public class PubSubComponent extends AbstractMessageReceiver
 	protected UserRepository userRepository;
 	protected XsltTool xslTransformer;
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- constructors
+	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
+	 * 
 	 */
 	public PubSubComponent() {
 		setName("pubsub");
@@ -171,6 +161,7 @@ public class PubSubComponent extends AbstractMessageReceiver
 					}
 				}
 			}
+
 			@Override
 			public void write(final Element element) {
 				if (element != null) {
@@ -184,14 +175,58 @@ public class PubSubComponent extends AbstractMessageReceiver
 		};
 	}
 
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
+
+		// return new StatelessPubSubRepository(directRepository, this.config);
+		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
+	}
+
+	// @Override
+	// public void everySecond() {
+	// super.everySecond();
+	// if (this.pubsubRepository != null)
+	// this.pubsubRepository.doLazyWrite();
+	// }
+	protected String extractNodeName(Element element) {
+		if (element == null) {
+			return null;
+		}
+
+		Element ps = element.getChild("pubsub");
+		Element query = element.getChild("query");
+
+		if (ps != null) {
+			List<Element> children = ps.getChildren();
+
+			if (children != null) {
+				for (Element e : children) {
+					String n = e.getAttribute("node");
+
+					if (n != null) {
+						return n;
+					}
+				}
+			}
+		} else {
+			if (query != null) {
+				String n = query.getAttribute("node");
+
+				return n;
+			}
+		}
+
+		return null;
+	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param params
-	 *
+	 * 
 	 * @return
 	 */
 	@Override
@@ -220,7 +255,7 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 		if (params.get(GEN_USER_DB) != null) {
 			conf_db = (String) params.get(GEN_USER_DB);
-		}    // end of if (params.get(GEN_USER_DB) != null)
+		} // end of if (params.get(GEN_USER_DB) != null)
 
 		if (conf_db != null) {
 			if (conf_db.equals("mysql")) {
@@ -232,11 +267,11 @@ public class PubSubComponent extends AbstractMessageReceiver
 				repo_class = PGSQL_REPO_CLASS_PROP_VAL;
 				repo_uri = PGSQL_REPO_URL_PROP_VAL;
 			}
-		}    // end of if (conf_db != null)
+		} // end of if (conf_db != null)
 
 		if (params.get(GEN_USER_DB_URI) != null) {
 			repo_uri = (String) params.get(GEN_USER_DB_URI);
-		}    // end of if (params.get(GEN_USER_DB_URI) != null)
+		} // end of if (params.get(GEN_USER_DB_URI) != null)
 
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
@@ -257,8 +292,8 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -270,11 +305,11 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param node
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
 	@Override
@@ -282,13 +317,16 @@ public class PubSubComponent extends AbstractMessageReceiver
 		return null;
 	}
 
+	// ~--- methods
+	// --------------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param node
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
 	@Override
@@ -304,8 +342,8 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param list
 	 */
 	@Override
@@ -314,17 +352,17 @@ public class PubSubComponent extends AbstractMessageReceiver
 		this.pubsubRepository.addStats(getName(), list);
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
-	 * This method overwrites default packet hashCode calculation from
-	 * a destination address to node name if possible so all packets for the
-	 * same pubsub node are processed on the same thread. If there is no node name
-	 * then the source address is used to get a better packets
-	 * distribution to different threads.
+	 * This method overwrites default packet hashCode calculation from a
+	 * destination address to node name if possible so all packets for the same
+	 * pubsub node are processed on the same thread. If there is no node name
+	 * then the source address is used to get a better packets distribution to
+	 * different threads.
+	 * 
 	 * @param packet
 	 * @return
 	 */
+	@Override
 	public int hashCodeForPacket(Packet packet) {
 		List<Element> children = packet.getElemChildren("/iq/pubsub");
 
@@ -341,22 +379,53 @@ public class PubSubComponent extends AbstractMessageReceiver
 		return packet.getFrom().hashCode();
 	}
 
+	protected void init() {
+		this.xslTransformer = new XsltTool();
+		this.presenceCollectorModule = registerModule(new PresenceCollectorModule());
+		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository, this.xslTransformer,
+				this.presenceCollectorModule));
+		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository,
+				this.publishNodeModule));
+		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(this.config, this.pubsubRepository));
+		this.manageSubscriptionModule = registerModule(new ManageSubscriptionModule(this.config, this.pubsubRepository));
+		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository,
+				this.pendingSubscriptionModule));
+		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
+				this.publishNodeModule));
+		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository, this.publishNodeModule));
+		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository,
+				this.defaultNodeConfig));
+		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
+				this.publishNodeModule));
+		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
+		this.manageAffiliationsModule = registerModule(new ManageAffiliationsModule(this.config, this.pubsubRepository));
+		this.retrirveItemsModule = registerModule(new RetrieveItemsModule(this.config, this.pubsubRepository));
+		this.purgeItemsModule = registerModule(new PurgeItemsModule(this.config, this.pubsubRepository, this.publishNodeModule));
+		registerModule(new JabberVersionModule());
+		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(this.config, this.pubsubRepository));
+		registerModule(new DiscoverInfoModule(this.config, this.pubsubRepository, this.modules));
+		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository, this.adHocCommandsModule));
+		registerModule(new RetrieveAffiliationsModule(this.config, this.pubsubRepository));
+		registerModule(new RetrieveSubscriptionsModule(this.config, this.pubsubRepository));
+		registerModule(new XmppPingModule());
+		this.pubsubRepository.init();
+	}
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param admins
 	 * @param pubSubDAO
 	 * @param createPubSubRepository
 	 * @param defaultNodeConfig
-	 *
+	 * 
 	 * @throws RepositoryException
 	 * @throws TigaseDBException
 	 * @throws UserNotFoundException
 	 */
-	public void initialize(String[] admins, PubSubDAO pubSubDAO,
-			IPubSubRepository createPubSubRepository, LeafNodeConfig defaultNodeConfig)
-			throws UserNotFoundException, TigaseDBException, RepositoryException {
+	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
+			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
 		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
 		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
 		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
@@ -371,29 +440,25 @@ public class PubSubComponent extends AbstractMessageReceiver
 		this.directPubSubRepository = pubSubDAO;
 		this.pubsubRepository = createPubSubRepository(pubSubDAO);
 		this.defaultNodeConfig = defaultNodeConfig;
-		this.defaultNodeConfig.read(userRepository, config,
-				PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-		this.defaultNodeConfig.write(userRepository, config,
-				PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 		init();
 
-		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config,
-			this.userRepository);
+		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
 
 		configCommand.addListener(this);
-		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config,
-				this.directPubSubRepository));
+		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
 		this.adHocCommandsModule.register(configCommand);
-		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config,
-				this.directPubSubRepository, this.userRepository));
-		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.config,
-				this.directPubSubRepository, this.pubsubRepository));
+		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository,
+				this.userRepository));
+		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.config, this.directPubSubRepository,
+				this.pubsubRepository));
 	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public String myDomain() {
@@ -402,13 +467,12 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 	/**
 	 * Method description
-	 *
+	 * 
 	 */
 	@Override
 	public void onChangeDefaultNodeConfig() {
 		try {
-			this.defaultNodeConfig.read(userRepository, config,
-					PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 			log.info("Node " + getComponentId() + " read default node configuration.");
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Reading default config error", e);
@@ -417,19 +481,18 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param element
 	 * @param writer
-	 *
+	 * 
 	 * @throws PacketErrorTypeException
 	 */
-	public void process(final Element element, final ElementWriter writer)
-			throws PacketErrorTypeException {
+	public void process(final Element element, final ElementWriter writer) throws PacketErrorTypeException {
 		try {
 			boolean handled = runModules(element, writer);
 
-			if ( !handled) {
+			if (!handled) {
 				final String t = element.getAttribute("type");
 				final StanzaType type = (t == null) ? null : StanzaType.valueof(t);
 
@@ -449,10 +512,32 @@ public class PubSubComponent extends AbstractMessageReceiver
 		}
 	}
 
+	// ~--- set methods
+	// ----------------------------------------------------------
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
+	 * @return
+	 */
+	@Override
+	public int processingThreads() {
+
+		// Does not support concurrency!!
+		// Test it extensively before switching on, ask for more details if you
+		// need
+		// return 1 + (Runtime.getRuntime().availableProcessors() / 2);
+		return 1;
+	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 * 
+	 * 
 	 * @param packet
 	 */
 	@Override
@@ -464,8 +549,7 @@ public class PubSubComponent extends AbstractMessageReceiver
 			e.printStackTrace();
 
 			try {
-				addOutPacket(Authorization.INTERNAL_SERVER_ERROR.getResponseMessage(packet, e.getMessage(),
-						true));
+				addOutPacket(Authorization.INTERNAL_SERVER_ERROR.getResponseMessage(packet, e.getMessage(), true));
 			} catch (PacketErrorTypeException e1) {
 				e1.printStackTrace();
 				log.throwing("PubSub Service", "processPacket (sending internal-server-error)", e);
@@ -475,26 +559,11 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 	/**
 	 * Method description
-	 *
-	 *
-	 * @return
-	 */
-	@Override
-	public int processingThreads() {
-
-		// Does not support concurrency!!
-		// Test it extensively before switching on, ask for more details if you need
-		// return 1 + (Runtime.getRuntime().availableProcessors() / 2);
-		return 1;
-	}
-
-	/**
-	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param module
 	 * @param <T>
-	 *
+	 * 
 	 * @return
 	 */
 	public <T extends Module> T registerModule(final T module) {
@@ -504,12 +573,47 @@ public class PubSubComponent extends AbstractMessageReceiver
 		return module;
 	}
 
-	//~--- set methods ----------------------------------------------------------
+	protected boolean runModules(final Element element, final ElementWriter writer) throws PubSubException {
+		boolean handled = false;
+
+		if (log.isLoggable(Level.FINER)) {
+			log.finest("Processing packet: " + element.toString());
+		}
+
+		for (Module module : this.modules) {
+			Criteria criteria = module.getModuleCriteria();
+
+			if ((criteria != null) && criteria.match(element)) {
+				handled = true;
+
+				if (log.isLoggable(Level.FINER)) {
+					log.finest("Handled by module " + module.getClass());
+				}
+
+				List<Element> result = module.process(element, writer);
+
+				if (result != null) {
+					for (Element element2 : result) {
+						writer.write(element2);
+					}
+
+					return true;
+				}
+			}
+		}
+
+		return handled;
+	}
+
+	;
+
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param props
 	 */
 	@Override
@@ -626,133 +730,8 @@ public class PubSubComponent extends AbstractMessageReceiver
 
 		log.config("Supported features: " + sb.toString());
 	}
-
-	//~--- methods --------------------------------------------------------------
-
-	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
-
-		// return new StatelessPubSubRepository(directRepository, this.config);
-		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
-	}
-
-//@Override
-//public void everySecond() {
-//  super.everySecond();
-//  if (this.pubsubRepository != null)
-//    this.pubsubRepository.doLazyWrite();
-//}
-	protected String extractNodeName(Element element) {
-		if (element == null) {
-			return null;
-		}
-
-		Element ps = element.getChild("pubsub");
-		Element query = element.getChild("query");
-
-		if (ps != null) {
-			List<Element> children = ps.getChildren();
-
-			if (children != null) {
-				for (Element e : children) {
-					String n = e.getAttribute("node");
-
-					if (n != null) {
-						return n;
-					}
-				}
-			}
-		} else {
-			if (query != null) {
-				String n = query.getAttribute("node");
-
-				return n;
-			}
-		}
-
-		return null;
-	}
-
-	protected void init() {
-		this.xslTransformer = new XsltTool();
-		this.presenceCollectorModule = registerModule(new PresenceCollectorModule());
-		this.publishNodeModule = registerModule(new PublishItemModule(this.config,
-				this.pubsubRepository, this.xslTransformer, this.presenceCollectorModule));
-		this.retractItemModule = registerModule(new RetractItemModule(this.config,
-				this.pubsubRepository, this.publishNodeModule));
-		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(this.config,
-				this.pubsubRepository));
-		this.manageSubscriptionModule = registerModule(new ManageSubscriptionModule(this.config,
-				this.pubsubRepository));
-		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config,
-				this.pubsubRepository, this.pendingSubscriptionModule));
-		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository,
-				this.defaultNodeConfig, this.publishNodeModule));
-		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository,
-				this.publishNodeModule));
-		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config,
-				this.pubsubRepository, this.defaultNodeConfig));
-		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository,
-				this.defaultNodeConfig, this.publishNodeModule));
-		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config,
-				this.pubsubRepository));
-		this.manageAffiliationsModule = registerModule(new ManageAffiliationsModule(this.config,
-				this.pubsubRepository));
-		this.retrirveItemsModule = registerModule(new RetrieveItemsModule(this.config,
-				this.pubsubRepository));
-		this.purgeItemsModule = registerModule(new PurgeItemsModule(this.config, this.pubsubRepository,
-				this.publishNodeModule));
-		registerModule(new JabberVersionModule());
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(this.config,
-				this.pubsubRepository));
-		registerModule(new DiscoverInfoModule(this.config, this.pubsubRepository, this.modules));
-		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository,
-				this.adHocCommandsModule));
-		registerModule(new RetrieveAffiliationsModule(this.config, this.pubsubRepository));
-		registerModule(new RetrieveSubscriptionsModule(this.config, this.pubsubRepository));
-		registerModule(new XmppPingModule());
-		this.pubsubRepository.init();
-	}
-
-	;
-
-	//~--- methods --------------------------------------------------------------
-
-	protected boolean runModules(final Element element, final ElementWriter writer)
-			throws PubSubException {
-		boolean handled = false;
-
-		if (log.isLoggable(Level.FINER)) {
-			log.finest("Processing packet: " + element.toString());
-		}
-
-		for (Module module : this.modules) {
-			Criteria criteria = module.getModuleCriteria();
-
-			if ((criteria != null) && criteria.match(element)) {
-				handled = true;
-
-				if (log.isLoggable(Level.FINER)) {
-					log.finest("Handled by module " + module.getClass());
-				}
-
-				List<Element> result = module.process(element, writer);
-
-				if (result != null) {
-					for (Element element2 : result) {
-						writer.write(element2);
-					}
-
-					return true;
-				}
-			}
-		}
-
-		return handled;
-	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

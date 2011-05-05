@@ -24,9 +24,10 @@ package tigase.pubsub.modules;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.List;
+
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PubSubConfig;
@@ -36,37 +37,29 @@ import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-
-import tigase.util.JIDUtils;
-
 import tigase.xml.Element;
-
 import tigase.xmpp.BareJID;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.List;
 
 //~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- *
- *
- * @version        5.0.0, 2010.03.27 at 05:27:10 GMT
- * @author         Artur Hefczyc <artur.hefczyc@tigase.org>
+ * 
+ * 
+ * @version 5.0.0, 2010.03.27 at 05:27:10 GMT
+ * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class RetrieveSubscriptionsModule extends AbstractModule {
-	private static final Criteria CRIT = ElementCriteria.nameType("iq",
-		"get").add(ElementCriteria.name("pubsub",
-			"http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscriptions"));
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscriptions"));
 
-	//~--- constructors ---------------------------------------------------------
+	// ~--- constructors
+	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 */
@@ -74,12 +67,13 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 		super(config, pubsubRepository);
 	}
 
-	//~--- get methods ----------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -89,8 +83,8 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -98,22 +92,22 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param element
 	 * @param elementWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
-			throws PubSubException {
+	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
 		try {
 			final Element pubsub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element subscriptions = pubsub.getChild("subscriptions");
@@ -122,7 +116,7 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 			final BareJID senderBareJid = BareJID.bareJIDInstanceNS(senderJid);
 			final Element result = createResultIQ(element);
 			final Element pubsubResult = new Element("pubsub", new String[] { "xmlns" },
-				new String[] { "http://jabber.org/protocol/pubsub" });
+					new String[] { "http://jabber.org/protocol/pubsub" });
 
 			result.addChild(pubsubResult);
 
@@ -142,11 +136,9 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 							for (UsersSubscription usersSubscription : subscribers.getSubscriptions()) {
 								if (senderBareJid.equals(usersSubscription.getJid())) {
 									ISubscriptions ns = directRepo.getNodeSubscriptions(nodeName);
-									Subscription subscription =
-										ns.getSubscription(usersSubscription.getJid().toString());
-									Element a = new Element("subscription", new String[] { "node", "jid",
-											"subscription" }, new String[] { node,
-											usersSubscription.getJid().toString(), subscription.name() });
+									Subscription subscription = ns.getSubscription(usersSubscription.getJid().toString());
+									Element a = new Element("subscription", new String[] { "node", "jid", "subscription" },
+											new String[] { node, usersSubscription.getJid().toString(), subscription.name() });
 
 									subscriptionsResult.addChild(a);
 								}
@@ -162,9 +154,9 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 				UsersSubscription[] subscribers = nodeSubscriptions.getSubscriptions();
 
 				for (final UsersSubscription usersSubscription : subscribers) {
-					Element s = new Element("subscription", new String[] { "jid", "subscription",
-							"subid" }, new String[] { usersSubscription.getJid().toString(),
-							usersSubscription.getSubscription().name(), usersSubscription.getSubid() });
+					Element s = new Element("subscription", new String[] { "jid", "subscription", "subid" }, new String[] {
+							usersSubscription.getJid().toString(), usersSubscription.getSubscription().name(),
+							usersSubscription.getSubid() });
 
 					subscriptionsResult.addChild(s);
 				}
@@ -179,8 +171,6 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 	}
 }
 
+// ~ Formatted in Sun Code Convention
 
-//~ Formatted in Sun Code Convention
-
-
-//~ Formatted by Jindent --- http://www.jindent.com
+// ~ Formatted by Jindent --- http://www.jindent.com

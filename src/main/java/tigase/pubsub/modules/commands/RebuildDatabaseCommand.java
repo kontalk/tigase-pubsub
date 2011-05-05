@@ -3,8 +3,8 @@ package tigase.pubsub.modules.commands;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
