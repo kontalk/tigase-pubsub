@@ -58,8 +58,20 @@ public abstract class AbstractModule implements Module {
 	 * @return
 	 */
 	public static Element createResultIQ(Element iq) {
-		return new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "result", iq.getAttribute("to"),
-				iq.getAttribute("from"), iq.getAttribute("id") });
+		Element e = new Element("iq");
+		String id = iq.getAttribute("id");
+		String from = iq.getAttribute("from");
+		String to = iq.getAttribute("to");
+
+		e.addAttribute("type", "result");
+		if (to != null)
+			e.addAttribute("from", to);
+		if (from != null)
+			e.addAttribute("to", from);
+		if (id != null)
+			e.addAttribute("id", id);
+
+		return e;
 	}
 
 	/**
