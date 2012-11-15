@@ -103,6 +103,7 @@
                                 <configuration>
                                         <instructions>
                                                 <Bundle-Activator>tigase.pubsub.Activator</Bundle-Activator>
+                                                <DynamicImport-Package>*</DynamicImport-Package>
                                         </instructions>
                                 </configuration>
                         </plugin>
