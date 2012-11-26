@@ -72,6 +72,7 @@ import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
@@ -217,12 +218,20 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 	}
 
-	private void dropGhost(JID stanzaFrom) {
+	private void dropGhost(JID stanzaFrom) throws RepositoryException {
 		if (log.isLoggable(Level.FINEST))
-			log.finest("Found ghost: " + stanzaFrom);
+			log.finest("Processing ghost: " + stanzaFrom);
 		for (Node n : pubsubRepository.getAllNodes()) {
-			if (n.getNodeConfig().isPresenceExpired()) {
-				n.getNodeSubscriptions().changeSubscription(stanzaFrom.getBareJID().toString(), Subscription.none);
+			if (n.getNodeConfig().isPresenceExpired()
+					&& n.getNodeSubscriptions().getSubscription(stanzaFrom.getBareJID().toString()) != Subscription.none) {
+				if (log.isLoggable(Level.FINEST))
+					log.finest("Found ghost: " + stanzaFrom + " in " + n.getName() + ". Killing...");
+				ISubscriptions s = pubsubRepository.getNodeSubscriptions(n.getName());
+				s.changeSubscription(stanzaFrom.getBareJID().toString(), Subscription.none);
+
+				if (s.isChanged()) {
+					this.pubsubRepository.update(n.getName(), s);
+				}
 			}
 		}
 	}
