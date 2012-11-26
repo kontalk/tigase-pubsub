@@ -2,6 +2,7 @@ package tigase.pubsub.repository.cached;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -233,19 +234,19 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private final ConcurrentSkipListSet<Node> nodesToSave = new ConcurrentSkipListSet<Node>(new NodeComparator());
 
 	private long repo_writes = 0;
+
 	private final Set<String> rootCollection = new HashSet<String>();
+	private LazyWriteThread tlazyWriteThread;
 
 	// ~--- constructors
 	// ---------------------------------------------------------
 
 	// private final Object writeThreadMutex = new Object();
 
-	private LazyWriteThread tlazyWriteThread;
+	private long updateSubscriptionsCalled = 0;
 
 	// ~--- methods
 	// --------------------------------------------------------------
-
-	private long updateSubscriptionsCalled = 0;
 
 	private long writingTime = 0;
 
@@ -370,17 +371,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		this.rootCollection.add(nodeName);
 	}
 
-	// public void doLazyWrite() {
-	// synchronized (writeThreadMutex) {
-	// if (tlazyWriteThread == null) {
-	// tlazyWriteThread = makeLazyWriteThread(false);
-	// Thread x = new Thread(tlazyWriteThread);
-	// x.setName("PubSub-DataWriter");
-	// x.start();
-	// }
-	// }
-	// }
-
 	/**
 	 * Method description
 	 * 
@@ -412,8 +402,16 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		writingTime += (end - start);
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
+	// public void doLazyWrite() {
+	// synchronized (writeThreadMutex) {
+	// if (tlazyWriteThread == null) {
+	// tlazyWriteThread = makeLazyWriteThread(false);
+	// Thread x = new Thread(tlazyWriteThread);
+	// x.setName("PubSub-DataWriter");
+	// x.start();
+	// }
+	// }
+	// }
 
 	/**
 	 * Method description
@@ -435,6 +433,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		this.nodes.remove(nodeName);
 	}
+
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -459,6 +460,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void forgetConfiguration(String nodeName) throws RepositoryException {
 		this.nodes.remove(nodeName);
+	}
+
+	public Collection<Node> getAllNodes() {
+		return Collections.unmodifiableCollection(nodes.values());
 	}
 
 	/**
