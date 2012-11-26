@@ -218,6 +218,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	}
 
 	private void dropGhost(JID stanzaFrom) {
+		if (log.isLoggable(Level.FINEST))
+			log.finest("Found ghost: " + stanzaFrom);
 		for (Node n : pubsubRepository.getAllNodes()) {
 			if (n.getNodeConfig().isPresenceExpired()) {
 				n.getNodeSubscriptions().changeSubscription(stanzaFrom.getBareJID().toString(), Subscription.none);
