@@ -27,8 +27,11 @@ package tigase.pubsub;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,11 +72,13 @@ import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
+import tigase.pubsub.repository.cached.Node;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
@@ -103,14 +108,28 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
+	private static final Set<String> intReasons = new HashSet<String>() {
+
+		private static final long serialVersionUID = 1L;
+
+		{
+			add("gone");
+			add("item-not-found");
+			add("recipient-unavailable");
+			add("redirect");
+			add("remote-server-not-found");
+			add("remote-server-timeout");
+		}
+	};
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
 	protected static final String PUBSUB_REPO_POOL_SIZE_PROP_KEY = "pubsub-repo-pool-size";
-	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
 
 	// ~--- fields
 	// ---------------------------------------------------------------
 
+	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+	public static final Set<String> R = Collections.unmodifiableSet(intReasons);
 	protected AdHocConfigCommandModule adHocCommandsModule;
 	protected final PubSubConfig config = new PubSubConfig();
 	protected DefaultConfigModule defaultConfigModule;
@@ -138,11 +157,16 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	protected ServiceEntity serviceEntity;
 	protected AbstractModule subscribeNodeModule;
 	protected UnsubscribeNodeModule unsubscribeNodeModule;
-	protected UserRepository userRepository;
-	protected XsltTool xslTransformer;
 
 	// ~--- constructors
 	// ---------------------------------------------------------
+
+	protected UserRepository userRepository;
+
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	protected XsltTool xslTransformer;
 
 	/**
 	 * Constructs ...
@@ -175,14 +199,45 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		};
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
 
 		// return new StatelessPubSubRepository(directRepository, this.config);
 		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
 	}
+
+	private void detectGhosts(Packet packet) {
+		try {
+			if (packet.getType() == StanzaType.error) {
+				final String cond = packet.getErrorCondition();
+				if (cond != null && R.contains(cond)) {
+					dropGhost(packet.getStanzaFrom());
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Problem on killing Ghost", e);
+		}
+	}
+
+	private void dropGhost(JID stanzaFrom) throws RepositoryException {
+		if (log.isLoggable(Level.FINEST))
+			log.finest("Processing ghost: " + stanzaFrom);
+		for (Node n : pubsubRepository.getAllNodes()) {
+			if (n.getNodeConfig().isPresenceExpired()
+					&& n.getNodeSubscriptions().getSubscription(stanzaFrom.getBareJID().toString()) != Subscription.none) {
+				if (log.isLoggable(Level.FINEST))
+					log.finest("Found ghost: " + stanzaFrom + " in " + n.getName() + ". Killing...");
+				ISubscriptions s = pubsubRepository.getNodeSubscriptions(n.getName());
+				s.changeSubscription(stanzaFrom.getBareJID().toString(), Subscription.none);
+
+				if (s.isChanged()) {
+					this.pubsubRepository.update(n.getName(), s);
+				}
+			}
+		}
+	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	// @Override
 	// public void everySecond() {
@@ -299,7 +354,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	@Override
 	public List<Element> getDiscoFeatures() {
 
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -316,9 +370,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	public Element getDiscoInfo(String node, JID jid) {
 		return null;
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -411,6 +462,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.pubsubRepository.init();
 	}
 
+	// ~--- set methods
+	// ----------------------------------------------------------
+
 	/**
 	 * Method description
 	 * 
@@ -454,6 +508,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.config, this.directPubSubRepository,
 				this.pubsubRepository));
 	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
 
         @Override
         public boolean isSubdomain() {
@@ -517,9 +574,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 	}
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -536,9 +590,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return 1;
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -547,6 +598,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	 */
 	@Override
 	public void processPacket(final Packet packet) {
+		detectGhosts(packet);
+
 		try {
 			process(packet.getElement(), this.elementWriter);
 		} catch (Exception e) {
@@ -626,8 +679,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		super.setProperties(props);
 
 		if (props.size() == 1) {
-			// If props.size() == 1, it means this is a single property update 
-			// and this component does not support single property change for the rest
+			// If props.size() == 1, it means this is a single property update
+			// and this component does not support single property change for
+			// the rest
 			// of it's settings
 			return;
 		}

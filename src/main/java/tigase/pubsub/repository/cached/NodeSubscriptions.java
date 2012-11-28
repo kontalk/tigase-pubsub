@@ -14,7 +14,7 @@ import tigase.util.JIDUtils;
 
 //~--- classes ----------------------------------------------------------------
 
-class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
+public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 	protected final Map<String, UsersSubscription> changedSubs = new HashMap<String, UsersSubscription>();
 
 	// ~--- constructors
