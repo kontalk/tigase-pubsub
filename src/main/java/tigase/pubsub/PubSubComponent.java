@@ -512,6 +512,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	// ~--- methods
 	// --------------------------------------------------------------
 
+        @Override
+        public boolean isSubdomain() {
+                return true;
+        }
+        
 	/**
 	 * Method description
 	 * 

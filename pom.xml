@@ -7,6 +7,7 @@
 	<artifactId>tigase-pubsub</artifactId>
 	<name>Tigase PubSub</name>
 	<version>2.2.0-SNAPSHOT</version>
+        <packaging>bundle</packaging>
 	<description>Publish Subscribe component for Tigase</description>
 	<url>http://www.tigase.org</url>
 	<issueManagement>
@@ -95,6 +96,17 @@
 				<artifactId>maven-pmd-plugin</artifactId>
 				<version>2.7.1</version>
 			</plugin>
+                        <plugin>
+                                <groupId>org.apache.felix</groupId>
+                                <artifactId>maven-bundle-plugin</artifactId>
+                                <extensions>true</extensions>
+                                <configuration>
+                                        <instructions>
+                                                <Bundle-Activator>tigase.pubsub.Activator</Bundle-Activator>
+                                                <DynamicImport-Package>*</DynamicImport-Package>
+                                        </instructions>
+                                </configuration>
+                        </plugin>
 		</plugins>
 		<extensions>
 			<extension>
@@ -124,16 +136,17 @@
 		</dependency>
 		<dependency>
 			<groupId>tigase</groupId>
-			<artifactId>tigase-utils</artifactId>
-			<version>3.4.0-SNAPSHOT</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>tigase</groupId>
 			<artifactId>tigase-xmltools</artifactId>
 			<version>3.4.0-SNAPSHOT</version>
 			<scope>compile</scope>
 		</dependency>
+                <dependency>
+                        <groupId>org.apache.felix</groupId>
+                        <artifactId>org.osgi.core</artifactId>
+                        <version>1.4.0</version>
+                        <scope>provided</scope>
+                        <type>bundle</type>
+                </dependency>                
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -145,6 +158,7 @@
 			<artifactId>xalan</artifactId>
 			<version>2.7.1</version>
 			<scope>runtime</scope>
+                        <optional>true</optional>
 		</dependency>
 	</dependencies>
 	<reporting>
