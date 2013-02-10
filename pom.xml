@@ -147,14 +147,6 @@
 			<scope>runtime</scope>
 		</dependency>
 	</dependencies>
-	<repositories>
-		<repository>
-			<snapshots />
-			<id>tigase</id>
-			<name>Tigase repository</name>
-			<url>http://maven.tigase.org</url>
-		</repository>
-	</repositories>
 	<reporting>
 		<plugins>
 			<plugin>
@@ -173,6 +165,21 @@
 			</plugin>
 		</plugins>
 	</reporting>
+	<repositories>
+		<repository>
+			<id>tigase</id>
+			<name>Tigase repository</name>
+			<url>http://maven.tigase.org</url>
+		</repository>
+		<repository>
+			<id>tigase-snapshot</id>
+			<name>Tigase repository</name>
+			<url>http://build.xmpp-test.net/maven/</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 	<distributionManagement>
 		<repository>
 			<id>tigase</id>
@@ -180,9 +187,9 @@
 			<url>scp://maven.tigase.org:/home/webapp/maven-repository</url>
 		</repository>
 		<snapshotRepository>
-			<id>tigase</id>
+			<id>tigase-snapshot</id>
 			<name>Tigase snapshot repository</name>
-			<url>scp://maven.tigase.org:/home/webapp/maven-repository</url>
+			<url>scp://build.xmpp-test.net:/home/maven/repository</url>
 		</snapshotRepository>
 	</distributionManagement>
 </project>
