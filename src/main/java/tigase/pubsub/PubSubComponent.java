@@ -6,7 +6,8 @@
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License.
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -350,7 +351,7 @@ public class PubSubComponent
 
 			if (children != null) {
 				for (Element e : children) {
-					String n = e.getAttribute("node");
+					String n = e.getAttributeStaticStr("node");
 
 					if (n != null) {
 						return n;
@@ -359,7 +360,7 @@ public class PubSubComponent
 			}
 		} else {
 			if (query != null) {
-				String n = query.getAttribute("node");
+				String n = query.getAttributeStaticStr("node");
 
 				return n;
 			}
@@ -508,7 +509,7 @@ public class PubSubComponent
 
 		if (children != null) {
 			for (Element elem : children) {
-				String node_name = elem.getAttribute("node");
+				String node_name = elem.getAttributeStaticStr("node");
 
 				if (node_name != null) {
 					return node_name.hashCode();
@@ -676,7 +677,7 @@ public class PubSubComponent
 			boolean handled = runModules(element, writer);
 
 			if (!handled) {
-				final String t        = element.getAttribute("type");
+				final String t        = element.getAttributeStaticStr("type");
 				final StanzaType type = (t == null)
 																? null
 																: StanzaType.valueof(t);
@@ -933,4 +934,4 @@ public class PubSubComponent
 // ~ Formatted by Jindent --- http://www.jindent.com
 
 
-//~ Formatted in Tigase Code Convention on 13/02/16
+//~ Formatted in Tigase Code Convention on 13/02/20

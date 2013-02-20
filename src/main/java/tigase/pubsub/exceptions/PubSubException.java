@@ -1,10 +1,13 @@
 /*
- * Tigase Jabber/XMPP Publish Subscribe Component
- * Copyright (C) 2007 "Bartosz M. Małkowski" <bartosz.malkowski@tigase.org>
+ * PubSubException.java
+ *
+ * Tigase Jabber/XMPP Server
+ * Copyright (C) 2004-2012 "Artur Hefczyc" <artur.hefczyc@tigase.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License.
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,70 +18,129 @@
  * along with this program. Look for COPYING file in the top folder.
  * If not, see http://www.gnu.org/licenses/.
  *
- * $Rev$
- * Last modified by $Author$
- * $Date$
  */
+
+
+
 package tigase.pubsub.exceptions;
 
+//~--- non-JDK imports --------------------------------------------------------
+
 import tigase.xml.Element;
+
 import tigase.xmpp.Authorization;
 
 /**
- * 
+ *
  * <p>
  * Created: 2007-05-25 11:55:48
  * </p>
- * 
+ *
  * @author bmalkow
  * @version $Rev$
  */
-public class PubSubException extends Exception {
-
+public class PubSubException
+				extends Exception {
 	private static final long serialVersionUID = 1L;
 
-	private Authorization errorCondition;
-
-	private Element item;
-
-	private String message;
-
-	private PubSubErrorCondition pubSubErrorCondition;
+	//~--- fields ---------------------------------------------------------------
 
 	private String xmlns = "urn:ietf:params:xml:ns:xmpp-stanzas";
+	private Authorization errorCondition;
+	private Element item;
+	private String message;
+	private PubSubErrorCondition pubSubErrorCondition;
 
+	//~--- constructors ---------------------------------------------------------
+
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param errorCondition
+	 */
 	public PubSubException(final Authorization errorCondition) {
 		this(null, errorCondition, (String) null);
 	}
 
-	public PubSubException(final Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions) {
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param errorCondition
+	 * @param pubSubErrorConditions
+	 */
+	public PubSubException(final Authorization errorCondition,
+												 PubSubErrorCondition pubSubErrorConditions) {
 		this((Element) null, errorCondition, pubSubErrorConditions);
 	}
 
-	public PubSubException(Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions, String message) {
-		this((Element) null, errorCondition, pubSubErrorConditions);
-		this.message = message;
-	}
-
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param errorCondition
+	 * @param message
+	 */
 	public PubSubException(final Authorization errorCondition, String message) {
 		this(null, errorCondition, message);
 	}
 
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param item
+	 * @param errorCondition
+	 */
 	public PubSubException(final Element item, final Authorization errorCondition) {
 		this(item, errorCondition, (String) null);
 	}
 
-	public PubSubException(final Element item, final Authorization errorCondition, PubSubErrorCondition pubSubErrorConditions) {
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param errorCondition
+	 * @param pubSubErrorConditions
+	 * @param message
+	 */
+	public PubSubException(Authorization errorCondition,
+												 PubSubErrorCondition pubSubErrorConditions, String message) {
+		this((Element) null, errorCondition, pubSubErrorConditions);
+		this.message = message;
+	}
+
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param item
+	 * @param errorCondition
+	 * @param pubSubErrorConditions
+	 */
+	public PubSubException(final Element item, final Authorization errorCondition,
+												 PubSubErrorCondition pubSubErrorConditions) {
 		this(item, errorCondition, (String) null);
 		this.pubSubErrorCondition = pubSubErrorConditions;
 	}
 
-	public PubSubException(final Element item, final Authorization errorCondition, final String message) {
-		this.item = item;
+	/**
+	 * Constructs ...
+	 *
+	 *
+	 * @param item
+	 * @param errorCondition
+	 * @param message
+	 */
+	public PubSubException(final Element item, final Authorization errorCondition,
+												 final String message) {
+		this.item           = item;
 		this.errorCondition = errorCondition;
-		this.message = message;
-
+		this.message        = message;
 	}
+
+	//~--- get methods ----------------------------------------------------------
 
 	/**
 	 * @return Returns the code.
@@ -87,6 +149,12 @@ public class PubSubException extends Exception {
 		return String.valueOf(this.errorCondition.getErrorCode());
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	public Authorization getErrorCondition() {
 		return errorCondition;
 	}
@@ -98,6 +166,12 @@ public class PubSubException extends Exception {
 		return item;
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	@Override
 	public String getMessage() {
 		return message;
@@ -117,32 +191,60 @@ public class PubSubException extends Exception {
 		return errorCondition.getErrorType();
 	}
 
+	//~--- methods --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
 	public Element makeElement() {
 		return makeElement(true);
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param insertOriginal
+	 *
+	 * @return
+	 */
 	public Element makeElement(boolean insertOriginal) {
-		Element answer = insertOriginal ? item.clone() : new Element(item.getName());
-		answer.addAttribute("id", item.getAttribute("id"));
-		answer.addAttribute("type", "error");
-		answer.addAttribute("to", item.getAttribute("from"));
-		answer.addAttribute("from", item.getAttribute("to"));
+		Element answer = insertOriginal
+										 ? item.clone()
+										 : new Element(item.getName());
 
+		answer.addAttribute("id", item.getAttributeStaticStr("id"));
+		answer.addAttribute("type", "error");
+		answer.addAttribute("to", item.getAttributeStaticStr("from"));
+		answer.addAttribute("from", item.getAttributeStaticStr("to"));
 		if (this.message != null) {
 			Element text = new Element("text", this.message, new String[] { "xmlns" },
-					new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
+																 new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
+
 			answer.addChild(text);
 		}
-
 		answer.addChild(makeErrorElement());
 		if (this.pubSubErrorCondition != null) {
 			answer.addChild(this.pubSubErrorCondition.getElement());
 		}
+
 		return answer;
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param sourceElement
+	 *
+	 * @return
+	 */
 	public Element makeElement(Element sourceElement) {
 		this.item = sourceElement;
+
 		return makeElement(true);
 	}
 
@@ -151,10 +253,15 @@ public class PubSubException extends Exception {
 	 */
 	public Element makeErrorElement() {
 		Element error = new Element("error");
+
 		error.setAttribute("code", String.valueOf(this.errorCondition.getErrorCode()));
 		error.setAttribute("type", this.errorCondition.getErrorType());
-		error.addChild(new Element(this.errorCondition.getCondition(), new String[] { "xmlns" }, new String[] { xmlns }));
+		error.addChild(new Element(this.errorCondition.getCondition(),
+															 new String[] { "xmlns" }, new String[] { xmlns }));
+
 		return error;
 	}
-
 }
+
+
+//~ Formatted in Tigase Code Convention on 13/02/20
