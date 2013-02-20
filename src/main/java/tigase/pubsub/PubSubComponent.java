@@ -1,6 +1,8 @@
 /*
- * Tigase Jabber/XMPP Publish Subscribe Component
- * Copyright (C) 2007 "Bartosz M. Małkowski" <bartosz.malkowski@tigase.org>
+ * PubSubComponent.java
+ *
+ * Tigase Jabber/XMPP Server
+ * Copyright (C) 2004-2012 "Artur Hefczyc" <artur.hefczyc@tigase.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -15,37 +17,33 @@
  * along with this program. Look for COPYING file in the top folder.
  * If not, see http://www.gnu.org/licenses/.
  *
- * $Rev$
- * Last modified by $Author$
- * $Date$
  */
+
+
 
 package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import tigase.conf.Configurable;
+
 import tigase.criteria.Criteria;
+
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
+
 import tigase.disco.ServiceEntity;
 import tigase.disco.ServiceIdentity;
 import tigase.disco.XMPPService;
+
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.AdHocConfigCommandModule;
+import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
+import tigase.pubsub.modules.commands.ReadAllNodesCommand;
+import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.modules.DefaultConfigModule;
 import tigase.pubsub.modules.DiscoverInfoModule;
 import tigase.pubsub.modules.DiscoverItemsModule;
@@ -67,51 +65,74 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.modules.commands.DefaultConfigCommand;
-import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
-import tigase.pubsub.modules.commands.ReadAllNodesCommand;
-import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.repository.cached.CachedPubSubRepository;
+import tigase.pubsub.repository.cached.Node;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.cached.CachedPubSubRepository;
-import tigase.pubsub.repository.cached.Node;
+
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.DisableDisco;
+import tigase.server.Iq;
 import tigase.server.Packet;
+
 import tigase.stats.StatisticsList;
+
 import tigase.util.DNSResolver;
 import tigase.util.TigaseStringprepException;
+
 import tigase.xml.Element;
+
 import tigase.xmpp.Authorization;
 import tigase.xmpp.JID;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
-//~--- classes ----------------------------------------------------------------
+//~--- JDK imports ------------------------------------------------------------
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Class description
- * 
- * 
+ *
+ *
  * @version 5.1.0, 2010.11.02 at 01:05:02 MDT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PubSubComponent extends AbstractMessageReceiver implements XMPPService, Configurable, DisableDisco,
-		DefaultNodeConfigListener {
-
+public class PubSubComponent
+				extends AbstractMessageReceiver
+				implements XMPPService, Configurable, DisableDisco, DefaultNodeConfigListener {
 	/** Field description */
 	public static final String ADMINS_KEY = "admin";
 
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
-	private static final Set<String> intReasons = new HashSet<String>() {
 
+	/** Field description */
+	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
+
+	/** Field description */
+	protected static final String PUBSUB_REPO_POOL_SIZE_PROP_KEY = "pubsub-repo-pool-size";
+
+	// ~--- fields
+	// ---------------------------------------------------------------
+
+	/** Field description */
+	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+	private static final Set<String> intReasons            = new HashSet<String>() {
 		private static final long serialVersionUID = 1L;
-
 		{
 			add("gone");
 			add("item-not-found");
@@ -122,55 +143,103 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 	};
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
-	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
-	protected static final String PUBSUB_REPO_POOL_SIZE_PROP_KEY = "pubsub-repo-pool-size";
 
-	// ~--- fields
-	// ---------------------------------------------------------------
-
-	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+	/** Field description */
 	public static final Set<String> R = Collections.unmodifiableSet(intReasons);
-	protected AdHocConfigCommandModule adHocCommandsModule;
-	protected final PubSubConfig config = new PubSubConfig();
-	protected DefaultConfigModule defaultConfigModule;
-	protected LeafNodeConfig defaultNodeConfig;
-	protected PubSubDAO directPubSubRepository;
-	protected final ElementWriter elementWriter;
+
+	//~--- fields ---------------------------------------------------------------
+
 	/** Field description */
 	public String[] HOSTNAMES_PROP_VAL = { "localhost", "hostname" };
-	int lastNodeNo = -1;
+	int lastNodeNo                     = -1;
+
+	/** Field description */
+	protected final PubSubConfig config = new PubSubConfig();
+
+	/** Field description */
 	protected Logger log = Logger.getLogger(this.getClass().getName());
-	protected ManageAffiliationsModule manageAffiliationsModule;
-	protected ManageSubscriptionModule manageSubscriptionModule;
-	private Integer maxRepositoryCacheSize;
+
+	/** Field description */
 	protected final ArrayList<Module> modules = new ArrayList<Module>();
+
+	/** Field description */
+	protected AdHocConfigCommandModule adHocCommandsModule;
+
+	/** Field description */
+	protected DefaultConfigModule defaultConfigModule;
+
+	/** Field description */
+	protected LeafNodeConfig defaultNodeConfig;
+
+	/** Field description */
+	protected PubSubDAO directPubSubRepository;
+
+	/** Field description */
+	protected final ElementWriter elementWriter;
+
+	/** Field description */
+	protected ManageAffiliationsModule manageAffiliationsModule;
+
+	/** Field description */
+	protected ManageSubscriptionModule manageSubscriptionModule;
+
+	/** Field description */
 	protected NodeConfigModule nodeConfigModule;
+
+	/** Field description */
 	protected NodeCreateModule nodeCreateModule;
+
+	/** Field description */
 	protected NodeDeleteModule nodeDeleteModule;
+
+	/** Field description */
 	protected PendingSubscriptionModule pendingSubscriptionModule;
+
+	/** Field description */
 	protected PresenceCollectorModule presenceCollectorModule;
+
+	/** Field description */
 	protected PublishItemModule publishNodeModule;
+
+	/** Field description */
 	protected CachedPubSubRepository pubsubRepository;
+
+	/** Field description */
 	protected PurgeItemsModule purgeItemsModule;
+
+	/** Field description */
 	protected RetractItemModule retractItemModule;
+
+	/** Field description */
 	protected RetrieveItemsModule retrirveItemsModule;
+
+	/** Field description */
 	protected ServiceEntity serviceEntity;
+
+	/** Field description */
 	protected AbstractModule subscribeNodeModule;
+
+	/** Field description */
 	protected UnsubscribeNodeModule unsubscribeNodeModule;
 
 	// ~--- constructors
 	// ---------------------------------------------------------
 
+	/** Field description */
 	protected UserRepository userRepository;
 
 	// ~--- get methods
 	// ----------------------------------------------------------
 
+	/** Field description */
 	protected XsltTool xslTransformer;
+	private Integer maxRepositoryCacheSize;
+
+	//~--- constructors ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 * 
+	 *
 	 */
 	public PubSubComponent() {
 		setName("pubsub");
@@ -185,7 +254,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 					}
 				}
 			}
-
 			@Override
 			public void write(final Element element) {
 				if (element != null) {
@@ -199,6 +267,16 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		};
 	}
 
+	//~--- methods --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param directRepository
+	 *
+	 * @return
+	 */
 	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
 
 		// return new StatelessPubSubRepository(directRepository, this.config);
@@ -209,7 +287,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		try {
 			if (packet.getType() == StanzaType.error) {
 				final String cond = packet.getErrorCondition();
-				if (cond != null && R.contains(cond)) {
+
+				if ((cond != null) && R.contains(cond)) {
 					dropGhost(packet.getStanzaFrom());
 				}
 			}
@@ -219,16 +298,21 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 	}
 
 	private void dropGhost(JID stanzaFrom) throws RepositoryException {
-		if (log.isLoggable(Level.FINEST))
+		if (log.isLoggable(Level.FINEST)) {
 			log.finest("Processing ghost: " + stanzaFrom);
+		}
 		for (Node n : pubsubRepository.getAllNodes()) {
-			if (n.getNodeConfig().isPresenceExpired()
-					&& n.getNodeSubscriptions().getSubscription(stanzaFrom.getBareJID().toString()) != Subscription.none) {
-				if (log.isLoggable(Level.FINEST))
-					log.finest("Found ghost: " + stanzaFrom + " in " + n.getName() + ". Killing...");
-				ISubscriptions s = pubsubRepository.getNodeSubscriptions(n.getName());
-				s.changeSubscription(stanzaFrom.getBareJID().toString(), Subscription.none);
+			if (n.getNodeConfig().isPresenceExpired() &&
+					(n.getNodeSubscriptions().getSubscription(
+						stanzaFrom.getBareJID().toString()) != Subscription.none)) {
+				if (log.isLoggable(Level.FINEST)) {
+					log.finest("Found ghost: " + stanzaFrom + " in " + n.getName() +
+										 ". Killing...");
+				}
 
+				ISubscriptions s = pubsubRepository.getNodeSubscriptions(n.getName());
+
+				s.changeSubscription(stanzaFrom.getBareJID().toString(), Subscription.none);
 				if (s.isChanged()) {
 					this.pubsubRepository.update(n.getName(), s);
 				}
@@ -238,19 +322,27 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	// ~--- methods
 	// --------------------------------------------------------------
-
 	// @Override
 	// public void everySecond() {
 	// super.everySecond();
 	// if (this.pubsubRepository != null)
 	// this.pubsubRepository.doLazyWrite();
 	// }
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param element
+	 *
+	 * @return
+	 */
 	protected String extractNodeName(Element element) {
 		if (element == null) {
 			return null;
 		}
 
-		Element ps = element.getChild("pubsub");
+		Element ps    = element.getChild("pubsub");
 		Element query = element.getChild("query");
 
 		if (ps != null) {
@@ -276,12 +368,14 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return null;
 	}
 
+	//~--- get methods ----------------------------------------------------------
+
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param params
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -295,39 +389,34 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		}
 
 		String[] hostnames = new String[HOSTNAMES_PROP_VAL.length];
-		int i = 0;
+		int i              = 0;
 
 		for (String host : HOSTNAMES_PROP_VAL) {
 			hostnames[i++] = getName() + "." + host;
 		}
-
 		props.put(HOSTNAMES_PROP_KEY, hostnames);
 
 		// By default use the same repository as all other components:
 		String repo_class = DERBY_REPO_CLASS_PROP_VAL;
-		String repo_uri = DERBY_REPO_URL_PROP_VAL;
-		String conf_db = null;
+		String repo_uri   = DERBY_REPO_URL_PROP_VAL;
+		String conf_db    = null;
 
 		if (params.get(GEN_USER_DB) != null) {
 			conf_db = (String) params.get(GEN_USER_DB);
-		} // end of if (params.get(GEN_USER_DB) != null)
-
+		}    // end of if (params.get(GEN_USER_DB) != null)
 		if (conf_db != null) {
 			if (conf_db.equals("mysql")) {
 				repo_class = MYSQL_REPO_CLASS_PROP_VAL;
-				repo_uri = MYSQL_REPO_URL_PROP_VAL;
+				repo_uri   = MYSQL_REPO_URL_PROP_VAL;
 			}
-
 			if (conf_db.equals("pgsql")) {
 				repo_class = PGSQL_REPO_CLASS_PROP_VAL;
-				repo_uri = PGSQL_REPO_URL_PROP_VAL;
+				repo_uri   = PGSQL_REPO_URL_PROP_VAL;
 			}
-		} // end of if (conf_db != null)
-
+		}    // end of if (conf_db != null)
 		if (params.get(GEN_USER_DB_URI) != null) {
 			repo_uri = (String) params.get(GEN_USER_DB_URI);
-		} // end of if (params.get(GEN_USER_DB_URI) != null)
-
+		}    // end of if (params.get(GEN_USER_DB_URI) != null)
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
 		props.put(MAX_CACHE_SIZE, "2000");
@@ -339,7 +428,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		} else {
 			admins = new String[] { "admin@" + getDefHostName() };
 		}
-
 		props.put(ADMINS_KEY, admins);
 
 		return props;
@@ -347,23 +435,22 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @return
 	 */
 	@Override
 	public List<Element> getDiscoFeatures() {
-
 		return null;
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param node
 	 * @param jid
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -373,11 +460,11 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param node
 	 * @param jid
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -393,8 +480,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param list
 	 */
 	@Override
@@ -403,19 +490,21 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		this.pubsubRepository.addStats(getName(), list);
 	}
 
+	//~--- methods --------------------------------------------------------------
+
 	/**
 	 * This method overwrites default packet hashCode calculation from a
 	 * destination address to node name if possible so all packets for the same
 	 * pubsub node are processed on the same thread. If there is no node name
 	 * then the source address is used to get a better packets distribution to
 	 * different threads.
-	 * 
+	 *
 	 * @param packet
 	 * @return
 	 */
 	@Override
 	public int hashCodeForPacket(Packet packet) {
-		List<Element> children = packet.getElemChildren("/iq/pubsub");
+		List<Element> children = packet.getElemChildrenStaticStr(Iq.IQ_PUBSUB_PATH);
 
 		if (children != null) {
 			for (Element elem : children) {
@@ -430,32 +519,46 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return packet.getFrom().hashCode();
 	}
 
+	/**
+	 * Method description
+	 *
+	 */
 	protected void init() {
-		this.xslTransformer = new XsltTool();
+		this.xslTransformer          = new XsltTool();
 		this.presenceCollectorModule = registerModule(new PresenceCollectorModule());
-		this.publishNodeModule = registerModule(new PublishItemModule(this.config, this.pubsubRepository, this.xslTransformer,
-				this.presenceCollectorModule));
-		this.retractItemModule = registerModule(new RetractItemModule(this.config, this.pubsubRepository,
-				this.publishNodeModule));
-		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(this.config, this.pubsubRepository));
-		this.manageSubscriptionModule = registerModule(new ManageSubscriptionModule(this.config, this.pubsubRepository));
-		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config, this.pubsubRepository,
-				this.pendingSubscriptionModule));
-		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
-				this.publishNodeModule));
-		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config, this.pubsubRepository, this.publishNodeModule));
-		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config, this.pubsubRepository,
-				this.defaultNodeConfig));
-		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config, this.pubsubRepository, this.defaultNodeConfig,
-				this.publishNodeModule));
-		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config, this.pubsubRepository));
-		this.manageAffiliationsModule = registerModule(new ManageAffiliationsModule(this.config, this.pubsubRepository));
-		this.retrirveItemsModule = registerModule(new RetrieveItemsModule(this.config, this.pubsubRepository));
-		this.purgeItemsModule = registerModule(new PurgeItemsModule(this.config, this.pubsubRepository, this.publishNodeModule));
+		this.publishNodeModule       = registerModule(new PublishItemModule(this.config,
+						this.pubsubRepository, this.xslTransformer, this.presenceCollectorModule));
+		this.retractItemModule = registerModule(new RetractItemModule(this.config,
+						this.pubsubRepository, this.publishNodeModule));
+		this.pendingSubscriptionModule =
+			registerModule(new PendingSubscriptionModule(this.config, this.pubsubRepository));
+		this.manageSubscriptionModule =
+			registerModule(new ManageSubscriptionModule(this.config, this.pubsubRepository));
+		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(this.config,
+						this.pubsubRepository, this.pendingSubscriptionModule));
+		this.nodeCreateModule = registerModule(new NodeCreateModule(this.config,
+						this.pubsubRepository, this.defaultNodeConfig, this.publishNodeModule));
+		this.nodeDeleteModule = registerModule(new NodeDeleteModule(this.config,
+						this.pubsubRepository, this.publishNodeModule));
+		this.defaultConfigModule = registerModule(new DefaultConfigModule(this.config,
+						this.pubsubRepository, this.defaultNodeConfig));
+		this.nodeConfigModule = registerModule(new NodeConfigModule(this.config,
+						this.pubsubRepository, this.defaultNodeConfig, this.publishNodeModule));
+		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(this.config,
+						this.pubsubRepository));
+		this.manageAffiliationsModule =
+			registerModule(new ManageAffiliationsModule(this.config, this.pubsubRepository));
+		this.retrirveItemsModule = registerModule(new RetrieveItemsModule(this.config,
+						this.pubsubRepository));
+		this.purgeItemsModule = registerModule(new PurgeItemsModule(this.config,
+						this.pubsubRepository, this.publishNodeModule));
 		registerModule(new JabberVersionModule());
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(this.config, this.pubsubRepository));
-		registerModule(new DiscoverInfoModule(this.config, this.pubsubRepository, this.modules));
-		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository, this.adHocCommandsModule));
+		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(this.config,
+						this.pubsubRepository));
+		registerModule(new DiscoverInfoModule(this.config, this.pubsubRepository,
+						this.modules));
+		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository,
+						this.adHocCommandsModule));
 		registerModule(new RetrieveAffiliationsModule(this.config, this.pubsubRepository));
 		registerModule(new RetrieveSubscriptionsModule(this.config, this.pubsubRepository));
 		registerModule(new XmppPingModule());
@@ -467,21 +570,24 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param admins
 	 * @param pubSubDAO
 	 * @param createPubSubRepository
 	 * @param defaultNodeConfig
-	 * 
+	 *
 	 * @throws RepositoryException
 	 * @throws TigaseDBException
 	 * @throws UserNotFoundException
 	 */
-	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
-			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
+	public void initialize(String[] admins, PubSubDAO pubSubDAO,
+												 IPubSubRepository createPubSubRepository,
+												 LeafNodeConfig defaultNodeConfig)
+					throws UserNotFoundException, TigaseDBException, RepositoryException {
 		serviceEntity = new ServiceEntity(getName(), null, "Publish-Subscribe");
-		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service", "Publish-Subscribe"));
+		serviceEntity.addIdentities(new ServiceIdentity("pubsub", "service",
+						"Publish-Subscribe"));
 		serviceEntity.addFeatures("http://jabber.org/protocol/pubsub");
 		this.config.setAdmins(admins);
 		this.config.setServiceName("tigase-pubsub");
@@ -490,37 +596,50 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		if (pubSubDAO != null) {
 			pubSubDAO.init();
 		}
-
 		this.directPubSubRepository = pubSubDAO;
-		this.pubsubRepository = createPubSubRepository(pubSubDAO);
-		this.defaultNodeConfig = defaultNodeConfig;
-		this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-		this.defaultNodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.pubsubRepository       = createPubSubRepository(pubSubDAO);
+		this.defaultNodeConfig      = defaultNodeConfig;
+		this.defaultNodeConfig.read(userRepository, config,
+																PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.defaultNodeConfig.write(userRepository, config,
+																 PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 		init();
 
-		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config, this.userRepository);
+		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.config,
+																								 this.userRepository);
 
 		configCommand.addListener(this);
-		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config, this.directPubSubRepository));
+		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.config,
+						this.directPubSubRepository));
 		this.adHocCommandsModule.register(configCommand);
-		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config, this.directPubSubRepository,
-				this.userRepository));
-		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.config, this.directPubSubRepository,
-				this.pubsubRepository));
+		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.config,
+						this.directPubSubRepository, this.userRepository));
+		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.config,
+						this.directPubSubRepository, this.pubsubRepository));
 	}
+
+	//~--- get methods ----------------------------------------------------------
 
 	// ~--- methods
 	// --------------------------------------------------------------
 
-        @Override
-        public boolean isSubdomain() {
-                return true;
-        }
-        
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
+	 * @return
+	 */
+	@Override
+	public boolean isSubdomain() {
+		return true;
+	}
+
+	//~--- methods --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
 	 * @return
 	 */
 	public String myDomain() {
@@ -529,12 +648,13 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
+	 *
 	 */
 	@Override
 	public void onChangeDefaultNodeConfig() {
 		try {
-			this.defaultNodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+			this.defaultNodeConfig.read(userRepository, config,
+																	PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 			log.info("Node " + getComponentId() + " read default node configuration.");
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Reading default config error", e);
@@ -543,20 +663,23 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param element
 	 * @param writer
-	 * 
+	 *
 	 * @throws PacketErrorTypeException
 	 */
-	public void process(final Element element, final ElementWriter writer) throws PacketErrorTypeException {
+	public void process(final Element element, final ElementWriter writer)
+					throws PacketErrorTypeException {
 		try {
 			boolean handled = runModules(element, writer);
 
 			if (!handled) {
-				final String t = element.getAttribute("type");
-				final StanzaType type = (t == null) ? null : StanzaType.valueof(t);
+				final String t        = element.getAttribute("type");
+				final StanzaType type = (t == null)
+																? null
+																: StanzaType.valueof(t);
 
 				if (type != StanzaType.error) {
 					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED);
@@ -576,8 +699,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @return
 	 */
 	@Override
@@ -592,36 +715,36 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param packet
 	 */
 	@Override
 	public void processPacket(final Packet packet) {
 		detectGhosts(packet);
-
 		try {
 			process(packet.getElement(), this.elementWriter);
 		} catch (Exception e) {
 			log.log(Level.WARNING, "Unexpected exception: internal-server-error", e);
 			e.printStackTrace();
-
 			try {
-				addOutPacket(Authorization.INTERNAL_SERVER_ERROR.getResponseMessage(packet, e.getMessage(), true));
+				addOutPacket(Authorization.INTERNAL_SERVER_ERROR.getResponseMessage(packet,
+								e.getMessage(), true));
 			} catch (PacketErrorTypeException e1) {
 				e1.printStackTrace();
-				log.throwing("PubSub Service", "processPacket (sending internal-server-error)", e);
+				log.throwing("PubSub Service", "processPacket (sending internal-server-error)",
+										 e);
 			}
 		}
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param module
 	 * @param <T>
-	 * 
+	 *
 	 * @return
 	 */
 	public <T extends Module> T registerModule(final T module) {
@@ -631,19 +754,29 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		return module;
 	}
 
-	protected boolean runModules(final Element element, final ElementWriter writer) throws PubSubException {
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param element
+	 * @param writer
+	 *
+	 * @return
+	 *
+	 * @throws PubSubException
+	 */
+	protected boolean runModules(final Element element, final ElementWriter writer)
+					throws PubSubException {
 		boolean handled = false;
 
 		if (log.isLoggable(Level.FINER)) {
 			log.finest("Processing packet: " + element.toString());
 		}
-
 		for (Module module : this.modules) {
 			Criteria criteria = module.getModuleCriteria();
 
 			if ((criteria != null) && criteria.match(element)) {
 				handled = true;
-
 				if (log.isLoggable(Level.FINER)) {
 					log.finest("Handled by module " + module.getClass());
 				}
@@ -665,20 +798,22 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 	;
 
+	//~--- set methods ----------------------------------------------------------
+
 	// ~--- methods
 	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param props
 	 */
 	@Override
 	public void setProperties(Map<String, Object> props) {
 		super.setProperties(props);
-
 		if (props.size() == 1) {
+
 			// If props.size() == 1, it means this is a single property update
 			// and this component does not support single property change for
 			// the rest
@@ -690,11 +825,9 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 		if (pubsubRepository != null) {
 			pubsubRepository.destroy();
 		}
-
 		if (directPubSubRepository != null) {
 			directPubSubRepository.destroy();
 		}
-
 		modules.clear();
 
 		// String[] hostnames = (String[]) props.get(HOSTNAMES_PROP_KEY);
@@ -720,17 +853,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 
 		// Is there a shared user repository pool? If so I want to use it:
 		userRepository = (UserRepository) props.get(SHARED_USER_REPO_PROP_KEY);
-
 		if (userRepository == null) {
 
 			// Is there shared user repository instance? If so I want to use it:
 			userRepository = (UserRepository) props.get(SHARED_USER_REPO_PROP_KEY);
 		}
-
 		try {
 			PubSubDAO dao;
 			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
-			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
+			String res_uri  = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
 
 			if (userRepository == null) {
 
@@ -745,15 +876,14 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 			int dao_pool_size = 1;
 
 			try {
-				dao_pool_size = Integer.parseInt((String) props.get(PUBSUB_REPO_POOL_SIZE_PROP_KEY));
+				dao_pool_size =
+					Integer.parseInt((String) props.get(PUBSUB_REPO_POOL_SIZE_PROP_KEY));
 			} catch (Exception e) {
 				dao_pool_size = 1;
 			}
-
 			if (log.isLoggable(Level.FINE)) {
 				log.fine("PubSubDAO pool size: " + dao_pool_size);
 			}
-
 			if (dao_pool_size > 1) {
 				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.config);
 
@@ -764,7 +894,6 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 						dao_pool.addDao(new PubSubDAO(userRepository, this.config));
 					}
 				}
-
 				dao = dao_pool;
 			} else {
 				if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
@@ -773,8 +902,8 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 					dao = new PubSubDAO(userRepository, this.config);
 				}
 			}
-
-			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
+			initialize((String[]) props.get(ADMINS_KEY), dao, null,
+								 new LeafNodeConfig("default"));
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
 			e.printStackTrace();
@@ -793,11 +922,15 @@ public class PubSubComponent extends AbstractMessageReceiver implements XMPPServ
 				}
 			}
 		}
-
 		log.config("Supported features: " + sb.toString());
 	}
 }
 
+
+
 // ~ Formatted in Sun Code Convention
 
 // ~ Formatted by Jindent --- http://www.jindent.com
+
+
+//~ Formatted in Tigase Code Convention on 13/02/16
