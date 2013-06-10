@@ -45,6 +45,8 @@ import tigase.xml.Element;
 //~--- JDK imports ------------------------------------------------------------
 
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
 
 /**
  * Class description
@@ -108,28 +110,27 @@ public class RetrieveAffiliationsModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
-			final Element pubsub = element.getChild("pubsub",
+			final Element pubsub = packet.getElement().getChild("pubsub",
 															 "http://jabber.org/protocol/pubsub");
 			final Element affiliations = pubsub.getChild("affiliations");
-			final String senderJid     = element.getAttributeStaticStr("from");
-			final String senderBareJid = JIDUtils.getNodeID(senderJid);
-			final Element result       = createResultIQ(element);
+			final String senderJid     = packet.getStanzaFrom().toString();
+			final String senderBareJid = packet.getStanzaFrom().getBareJID().toString();
 			final Element pubsubResult = new Element("pubsub", new String[] { "xmlns" },
 																		 new String[] {
 																			 "http://jabber.org/protocol/pubsub" });
 
-			result.addChild(pubsubResult);
+			final Packet result        = packet.okResult(pubsubResult, 0);
 
 			final Element affiliationsResult = new Element("affiliations");
 

@@ -361,12 +361,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void addToRootCollection(String nodeName) throws RepositoryException {
+	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		this.dao.addToRootCollection(nodeName);
 		this.rootCollection.add(nodeName);
 	}
@@ -375,6 +376,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * @param ownerJid
 	 * @param nodeConfig
@@ -384,7 +386,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		long start = System.currentTimeMillis();
 
@@ -417,12 +419,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void deleteNode(String nodeName) throws RepositoryException {
+	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = this.nodes.get(nodeName);
 
 		this.dao.deleteNode(nodeName);
@@ -453,12 +456,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void forgetConfiguration(String nodeName) throws RepositoryException {
+	public void forgetConfiguration(BareJID serviceJid, String nodeName) throws RepositoryException {
 		this.nodes.remove(nodeName);
 	}
 
@@ -537,6 +541,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @return
@@ -544,7 +549,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
+	public IAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(nodeName);
 
 		return (node == null) ? null : node.getNodeAffiliations();
@@ -554,6 +559,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @return
@@ -561,7 +567,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException {
+	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(nodeName);
 
 		try {
@@ -577,6 +583,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @return
@@ -584,7 +591,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public IItems getNodeItems(String nodeName) throws RepositoryException {
+	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException {
 		return new Items(nodeName, this.dao);
 	}
 
@@ -595,6 +602,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @return
@@ -602,7 +610,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
+	public ISubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(nodeName);
 
 		return (node == null) ? null : node.getNodeSubscriptions();
@@ -623,12 +631,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @return
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getRootCollection() throws RepositoryException {
+	public String[] getRootCollection(BareJID serviceJid) throws RepositoryException {
 		if (rootCollection.size() == 0) {
 			String[] x = dao.getRootNodes();
 
@@ -682,12 +691,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void removeFromRootCollection(String nodeName) throws RepositoryException {
+	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		dao.removeFromRootCollection(nodeName);
 		rootCollection.remove(nodeName);
 	}
@@ -699,13 +709,14 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * @param nodeConfig
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
+	public void update(BareJID serviceJid, String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
 		Node node = getNode(nodeName);
 
 		if (node != null) {
@@ -725,13 +736,14 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * @param nodeAffiliations
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void update(String nodeName, IAffiliations nodeAffiliations) throws RepositoryException {
+	public void update(BareJID serviceJid, String nodeName, IAffiliations nodeAffiliations) throws RepositoryException {
 		if (nodeAffiliations instanceof NodeAffiliations) {
 			Node node = getNode(nodeName);
 
@@ -759,13 +771,14 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param nodeName
 	 * @param nodeSubscriptions
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void update(String nodeName, ISubscriptions nodeSubscriptions) throws RepositoryException {
+	public void update(BareJID serviceJid, String nodeName, ISubscriptions nodeSubscriptions) throws RepositoryException {
 		++updateSubscriptionsCalled;
 
 		if (nodeSubscriptions instanceof NodeSubscriptions) {

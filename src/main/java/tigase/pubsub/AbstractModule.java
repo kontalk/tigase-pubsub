@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
+import tigase.server.Packet;
 
 /**
  * Class description
@@ -139,6 +140,24 @@ public abstract class AbstractModule
 
 		for (Element element : elements) {
 			result.add(element);
+		}
+
+		return result;
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param elements
+	 *
+	 * @return
+	 */
+	public static List<Packet> makeArray(Packet... packets) {
+		LinkedList<Packet> result = new LinkedList<Packet>();
+
+		for (Packet packet : packets) {
+			result.add(packet);
 		}
 
 		return result;

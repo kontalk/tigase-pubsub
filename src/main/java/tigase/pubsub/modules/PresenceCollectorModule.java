@@ -47,6 +47,11 @@ import java.util.logging.Logger;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.server.Presence;
+import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 
 /**
  * Class description
@@ -183,20 +188,20 @@ public class PresenceCollectorModule
 
 	//~--- methods --------------------------------------------------------------
 
-	private Element preparePresence(final Element presence, String type) {
-		String to = presence.getAttributeStaticStr("from");
+	private Packet preparePresence(final Packet presence, String type) {
+		JID to = presence.getTo();
 
 		if (to != null) {
-			String jid = JIDUtils.getNodeID(to);
+			JID jid = to.copyWithoutResource();
 			Element p  = new Element("presence", new String[] { "to", "from" },
-															 new String[] { jid,
-							presence.getAttributeStaticStr("to") });
+															 new String[] { jid.toString(),
+							to.toString() });
 
 			if (type != null) {
 				p.setAttribute("type", type);
 			}
 
-			return p;
+			return new Presence(p, jid, presence.getStanzaTo());
 		}
 
 		return null;
@@ -206,59 +211,60 @@ public class PresenceCollectorModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
-		final String type    = element.getAttributeStaticStr("type");
-		final String jid     = element.getAttributeStaticStr("from");
-		List<Element> result = new ArrayList<Element>();
+		final StanzaType type = packet.getType();
+		final JID jid         = packet.getStanzaFrom();
+		final JID toJid       = packet.getStanzaTo();
+		List<Packet> result  = new ArrayList<Packet>();
 
 		if (type == null) {
-			boolean added = addJid(jid);
+			boolean added = addJid(jid.toString());
 
 			if (added) {
-				Element p = new Element("presence", new String[] { "to", "from" },
-																new String[] { jid,
-								element.getAttributeStaticStr("to") });
+				Packet p = new Presence(new Element("presence", new String[] { "to", "from" },
+																new String[] { jid.toString(),
+								toJid.toString() }), toJid, jid);
 
 				result.add(p);
 			}
 		} else if ("unavailable".equals(type)) {
-			removeJid(jid);
+			removeJid(jid.toString());
 
-			Element p = new Element("presence", new String[] { "to", "from", "type" },
-															new String[] { jid,
-							element.getAttributeStaticStr("to"), "unavailable" });
+			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" },
+															new String[] { jid.toString(),
+							toJid.toString(), "unavailable" }), toJid, jid);
 
 			result.add(p);
 		} else if ("subscribe".equals(type)) {
 			log.finest("Contact " + jid + " wants to subscribe PubSub");
 
-			Element presence = preparePresence(element, "subscribed");
+			Packet presence = preparePresence(packet, "subscribed");
 
 			if (presence != null) {
 				result.add(presence);
 			}
-			presence = preparePresence(element, "subscribe");
+			presence = preparePresence(packet, "subscribe");
 			if (presence != null) {
 				result.add(presence);
 			}
 		} else if ("unsubscribe".equals(type) || "unsubscribed".equals(type)) {
 			log.finest("Contact " + jid + " wants to unsubscribe PubSub");
 
-			Element presence = preparePresence(element, "unsubscribed");
+			Packet presence = preparePresence(packet, "unsubscribed");
 
 			if (presence != null) {
 				result.add(presence);
 			}
-			presence = preparePresence(element, "unsubscribe");
+			presence = preparePresence(packet, "unsubscribe");
 			if (presence != null) {
 				result.add(presence);
 			}

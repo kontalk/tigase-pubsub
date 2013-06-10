@@ -55,6 +55,9 @@ import tigase.xmpp.Authorization;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
 
 /**
  * Case 8.1.2
@@ -158,17 +161,19 @@ public class NodeCreateModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		final long time1     = System.currentTimeMillis();
+		final BareJID toJid = packet.getStanzaTo().getBareJID();
+		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub",
 														 "http://jabber.org/protocol/pubsub");
 		final Element create    = pubSub.getChild("create");
@@ -181,7 +186,7 @@ public class NodeCreateModule
 			if (instantNode) {
 				nodeName = UUID.randomUUID().toString().replaceAll("-", "");
 			}
-			if (repository.getNodeConfig(nodeName) != null) {
+			if (repository.getNodeConfig(toJid, nodeName) != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
 
@@ -225,7 +230,7 @@ public class NodeCreateModule
 			CollectionNodeConfig colNodeConfig = null;
 
 			if (collection != null) {
-				AbstractNodeConfig absNodeConfig = repository.getNodeConfig(collection);
+				AbstractNodeConfig absNodeConfig = repository.getNodeConfig(toJid, collection);
 
 				if (absNodeConfig == null) {
 					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
@@ -237,43 +242,43 @@ public class NodeCreateModule
 			if ((nodeType != NodeType.leaf) && (nodeType != NodeType.collection)) {
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 			}
-			repository.createNode(nodeName,
+			repository.createNode(toJid, nodeName,
 														JIDUtils.getNodeID(element.getAttributeStaticStr("from")),
 														nodeConfig, nodeType, (collection == null)
 							? ""
 							: collection);
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
-			IAffiliations nodeaAffiliations  = repository.getNodeAffiliations(nodeName);
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+			IAffiliations nodeaAffiliations  = repository.getNodeAffiliations(toJid, nodeName);
 
 			nodeSubscriptions.addSubscriberJid(element.getAttributeStaticStr("from"),
 																				 Subscription.subscribed);
 			nodeaAffiliations.addAffiliation(element.getAttributeStaticStr("from"),
 																			 Affiliation.owner);
-			repository.update(nodeName, nodeaAffiliations);
-			repository.update(nodeName, nodeSubscriptions);
+			repository.update(toJid, nodeName, nodeaAffiliations);
+			repository.update(toJid, nodeName, nodeSubscriptions);
 			if (colNodeConfig == null) {
-				repository.addToRootCollection(nodeName);
+				repository.addToRootCollection(toJid, nodeName);
 			} else {
 				colNodeConfig.addChildren(nodeName);
-				repository.update(collection, colNodeConfig);
+				repository.update(toJid, collection, colNodeConfig);
 			}
 			fireOnNodeCreatedConfigChange(nodeName);
 
-			Element result = createResultIQ(element);
+			Packet result = packet.okResult((Element) null, 0);
 
 			if (collection != null) {
 				ISubscriptions colNodeSubscriptions =
-					this.repository.getNodeSubscriptions(collection);
+					this.repository.getNodeSubscriptions(toJid, collection);
 				IAffiliations colNodeAffiliations =
-					this.repository.getNodeAffiliations(collection);
+					this.repository.getNodeAffiliations(toJid, collection);
 				Element colE = new Element("collection", new String[] { "node" },
 																	 new String[] { collection });
 
 				colE.addChild(new Element("associate", new String[] { "node" },
 																	new String[] { nodeName }));
-				elementWriter.write(publishModule.prepareNotification(colE,
-								element.getAttributeStaticStr("to"), collection, nodeConfig,
+				packetWriter.write(publishModule.prepareNotification(colE,
+								packet.getStanzaTo(), collection, nodeConfig,
 								colNodeAffiliations, colNodeSubscriptions));
 			}
 			if (instantNode) {
@@ -283,13 +288,13 @@ public class NodeCreateModule
 																 new String[] { nodeName });
 
 				ps.addChild(cr);
-				result.addChild(ps);
+				result.getElement().addChild(ps);
 			}
 
 			final long time2 = System.currentTimeMillis();
 
-			result.addChild(new Element("text", "Created in " + (time2 - time1) + " ms"));
-			elementWriter.write(result);
+			result.getElement().addChild(new Element("text", "Created in " + (time2 - time1) + " ms"));
+			packetWriter.write(result);
 
 			return null;
 		} catch (PubSubException e1) {

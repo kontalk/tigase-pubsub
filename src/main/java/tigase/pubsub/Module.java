@@ -25,7 +25,7 @@ import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.xml.Element;
+import tigase.server.Packet;
 
 public interface Module {
 
@@ -33,5 +33,5 @@ public interface Module {
 
 	Criteria getModuleCriteria();
 
-	List<Element> process(final Element element, ElementWriter elementWriter) throws PubSubException;
+	List<Packet> process(final Packet packet, PacketWriter packetWriter) throws PubSubException;
 }

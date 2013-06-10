@@ -46,6 +46,9 @@ import tigase.xmpp.Authorization;
 //~--- JDK imports ------------------------------------------------------------
 
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -110,27 +113,29 @@ public class DiscoverItemsModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
+			final Element element = packet.getElement();
 			final Element query = element.getChild("query",
 															"http://jabber.org/protocol/disco#items");
 			final String nodeName  = query.getAttributeStaticStr("node");
 			final String senderJid = element.getAttributeStaticStr("from");
-			Element resultIq       = createResultIQ(element);
+			final BareJID toJid = packet.getStanzaTo().getBareJID();			
 			Element resultQuery    = new Element("query", new String[] { "xmlns" },
 																 new String[] {
 																	 "http://jabber.org/protocol/disco#items" });
 
-			resultIq.addChild(resultQuery);
+			Packet resultIq = packet.okResult(resultQuery, 0);
+			
 			if ("http://jabber.org/protocol/commands".equals(nodeName)) {
 				List<Element> commandList =
 					this.adHocCommandsModule.getCommandListItems(senderJid,
@@ -146,7 +151,7 @@ public class DiscoverItemsModule
 
 				AbstractNodeConfig nodeConfig = (nodeName == null)
 																				? null
-																				: repository.getNodeConfig(nodeName);
+																				: repository.getNodeConfig(toJid, nodeName);
 				String[] nodes;
 
 				if ((nodeName == null) ||
@@ -155,7 +160,7 @@ public class DiscoverItemsModule
 
 					if (nodeName == null) {
 						parentName = "";
-						nodes      = repository.getRootCollection();
+						nodes      = repository.getRootCollection(toJid);
 					} else {
 						parentName = nodeName;
 						nodes      = nodeConfig.getChildren();
@@ -164,7 +169,7 @@ public class DiscoverItemsModule
 					// = this.repository.getNodesList();
 					if (nodes != null) {
 						for (String node : nodes) {
-							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(node);
+							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(toJid, node);
 
 							if (childNodeConfig != null) {
 								boolean allowed = ((senderJid == null) || (childNodeConfig == null))
@@ -204,7 +209,7 @@ public class DiscoverItemsModule
 					}
 					resultQuery.addAttribute("node", nodeName);
 
-					IItems items     = repository.getNodeItems(nodeName);
+					IItems items     = repository.getNodeItems(toJid, nodeName);
 					String[] itemsId = items.getItemsIds();
 
 					if (itemsId != null) {

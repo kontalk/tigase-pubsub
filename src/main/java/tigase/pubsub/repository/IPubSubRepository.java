@@ -25,7 +25,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void addToRootCollection(String nodeName) throws RepositoryException;
+	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -39,8 +39,8 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
-			String collection) throws RepositoryException;
+	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, 
+			AbstractNodeConfig nodeConfig, NodeType nodeType, String collection) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -50,7 +50,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void deleteNode(String nodeName) throws RepositoryException;
+	public abstract void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	// ~--- get methods
 	// ----------------------------------------------------------
@@ -69,7 +69,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void forgetConfiguration(String nodeName) throws RepositoryException;
+	public abstract void forgetConfiguration(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -107,7 +107,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public IAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
+	public IAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -119,7 +119,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract AbstractNodeConfig getNodeConfig(String nodeName) throws RepositoryException;
+	public abstract AbstractNodeConfig getNodeConfig(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	// ~--- methods
 	// --------------------------------------------------------------
@@ -134,7 +134,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public IItems getNodeItems(String nodeName) throws RepositoryException;
+	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -146,7 +146,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public ISubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
+	public ISubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -164,7 +164,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract String[] getRootCollection() throws RepositoryException;
+	public abstract String[] getRootCollection(BareJID serviceJid) throws RepositoryException;
 
 	// ~--- get methods
 	// ----------------------------------------------------------
@@ -195,7 +195,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void removeFromRootCollection(String nodeName) throws RepositoryException;
+	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	// ~--- methods
 	// --------------------------------------------------------------
@@ -209,7 +209,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void update(String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException;
+	public abstract void update(BareJID serviceJid, String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -220,7 +220,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException;
+	public void update(BareJID serviceJid, String nodeName, IAffiliations affiliations) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -231,7 +231,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void update(String nodeName, ISubscriptions subscriptions) throws RepositoryException;
+	public void update(BareJID serviceJid, String nodeName, ISubscriptions subscriptions) throws RepositoryException;
 }
 
 // ~ Formatted in Sun Code Convention

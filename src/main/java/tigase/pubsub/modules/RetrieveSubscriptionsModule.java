@@ -46,6 +46,8 @@ import tigase.xmpp.BareJID;
 //~--- JDK imports ------------------------------------------------------------
 
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
 
 /**
  * Class description
@@ -115,29 +117,29 @@ public class RetrieveSubscriptionsModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
-			final Element pubsub = element.getChild("pubsub",
+			final BareJID toJid  = packet.getStanzaTo().getBareJID();
+			final Element pubsub = packet.getElement().getChild("pubsub",
 															 "http://jabber.org/protocol/pubsub");
 			final Element subscriptions = pubsub.getChild("subscriptions");
 			final String nodeName       = subscriptions.getAttributeStaticStr("node");
-			final String senderJid      = element.getAttributeStaticStr("from");
-			final BareJID senderBareJid = BareJID.bareJIDInstanceNS(senderJid);
-			final Element result        = createResultIQ(element);
+			final String senderJid      = packet.getStanzaFrom().toString();
+			final BareJID senderBareJid = packet.getStanzaFrom().getBareJID();
 			final Element pubsubResult  = new Element("pubsub", new String[] { "xmlns" },
 																			new String[] {
 																				"http://jabber.org/protocol/pubsub" });
 
-			result.addChild(pubsubResult);
+			Packet result = packet.okResult(pubsubResult, 0);
 
 			final Element subscriptionsResult = new Element("subscriptions");
 
@@ -167,7 +169,7 @@ public class RetrieveSubscriptionsModule
 					}
 				}
 			} else {
-				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 
 				subscriptionsResult.addAttribute("node", nodeName);
 

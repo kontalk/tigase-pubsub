@@ -54,6 +54,9 @@ import tigase.xmpp.Authorization;
 
 import java.util.ArrayList;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -161,46 +164,47 @@ public class SubscribeNodeModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
-		final Element pubSub = element.getChild("pubsub",
+		final BareJID toJid  = packet.getStanzaTo().getBareJID();
+		final Element pubSub = packet.getElement().getChild("pubsub",
 														 "http://jabber.org/protocol/pubsub");
 		final Element subscribe = pubSub.getChild("subscribe");
-		final String senderJid  = element.getAttributeStaticStr("from");
+		final String senderJid  = packet.getAttributeStaticStr("from");
 		final String nodeName   = subscribe.getAttributeStaticStr("node");
 		final String jid        = subscribe.getAttributeStaticStr("jid");
 
 		try {
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
-				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
 			}
 			if ((nodeConfig.getNodeAccessModel() == AccessModel.open) &&
 					!Utils.isAllowedDomain(senderJid, nodeConfig.getDomains())) {
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 			}
 
-			IAffiliations nodeAffiliations     = repository.getNodeAffiliations(nodeName);
+			IAffiliations nodeAffiliations     = repository.getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation senderAffiliation =
 				nodeAffiliations.getSubscriberAffiliation(senderJid);
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid)) &&
 					(senderAffiliation.getAffiliation() != Affiliation.owner) &&
 					!JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
-				throw new PubSubException(element, Authorization.BAD_REQUEST,
+				throw new PubSubException(packet.getElement(), Authorization.BAD_REQUEST,
 																	PubSubErrorCondition.INVALID_JID);
 			}
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 
 			// TODO 6.1.3.2 Presence Subscription Required
 			// TODO 6.1.3.3 Not in Roster Group
@@ -237,7 +241,7 @@ public class SubscribeNodeModule
 																	PubSubErrorCondition.CLOSED_NODE);
 			}
 
-			List<Element> results = new ArrayList<Element>();
+			List<Packet> results = new ArrayList<Packet>();
 			Subscription newSubscription;
 			Affiliation affiliation =
 				nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
@@ -290,7 +294,7 @@ public class SubscribeNodeModule
 							(senderAffiliation.getAffiliation() == Affiliation.owner))) {
 					results.addAll(
 							this.pendingSubscriptionModule.sendAuthorizationRequest(
-								nodeName, element.getAttributeStaticStr("to"), subid, jid,
+								nodeName, packet.getStanzaTo(), subid, jid,
 								nodeAffiliations));
 				}
 			} else {
@@ -300,15 +304,14 @@ public class SubscribeNodeModule
 
 			// repository.setData(config.getServiceName(), nodeName, "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));
-			Element result = createResultIQ(element);
-
 			if (nodeSubscriptions.isChanged()) {
-				this.repository.update(nodeName, nodeSubscriptions);
+				this.repository.update(toJid, nodeName, nodeSubscriptions);
 			}
 			if (nodeAffiliations.isChanged()) {
-				this.repository.update(nodeName, nodeAffiliations);
+				this.repository.update(toJid, nodeName, nodeAffiliations);
 			}
-			result.addChild(makeSubscription(nodeName, jid, newSubscription, subid));
+			Packet result = packet.okResult(makeSubscription(nodeName, jid, newSubscription, subid), 0);
+			
 			results.add(result);
 
 			return results;

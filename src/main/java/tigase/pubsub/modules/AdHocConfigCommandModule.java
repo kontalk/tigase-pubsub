@@ -31,9 +31,11 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.ElementWriter;
+import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.server.Packet;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
@@ -70,9 +72,9 @@ public class AdHocConfigCommandModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
 		try {
-			List<Element> result = makeArray(this.commandsManager.process(element));
+			List<Packet> result = makeArray(this.commandsManager.process(packet));
 			return result;
 		} catch (AdHocCommandException e) {
 			throw new PubSubException(e.getErrorCondition(), e.getMessage());

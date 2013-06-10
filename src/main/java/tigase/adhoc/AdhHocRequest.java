@@ -21,6 +21,7 @@
  */
 package tigase.adhoc;
 
+import tigase.server.Packet;
 import tigase.xml.Element;
 
 public class AdhHocRequest {
@@ -29,7 +30,7 @@ public class AdhHocRequest {
 
 	private final Element command;
 
-	private final Element iq;
+	private final Packet iq;
 
 	private final String node;
 
@@ -37,7 +38,7 @@ public class AdhHocRequest {
 
 	private final String sessionId;
 
-	AdhHocRequest(Element iq, Element command, String node, String sender, String action, String sessionId) {
+	AdhHocRequest(Packet iq, Element command, String node, String sender, String action, String sessionId) {
 		super();
 		this.iq = iq;
 		this.command = command;
@@ -55,7 +56,7 @@ public class AdhHocRequest {
 		return command;
 	}
 
-	public Element getIq() {
+	public Packet getIq() {
 		return iq;
 	}
 

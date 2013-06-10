@@ -40,6 +40,8 @@ import tigase.xml.Element;
 
 import java.util.ArrayList;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
 
 /**
  * Class description
@@ -88,20 +90,17 @@ public class XmppPingModule
 	 *
 	 *
 	 * @param iq
-	 * @param elementWriter
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element iq, ElementWriter elementWriter)
+	public List<Packet> process(Packet iq, PacketWriter elementWriter)
 					throws PubSubException {
-		Element reposnse = new Element("iq", new String[] { "type", "from", "to", "id" },
-																	 new String[] { "result",
-						iq.getAttributeStaticStr("to"), iq.getAttributeStaticStr("from"),
-						iq.getAttributeStaticStr("id") });
-		List<Element> x = new ArrayList<Element>();
+		Packet reposnse = iq.okResult((Element) null, 0);
+		List<Packet> x = new ArrayList<Packet>();
 
 		x.add(reposnse);
 

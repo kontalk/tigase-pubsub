@@ -28,10 +28,12 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
+import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -58,23 +60,22 @@ public class DefaultConfigModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter) throws PubSubException {
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
 		try {
 			Element pubsub = new Element("pubsub", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/pubsub#owner" });
 			Element def = new Element("default");
 			Element x = defaultNodeConfig.getFormElement();
 			if (x == null) {
-				throw new PubSubException(element, Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition(
+				throw new PubSubException(packet.getElement(), Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition(
 						"unsupported", "config-node"));
 			}
 			def.addChild(x);
 			pubsub.addChild(def);
 
-			Element result = createResultIQ(element);
-			result.addChild(pubsub);
+			Packet result = packet.okResult(pubsub, 0);
 
-			elementWriter.write(result);
+			packetWriter.write(result);
 
 			return null;
 		} catch (PubSubException e1) {
