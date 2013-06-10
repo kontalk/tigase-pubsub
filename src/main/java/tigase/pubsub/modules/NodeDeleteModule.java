@@ -50,6 +50,9 @@ import tigase.xmpp.Authorization;
 
 import java.util.ArrayList;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -141,16 +144,18 @@ public class NodeDeleteModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
+		final BareJID toJid = packet.getStanzaTo().getBareJID();
+		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub",
 														 "http://jabber.org/protocol/pubsub#owner");
 		final Element delete  = pubSub.getChild("delete");
@@ -161,14 +166,14 @@ public class NodeDeleteModule
 				throw new PubSubException(element, Authorization.NOT_ALLOWED);
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
 			final IAffiliations nodeAffiliations =
-				this.repository.getNodeAffiliations(nodeName);
+				this.repository.getNodeAffiliations(toJid, nodeName);
 			String jid = element.getAttributeStaticStr("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
@@ -180,15 +185,14 @@ public class NodeDeleteModule
 				}
 			}
 
-			List<Element> resultArray = makeArray(createResultIQ(element));
+			List<Packet> resultArray = makeArray(packet.okResult((Element) null, 0));
 
 			if (nodeConfig.isNotify_config()) {
-				ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
-				String pssJid                    = element.getAttributeStaticStr("to");
+				ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(toJid, nodeName);
 				Element del                      = new Element("delete", new String[] { "node" },
 																						 new String[] { nodeName });
 
-				resultArray.addAll(this.publishModule.prepareNotification(del, pssJid, nodeName,
+				resultArray.addAll(this.publishModule.prepareNotification(del, packet.getStanzaTo(), nodeName,
 								nodeConfig, nodeAffiliations, nodeSubscriptions));
 			}
 
@@ -197,12 +201,12 @@ public class NodeDeleteModule
 
 			if ((parentNodeName != null) &&!parentNodeName.equals("")) {
 				parentCollectionConfig =
-					(CollectionNodeConfig) repository.getNodeConfig(parentNodeName);
+					(CollectionNodeConfig) repository.getNodeConfig(toJid, parentNodeName);
 				if (parentCollectionConfig != null) {
 					parentCollectionConfig.removeChildren(nodeName);
 				}
 			} else {
-				repository.removeFromRootCollection(nodeName);
+				repository.removeFromRootCollection(toJid, nodeName);
 			}
 			if (nodeConfig instanceof CollectionNodeConfig) {
 				CollectionNodeConfig cnc     = (CollectionNodeConfig) nodeConfig;
@@ -210,25 +214,25 @@ public class NodeDeleteModule
 
 				if ((childrenNodes != null) && (childrenNodes.length > 0)) {
 					for (String childNodeName : childrenNodes) {
-						AbstractNodeConfig childNodeConfig = repository.getNodeConfig(childNodeName);
+						AbstractNodeConfig childNodeConfig = repository.getNodeConfig(toJid, childNodeName);
 
 						if (childNodeConfig != null) {
 							childNodeConfig.setCollection(parentNodeName);
-							repository.update(childNodeName, childNodeConfig);
+							repository.update(toJid, childNodeName, childNodeConfig);
 						}
 						if (parentCollectionConfig != null) {
 							parentCollectionConfig.addChildren(childNodeName);
 						} else {
-							repository.addToRootCollection(childNodeName);
+							repository.addToRootCollection(toJid, childNodeName);
 						}
 					}
 				}
 			}
 			if (parentCollectionConfig != null) {
-				repository.update(parentNodeName, parentCollectionConfig);
+				repository.update(toJid, parentNodeName, parentCollectionConfig);
 			}
 			log.fine("Delete node [" + nodeName + "]");
-			repository.deleteNode(nodeName);
+			repository.deleteNode(toJid, nodeName);
 			fireOnNodeDeleted(nodeName);
 
 			return resultArray;

@@ -53,6 +53,12 @@ import tigase.xmpp.Authorization;
 //~--- JDK imports ------------------------------------------------------------
 
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Message;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 
 /**
  * Class description
@@ -89,22 +95,20 @@ public class ManageSubscriptionModule
 
 	// ~--- constructors
 	// ---------------------------------------------------------
-	private static Element createSubscriptionNotification(String fromJid, String toJid,
+	private static Packet createSubscriptionNotification(JID fromJid, JID toJid,
 					String nodeName, Subscription subscription) {
-		Element message = new Element("message", new String[] { "from", "to" },
-																	new String[] { fromJid,
-						toJid });
+		Packet message = Message.getMessage(fromJid, toJid, null, null, null, null, null);
 		Element pubsub = new Element("pubsub", new String[] { "xmlns" },
 																 new String[] { "http://jabber.org/protocol/pubsub" });
 
-		message.addChild(pubsub);
+		message.getElement().addChild(pubsub);
 
 		Element affilations = new Element("subscriptions", new String[] { "node" },
 																			new String[] { nodeName });
 
 		pubsub.addChild(affilations);
 		affilations.addChild(new Element("subscription", new String[] { "jid",
-						"subscription" }, new String[] { toJid, subscription.name() }));
+						"subscription" }, new String[] { toJid.toString(), subscription.name() }));
 
 		return message;
 	}
@@ -145,24 +149,26 @@ public class ManageSubscriptionModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
+			BareJID toJid = packet.getStanzaTo().getBareJID();
+			Element element = packet.getElement();
 			Element pubsub = element.getChild("pubsub",
 																				"http://jabber.org/protocol/pubsub#owner");
 			Element subscriptions = pubsub.getChild("subscriptions");
 			String nodeName       = subscriptions.getAttributeStaticStr("node");
-			String type           = element.getAttributeStaticStr("type");
+			StanzaType type       = packet.getType();
 
-			if ((type == null) || (!type.equals("get") &&!type.equals("set"))) {
+			if ((type == null) || (type != StanzaType.get && type != StanzaType.set)) {
 				throw new PubSubException(Authorization.BAD_REQUEST);
 			}
 			if (nodeName == null) {
@@ -170,14 +176,14 @@ public class ManageSubscriptionModule
 																	PubSubErrorCondition.NODE_REQUIRED);
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
-			IAffiliations nodeAffiliations   = repository.getNodeAffiliations(nodeName);
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+			IAffiliations nodeAffiliations   = repository.getNodeAffiliations(toJid, nodeName);
 			String senderJid                 = element.getAttributeStaticStr("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
@@ -188,16 +194,16 @@ public class ManageSubscriptionModule
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
 			}
-			if (type.equals("get")) {
-				processGet(element, subscriptions, nodeName, nodeSubscriptions, elementWriter);
+			if (type == StanzaType.get) {
+				processGet(packet, subscriptions, nodeName, nodeSubscriptions, packetWriter);
 			} else {
-				if (type.equals("set")) {
-					processSet(element, subscriptions, nodeName, nodeConfig, nodeSubscriptions,
-										 elementWriter);
+				if (type == StanzaType.set) {
+					processSet(packet, subscriptions, nodeName, nodeConfig, nodeSubscriptions,
+										 packetWriter);
 				}
 			}
 			if (nodeSubscriptions.isChanged()) {
-				repository.update(nodeName, nodeSubscriptions);
+				repository.update(toJid, nodeName, nodeSubscriptions);
 			}
 
 			return null;
@@ -210,15 +216,14 @@ public class ManageSubscriptionModule
 		}
 	}
 
-	private void processGet(Element element, Element subscriptions, String nodeName,
+	private void processGet(Packet packet, Element subscriptions, String nodeName,
 													final ISubscriptions nodeSubscriptions,
-													ElementWriter elementWriter)
+													PacketWriter packetWriter)
 					throws RepositoryException {
-		Element iq = createResultIQ(element);
 		Element ps = new Element("pubsub", new String[] { "xmlns" },
 														 new String[] { "http://jabber.org/protocol/pubsub#owner" });
 
-		iq.addChild(ps);
+		Packet iq = packet.okResult(ps, 0);
 
 		Element afr = new Element("subscriptions", new String[] { "node" },
 															new String[] { nodeName });
@@ -240,15 +245,14 @@ public class ManageSubscriptionModule
 				afr.addChild(subscription);
 			}
 		}
-		elementWriter.write(iq);
+		packetWriter.write(iq);
 	}
 
-	private void processSet(Element element, Element subscriptions, String nodeName,
+	private void processSet(Packet packet, Element subscriptions, String nodeName,
 													final AbstractNodeConfig nodeConfig,
 													final ISubscriptions nodeSubscriptions,
-													ElementWriter elementWriter)
+													PacketWriter packetWriter)
 					throws PubSubException, RepositoryException {
-		Element iq          = createResultIQ(element);
 		List<Element> subss = subscriptions.getChildren();
 
 		for (Element a : subss) {
@@ -258,36 +262,38 @@ public class ManageSubscriptionModule
 		}
 		for (Element af : subss) {
 			String strSubscription = af.getAttributeStaticStr("subscription");
-			String jid             = af.getAttributeStaticStr("jid");
+			String jidStr          = af.getAttributeStaticStr("jid");
+			JID jid	               = JID.jidInstanceNS(jidStr);
 
 			if (strSubscription == null) {
 				continue;
 			}
 
 			Subscription newSubscription = Subscription.valueOf(strSubscription);
-			Subscription oldSubscription = nodeSubscriptions.getSubscription(jid);
+			Subscription oldSubscription = nodeSubscriptions.getSubscription(jidStr);
 
 			oldSubscription = (oldSubscription == null)
 												? Subscription.none
 												: oldSubscription;
 			if ((oldSubscription == Subscription.none) &&
 					(newSubscription != Subscription.none)) {
-				nodeSubscriptions.addSubscriberJid(jid, newSubscription);
+				nodeSubscriptions.addSubscriberJid(jidStr, newSubscription);
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
-					elementWriter.write(
+					packetWriter.write(
 							createSubscriptionNotification(
-								element.getAttributeStaticStr("to"), jid, nodeName, newSubscription));
+								packet.getStanzaTo(), jid, nodeName, newSubscription));
 				}
 			} else {
-				nodeSubscriptions.changeSubscription(jid, newSubscription);
+				nodeSubscriptions.changeSubscription(jidStr, newSubscription);
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
-					elementWriter.write(
+					packetWriter.write(
 							createSubscriptionNotification(
-								element.getAttributeStaticStr("to"), jid, nodeName, newSubscription));
+								packet.getStanzaTo(), jid, nodeName, newSubscription));
 				}
 			}
 		}
-		elementWriter.write(iq);
+		Packet iq = packet.okResult((Element) null, 0);
+		packetWriter.write(iq);
 	}
 }
 

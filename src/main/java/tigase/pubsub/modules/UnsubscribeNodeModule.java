@@ -51,6 +51,9 @@ import tigase.xmpp.Authorization;
 //~--- JDK imports ------------------------------------------------------------
 
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -109,16 +112,18 @@ public class UnsubscribeNodeModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
+		final BareJID toJid = packet.getStanzaTo().getBareJID();
+		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub",
 														 "http://jabber.org/protocol/pubsub");
 		final Element unsubscribe = pubSub.getChild("unsubscribe");
@@ -128,13 +133,13 @@ public class UnsubscribeNodeModule
 		final String subid        = unsubscribe.getAttributeStaticStr("subid");
 
 		try {
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			IAffiliations nodeAffiliations     = repository.getNodeAffiliations(nodeName);
+			IAffiliations nodeAffiliations     = repository.getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation senderAffiliation =
 				nodeAffiliations.getSubscriberAffiliation(senderJid);
 			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid);
@@ -151,7 +156,7 @@ public class UnsubscribeNodeModule
 				}
 			}
 
-			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
+			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(toJid, nodeName);
 
 			if (subid != null) {
 				String s = nodeSubscriptions.getSubscriptionId(jid);
@@ -170,10 +175,10 @@ public class UnsubscribeNodeModule
 			}
 			nodeSubscriptions.changeSubscription(jid, Subscription.none);
 			if (nodeSubscriptions.isChanged()) {
-				this.repository.update(nodeName, nodeSubscriptions);
+				this.repository.update(toJid, nodeName, nodeSubscriptions);
 			}
 
-			return makeArray(createResultIQ(element));
+			return makeArray(packet.okResult((Element) null, 0));
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

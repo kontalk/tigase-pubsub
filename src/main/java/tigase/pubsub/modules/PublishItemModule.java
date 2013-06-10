@@ -69,6 +69,11 @@ import java.util.logging.Level;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Message;
+import tigase.server.Packet;
+import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 
 /**
  * Class description
@@ -176,15 +181,15 @@ public class PublishItemModule
 	 *
 	 * @throws RepositoryException
 	 */
-	protected List<String> getParents(final String nodeName) throws RepositoryException {
+	protected List<String> getParents(final BareJID serviceJid, final String nodeName) throws RepositoryException {
 		ArrayList<String> result      = new ArrayList<String>();
-		AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+		AbstractNodeConfig nodeConfig = repository.getNodeConfig(serviceJid, nodeName);
 		String cn                     = nodeConfig.getCollection();
 
 		while ((cn != null) &&!"".equals(cn)) {
 			result.add(cn);
 
-			AbstractNodeConfig nc = repository.getNodeConfig(cn);
+			AbstractNodeConfig nc = repository.getNodeConfig(serviceJid, cn);
 
 			cn = nc.getCollection();
 		}
@@ -248,22 +253,22 @@ public class PublishItemModule
 		return items;
 	}
 
-	private List<Element> pepProcess(final Element element, final Element pubSub,
+	private List<Packet> pepProcess(final Packet packet, final Element pubSub,
 																	 final Element publish)
 					throws RepositoryException {
-		final String senderJid = element.getAttributeStaticStr("from");
-		final Element item     = publish.getChild("item");
-		final Element items    = new Element("items", new String[] { "node" },
+		final JID senderJid = packet.getStanzaFrom();
+		final Element item  = publish.getChild("item");
+		final Element items = new Element("items", new String[] { "node" },
 															 new String[] { publish.getAttributeStaticStr("node") });
 
 		items.addChild(item);
 
-		String[] subscribers = getValidBuddies(JIDUtils.getNodeID(senderJid));
-		List<Element> result = prepareNotification(subscribers, items, senderJid, null,
+		String[] subscribers = getValidBuddies(senderJid.getBareJID().toString());
+		List<Packet> result = prepareNotification(subscribers, items, senderJid, null,
 														 publish.getAttributeStaticStr("node"), null);
 
-		result.add(createResultIQ(element));
-		result.addAll(prepareNotification(new String[] { senderJid }, items, senderJid, null,
+		result.add(packet.okResult((Element) null, 0));
+		result.addAll(prepareNotification(new String[] { senderJid.toString() }, items, senderJid, null,
 																			publish.getAttributeStaticStr("node"), null));
 
 		return result;
@@ -287,7 +292,7 @@ public class PublishItemModule
 	 *
 	 * @throws RepositoryException
 	 */
-	public List<Element> prepareNotification(Element itemToSend, final String jidFrom,
+	public List<Packet> prepareNotification(Element itemToSend, final JID jidFrom,
 					final String publisherNodeName, AbstractNodeConfig nodeConfig,
 					IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
 					throws RepositoryException {
@@ -311,8 +316,8 @@ public class PublishItemModule
 	 *
 	 * @throws RepositoryException
 	 */
-	public List<Element> prepareNotification(final Element itemToSend,
-					final String jidFrom, final String publisherNodeName,
+	public List<Packet> prepareNotification(final Element itemToSend,
+					final JID jidFrom, final String publisherNodeName,
 					final Map<String, String> headers, AbstractNodeConfig nodeConfig,
 					IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
 					throws RepositoryException {
@@ -343,7 +348,7 @@ public class PublishItemModule
 			}
 		}
 		if (updateSubscriptions) {
-			this.repository.update(nodeConfig.getNodeName(), nodesSubscriptions);
+			this.repository.update(jidFrom.getBareJID(), nodeConfig.getNodeName(), nodesSubscriptions);
 		}
 
 		String[] subscribers = tmp.toArray(new String[] {});
@@ -379,10 +384,10 @@ public class PublishItemModule
 	 *
 	 * @return
 	 */
-	public List<Element> prepareNotification(final String[] subscribers,
-					final Element itemToSend, final String jidFrom, AbstractNodeConfig nodeConfig,
+	public List<Packet> prepareNotification(final String[] subscribers,
+					final Element itemToSend, final JID jidFrom, AbstractNodeConfig nodeConfig,
 					final String publisherNodeName, final Map<String, String> headers) {
-		ArrayList<Element> result = new ArrayList<Element>();
+		ArrayList<Packet> result = new ArrayList<Packet>();
 		List<Element> body        = null;
 
 		if ((this.xslTransformer != null) && (nodeConfig != null)) {
@@ -393,11 +398,12 @@ public class PublishItemModule
 				log.log(Level.WARNING, "Problem with generating BODY", e);
 			}
 		}
-		for (String jid : subscribers) {
-			Element message = new Element("message", new String[] { "from", "to", "id" },
-																		new String[] { jidFrom,
-							jid, String.valueOf(++this.idCounter) });
-
+		for (String jidStr : subscribers) {
+			JID jid = JID.jidInstanceNS(jidStr);
+			Packet packet = Message.getMessage(jidFrom, jid, null, null, null, null, 
+						String.valueOf(++this.idCounter));
+			Element message = packet.getElement();
+			
 			if (body != null) {
 				message.addChildren(body);
 			}
@@ -421,7 +427,7 @@ public class PublishItemModule
 				}
 				message.addChild(headElem);
 			}
-			result.add(message);
+			result.add(packet);
 		}
 
 		return result;
@@ -431,16 +437,18 @@ public class PublishItemModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
+		final BareJID toJid = packet.getStanzaTo().getBareJID();
+		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub",
 														 "http://jabber.org/protocol/pubsub");
 		final Element publish = pubSub.getChild("publish");
@@ -448,10 +456,10 @@ public class PublishItemModule
 
 		try {
 			if (isPEPNodeName(nodeName)) {
-				return pepProcess(element, pubSub, publish);
+				return pepProcess(packet, pubSub, publish);
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
@@ -462,10 +470,10 @@ public class PublishItemModule
 				}
 			}
 
-			IAffiliations nodeAffiliations           = repository.getNodeAffiliations(nodeName);
+			IAffiliations nodeAffiliations           = repository.getNodeAffiliations(toJid, nodeName);
 			final UsersAffiliation senderAffiliation =
 				nodeAffiliations.getSubscriberAffiliation(element.getAttributeStaticStr("from"));
-			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 
 			// XXX #125
 			final PublisherModel publisherModel = nodeConfig.getPublisherModel();
@@ -481,8 +489,8 @@ public class PublishItemModule
 
 			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 			List<Element> itemsToSend     = makeItemsToSend(publish);
-			List<Element> result          = new ArrayList<Element>();
-			final Element resultIq        = createResultIQ(element);
+			List<Packet> result           = new ArrayList<Packet>();
+			final Packet resultIq         = packet.okResult((Element) null, 0);
 
 			result.add(resultIq);
 			if (leafNodeConfig.isPersistItem()) {
@@ -492,7 +500,7 @@ public class PublishItemModule
 																				new String[] {
 																					"http://jabber.org/protocol/pubsub" });
 
-				resultIq.addChild(resPubsub);
+				resultIq.getElement().addChild(resPubsub);
 
 				Element resPublish = new Element("publish", new String[] { "node" },
 																				 new String[] { nodeName });
@@ -517,12 +525,11 @@ public class PublishItemModule
 																				new String[] { nodeName });
 
 			items.addChildren(itemsToSend);
-			result.addAll(prepareNotification(items, element.getAttributeStaticStr("to"),
-																				nodeName,
-																				this.repository.getNodeConfig(nodeName),
+			result.addAll(prepareNotification(items,	 packet.getStanzaTo(), nodeName,
+																				this.repository.getNodeConfig(toJid, nodeName),
 																				nodeAffiliations, nodeSubscriptions));
 
-			List<String> parents = getParents(nodeName);
+			List<String> parents = getParents(toJid, nodeName);
 
 			if ((parents != null) && (parents.size() > 0)) {
 				for (String collection : parents) {
@@ -530,19 +537,19 @@ public class PublishItemModule
 
 					headers.put("Collection", collection);
 
-					AbstractNodeConfig colNodeConfig    = this.repository.getNodeConfig(collection);
+					AbstractNodeConfig colNodeConfig    = this.repository.getNodeConfig(toJid, collection);
 					ISubscriptions colNodeSubscriptions =
-						this.repository.getNodeSubscriptions(collection);
+						this.repository.getNodeSubscriptions(toJid, collection);
 					IAffiliations colNodeAffiliations =
-						this.repository.getNodeAffiliations(collection);
+						this.repository.getNodeAffiliations(toJid, collection);
 
-					result.addAll(prepareNotification(items, element.getAttributeStaticStr("to"),
+					result.addAll(prepareNotification(items, packet.getStanzaTo(),
 																						nodeName, headers, colNodeConfig,
 																						colNodeAffiliations, colNodeSubscriptions));
 				}
 			}
 			if (leafNodeConfig.isPersistItem()) {
-				IItems nodeItems = repository.getNodeItems(nodeName);
+				IItems nodeItems = repository.getNodeItems(toJid, nodeName);
 
 				for (Element item : itemsToSend) {
 					final String id = item.getAttributeStaticStr("id");

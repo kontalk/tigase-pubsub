@@ -57,6 +57,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
+import tigase.xmpp.StanzaType;
 
 /**
  * Class description
@@ -244,22 +248,24 @@ public class NodeConfigModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
+			final BareJID toJid = packet.getStanzaTo().getBareJID();
+			final Element element = packet.getElement();
 			final Element pubSub = element.getChild("pubsub",
 															 "http://jabber.org/protocol/pubsub#owner");
 			final Element configure = pubSub.getChild("configure");
 			final String nodeName   = configure.getAttributeStaticStr("node");
-			final String type       = element.getAttributeStaticStr("type");
+			final StanzaType type   = packet.getType();
 			final String id         = element.getAttributeStaticStr("id");
 
 			if (nodeName == null) {
@@ -267,14 +273,14 @@ public class NodeConfigModule
 																	PubSubErrorCondition.NODEID_REQUIRED);
 			}
 
-			final AbstractNodeConfig nodeConfig = repository.getNodeConfig(nodeName);
+			final AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
 			final IAffiliations nodeAffiliations =
-				this.repository.getNodeAffiliations(nodeName);
+				this.repository.getNodeAffiliations(toJid, nodeName);
 			String jid = element.getAttributeStaticStr("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
@@ -288,11 +294,12 @@ public class NodeConfigModule
 
 			// TODO 8.2.3.4 No Configuration Options
 
-			final Element result             = createResultIQ(element);
-			final List<Element> resultArray  = makeArray(result);
-			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(nodeName);
+			//final Element result             = createResultIQ(element);
+			final Packet result             = packet.okResult((Element) null, 0);
+			final List<Packet> resultArray  = makeArray(result);
+			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(toJid, nodeName);
 
-			if ("get".equals(type)) {
+			if (type == StanzaType.get) {
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
 																			new String[] {
 																				"http://jabber.org/protocol/pubsub#owner" });
@@ -302,8 +309,8 @@ public class NodeConfigModule
 
 				rConfigure.addChild(f);
 				rPubSub.addChild(rConfigure);
-				result.addChild(rPubSub);
-			} else if ("set".equals(type)) {
+				result.getElement().addChild(rPubSub);
+			} else if (type == StanzaType.set) {
 				String[] children = (nodeConfig.getChildren() == null)
 														? new String[] {}
 														: Arrays.copyOf(nodeConfig.getChildren(),
@@ -316,7 +323,7 @@ public class NodeConfigModule
 				if (!collectionOld.equals(nodeConfig.getCollection())) {
 					if (collectionOld.equals("")) {
 						AbstractNodeConfig colNodeConfig =
-							repository.getNodeConfig(nodeConfig.getCollection());
+							repository.getNodeConfig(toJid, nodeConfig.getCollection());
 
 						if (colNodeConfig == null) {
 							throw new PubSubException(Authorization.ITEM_NOT_FOUND,
@@ -329,40 +336,40 @@ public class NodeConfigModule
 																				"' is not collection node");
 						}
 						((CollectionNodeConfig) colNodeConfig).addChildren(nodeName);
-						repository.update(colNodeConfig.getNodeName(), colNodeConfig);
-						repository.removeFromRootCollection(nodeName);
+						repository.update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
+						repository.removeFromRootCollection(toJid, nodeName);
 
 						IAffiliations colNodeAffiliations =
-							repository.getNodeAffiliations(colNodeConfig.getNodeName());
+							repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
 						ISubscriptions colNodeSubscriptions =
-							repository.getNodeSubscriptions(colNodeConfig.getNodeName());
+							repository.getNodeSubscriptions(toJid, colNodeConfig.getNodeName());
 						Element associateNotification =
 							createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
 
 						resultArray.addAll(publishModule.prepareNotification(associateNotification,
-										element.getAttributeStaticStr("to"), nodeName, nodeConfig,
+										packet.getStanzaTo(), nodeName, nodeConfig,
 										colNodeAffiliations, colNodeSubscriptions));
 					}
 					if (nodeConfig.getCollection().equals("")) {
-						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(collectionOld);
+						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(toJid, collectionOld);
 
 						if ((colNodeConfig != null) &&
 								(colNodeConfig instanceof CollectionNodeConfig)) {
 							((CollectionNodeConfig) colNodeConfig).removeChildren(nodeName);
-							repository.update(colNodeConfig.getNodeName(), colNodeConfig);
+							repository.update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
 						}
-						repository.addToRootCollection(nodeName);
+						repository.addToRootCollection(toJid, nodeName);
 
 						IAffiliations colNodeAffiliations =
-							repository.getNodeAffiliations(colNodeConfig.getNodeName());
+							repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
 						ISubscriptions colNodeSubscriptions =
-							repository.getNodeSubscriptions(colNodeConfig.getNodeName());
+							repository.getNodeSubscriptions(toJid, colNodeConfig.getNodeName());
 						Element disassociateNotification =
 							createDisassociateNotification(collectionOld, nodeName);
 
 						resultArray.addAll(
 								publishModule.prepareNotification(
-									disassociateNotification, element.getAttributeStaticStr("to"),
+									disassociateNotification, packet.getStanzaTo(),
 									nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 					}
 				}
@@ -379,16 +386,16 @@ public class NodeConfigModule
 									: children);
 
 					for (String ann : addedChildNodes) {
-						AbstractNodeConfig nc = repository.getNodeConfig(ann);
+						AbstractNodeConfig nc = repository.getNodeConfig(toJid, ann);
 
 						if (nc == null) {
 							throw new PubSubException(Authorization.ITEM_NOT_FOUND,
 																				"(#2) Node '" + ann + "' doesn't exists");
 						}
 						if (nc.getCollection().equals("")) {
-							repository.removeFromRootCollection(nc.getNodeName());
+							repository.removeFromRootCollection(toJid, nc.getNodeName());
 						} else {
-							AbstractNodeConfig cnc = repository.getNodeConfig(nc.getCollection());
+							AbstractNodeConfig cnc = repository.getNodeConfig(toJid, nc.getCollection());
 
 							if (cnc == null) {
 								throw new PubSubException(Authorization.ITEM_NOT_FOUND,
@@ -401,23 +408,23 @@ public class NodeConfigModule
 																					"' is not collection node");
 							}
 							((CollectionNodeConfig) cnc).removeChildren(nc.getNodeName());
-							repository.update(cnc.getNodeName(), cnc);
+							repository.update(toJid, cnc.getNodeName(), cnc);
 						}
 						nc.setCollection(nodeName);
-						repository.update(nc.getNodeName(), nc);
+						repository.update(toJid, nc.getNodeName(), nc);
 
 						Element associateNotification = createAssociateNotification(nodeName, ann);
 
 						resultArray.addAll(publishModule.prepareNotification(associateNotification,
-										element.getAttributeStaticStr("to"), nodeName, nodeConfig,
+										packet.getStanzaTo(), nodeName, nodeConfig,
 										nodeAffiliations, nodeSubscriptions));
 					}
 					for (String rnn : removedChildNodes) {
-						AbstractNodeConfig nc = repository.getNodeConfig(rnn);
+						AbstractNodeConfig nc = repository.getNodeConfig(toJid, rnn);
 
 						if (nc != null) {
 							nc.setCollection("");
-							repository.update(nc.getNodeName(), nc);
+							repository.update(toJid, nc.getNodeName(), nc);
 						}
 						if ((rnn != null) && (rnn.length() != 0)) {
 							Element disassociateNotification = createDisassociateNotification(nodeName,
@@ -425,19 +432,18 @@ public class NodeConfigModule
 
 							resultArray.addAll(
 									publishModule.prepareNotification(
-										disassociateNotification, element.getAttributeStaticStr("to"),
+										disassociateNotification, packet.getStanzaTo(),
 										nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 						}
 					}
 				}
-				repository.update(nodeName, nodeConfig);
+				repository.update(toJid, nodeName, nodeConfig);
 				if (nodeConfig.isNotify_config()) {
-					String pssJid         = element.getAttributeStaticStr("to");
 					Element configuration = new Element("configuration", new String[] { "node" },
 																		new String[] { nodeName });
 
 					resultArray.addAll(this.publishModule.prepareNotification(configuration,
-									pssJid, nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+									packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 				}
 			} else {
 				throw new PubSubException(element, Authorization.BAD_REQUEST);

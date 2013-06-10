@@ -40,6 +40,8 @@ import tigase.xml.Element;
 
 import java.util.ArrayList;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
 
 /**
  * Class description
@@ -84,22 +86,17 @@ public class JabberVersionModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
-		List<Element> result = new ArrayList<Element>();
-		Element iq           = new Element("iq", new String[] { "to", "from", "id", "type" },
-																			 new String[] {
-																				 element.getAttributeStaticStr("from"),
-						element.getAttributeStaticStr("to"), element.getAttributeStaticStr("id"),
-						"result" });
+		List<Packet> result = new ArrayList<Packet>();
 		Element query = new Element("query", new String[] { "xmlns" },
 																new String[] { "jabber:iq:version" });
 
@@ -112,9 +109,8 @@ public class JabberVersionModule
 															 System.getProperty("java.vm.name") + "-" +
 															 System.getProperty("java.version") + " " +
 															 System.getProperty("java.vm.vendor")));
-		iq.addChild(query);
-		result.add(iq);
-
+		result.add(packet.okResult(query, 0));
+		
 		return result;
 	}
 }

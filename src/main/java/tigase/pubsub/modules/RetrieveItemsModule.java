@@ -56,6 +56,9 @@ import tigase.xmpp.Authorization;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -146,23 +149,24 @@ public class RetrieveItemsModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(final Element element, ElementWriter elementWriter)
+	public List<Packet> process(final Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
-			final Element pubsub = element.getChild("pubsub",
+			final BareJID toJid  = packet.getStanzaTo().getBareJID();
+			final Element pubsub = packet.getElement().getChild("pubsub",
 															 "http://jabber.org/protocol/pubsub");
 			final Element items    = pubsub.getChild("items");
 			final String nodeName  = items.getAttributeStaticStr("node");
 			final Integer maxItems = asInteger(items.getAttributeStaticStr("max_items"));
-			final String senderJid = element.getAttributeStaticStr("from");
+			final String senderJid = packet.getAttributeStaticStr("from");
 
 			if (nodeName == null) {
 				throw new PubSubException(Authorization.BAD_REQUEST,
@@ -170,7 +174,7 @@ public class RetrieveItemsModule
 			}
 
 			// XXX CHECK RIGHTS AUTH ETC
-			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
@@ -180,7 +184,7 @@ public class RetrieveItemsModule
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			IAffiliations nodeAffiliations     = this.repository.getNodeAffiliations(nodeName);
+			IAffiliations nodeAffiliations     = this.repository.getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation senderAffiliation =
 				nodeAffiliations.getSubscriberAffiliation(senderJid);
 
@@ -188,7 +192,7 @@ public class RetrieveItemsModule
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(nodeName);
+			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 			Subscription senderSubscription  = nodeSubscriptions.getSubscription(senderJid);
 
 			if ((nodeConfig.getNodeAccessModel() == AccessModel.whitelist) &&
@@ -229,16 +233,15 @@ public class RetrieveItemsModule
 			}
 
 			List<String> requestedId = extractItemsIds(items);
-			final Element iq         = createResultIQ(element);
 			final Element rpubsub    = new Element("pubsub", new String[] { "xmlns" },
 																	 new String[] { "http://jabber.org/protocol/pubsub" });
 			final Element ritems = new Element("items", new String[] { "node" },
 																				 new String[] { nodeName });
+			final Packet iq = packet.okResult(rpubsub, 0);
 
 			rpubsub.addChild(ritems);
-			iq.addChild(rpubsub);
 
-			IItems nodeItems = this.repository.getNodeItems(nodeName);
+			IItems nodeItems = this.repository.getNodeItems(toJid, nodeName);
 
 			if (requestedId == null) {
 				String[] ids = nodeItems.getItemsIds();

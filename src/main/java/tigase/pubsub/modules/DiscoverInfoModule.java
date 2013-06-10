@@ -49,6 +49,8 @@ import tigase.xmpp.Authorization;
 
 import java.util.ArrayList;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Packet;
 
 /**
  * Class description
@@ -113,26 +115,27 @@ public class DiscoverInfoModule
 	 * Method description
 	 *
 	 *
-	 * @param element
-	 * @param elementWriter
+	 * @param packet
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element element, ElementWriter elementWriter)
+	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
+			final Element element = packet.getElement();
 			final String senderJid = element.getAttributeStaticStr("from");
 			final Element query    = element.getChild("query",
 																 "http://jabber.org/protocol/disco#info");
 			final String nodeName = query.getAttributeStaticStr("node");
-			Element resultIq      = createResultIQ(element);
 			Element resultQuery   = new Element("query", new String[] { "xmlns" },
 																new String[] { "http://jabber.org/protocol/disco#info" });
 
-			resultIq.addChild(resultQuery);
+			Packet resultIq = packet.okResult(resultQuery, 0);
+
 			if (nodeName == null) {
 				resultQuery.addChild(new Element("identity", new String[] { "category", "type",
 								"name" }, new String[] { "pubsub", "service", "Publish-Subscribe" }));
@@ -147,7 +150,7 @@ public class DiscoverInfoModule
 					}
 				}
 			} else {
-				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(nodeName);
+				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(packet.getStanzaTo().getBareJID(), nodeName);
 
 				if (nodeConfig == null) {
 					throw new PubSubException(Authorization.ITEM_NOT_FOUND);

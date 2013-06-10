@@ -12,6 +12,7 @@ import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
+import tigase.xmpp.BareJID;
 
 public class ReadAllNodesCommand implements AdHocCommand {
 
@@ -44,7 +45,7 @@ public class ReadAllNodesCommand implements AdHocCommand {
 			} else {
 				Form form = new Form(data);
 				if ("submit".equals(form.getType())) {
-					startReading();
+					startReading(request.getIq().getStanzaTo().getBareJID());
 					Form f = new Form(null, "Info", "Nodes tree has been readed");
 					response.getElements().add(f.getElement());
 				}
@@ -69,10 +70,10 @@ public class ReadAllNodesCommand implements AdHocCommand {
 		return "read-all-nodes";
 	}
 
-	private void startReading() throws RepositoryException {
+	private void startReading(BareJID serviceJid) throws RepositoryException {
 		final String[] allNodesId = dao.getNodesList();
 		for (String n : allNodesId) {
-			repository.getNodeConfig(n);
+			repository.getNodeConfig(serviceJid, n);
 		}
 	}
 

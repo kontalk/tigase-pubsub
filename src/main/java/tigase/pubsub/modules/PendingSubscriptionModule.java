@@ -57,6 +57,12 @@ import tigase.xmpp.Authorization;
 
 import java.util.ArrayList;
 import java.util.List;
+import tigase.pubsub.PacketWriter;
+import tigase.server.Message;
+import tigase.server.Packet;
+import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 
 /**
  * Class description
@@ -119,17 +125,19 @@ public class PendingSubscriptionModule
 	 *
 	 *
 	 * @param message
-	 * @param elementWriter
+	 * @param packetWriter
 	 *
 	 * @return
 	 *
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Element> process(Element message, ElementWriter elementWriter)
+	public List<Packet> process(Packet message, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
-			Form x                     = new Form(message.getChild("x", "jabber:x:data"));
+			BareJID toJid              = message.getStanzaTo().getBareJID();
+			Element element            = message.getElement();
+			Form x                     = new Form(element.getChild("x", "jabber:x:data"));
 			final String subId         = x.getAsString("pubsub#subid");
 			final String node          = x.getAsString("pubsub#node");
 			final String subscriberJid = x.getAsString("pubsub#subscriber_jid");
@@ -139,14 +147,14 @@ public class PendingSubscriptionModule
 				return null;
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(node);
+			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, node);
 
 			if (nodeConfig == null) {
-				throw new PubSubException(message, Authorization.ITEM_NOT_FOUND);
+				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(node);
-			final IAffiliations nodeAffiliations   = repository.getNodeAffiliations(node);
+			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, node);
+			final IAffiliations nodeAffiliations   = repository.getNodeAffiliations(toJid, node);
 			String jid                             = message.getAttributeStaticStr("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
@@ -154,14 +162,14 @@ public class PendingSubscriptionModule
 					nodeAffiliations.getSubscriberAffiliation(jid);
 
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
-					throw new PubSubException(message, Authorization.FORBIDDEN);
+					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
 			}
 
 			String userSubId = nodeSubscriptions.getSubscriptionId(subscriberJid);
 
 			if ((subId != null) &&!subId.equals(userSubId)) {
-				throw new PubSubException(message, Authorization.NOT_ACCEPTABLE,
+				throw new PubSubException(element, Authorization.NOT_ACCEPTABLE,
 																	PubSubErrorCondition.INVALID_SUBID);
 			}
 
@@ -184,17 +192,16 @@ public class PendingSubscriptionModule
 				nodeSubscriptions.changeSubscription(subscriberJid, subscription);
 			}
 			if (nodeSubscriptions.isChanged()) {
-				this.repository.update(node, nodeSubscriptions);
+				this.repository.update(toJid, node, nodeSubscriptions);
 			}
 			if (nodeAffiliations.isChanged()) {
-				this.repository.update(node, nodeAffiliations);
+				this.repository.update(toJid, node, nodeAffiliations);
 			}
 
-			Element msg = new Element("message", new String[] { "from", "to", "id" },
-																new String[] { message.getAttributeStaticStr("to"),
-							subscriberJid, Utils.createUID(subscriberJid) });
+			Packet msg = Message.getMessage(message.getStanzaTo(), JID.jidInstance(subscriberJid), null, null,
+						null, null, Utils.createUID(subscriberJid));
 
-			msg.addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid,
+			msg.getElement().addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid,
 							subscription, null));
 
 			return makeArray(msg);
@@ -221,8 +228,8 @@ public class PendingSubscriptionModule
 	 *
 	 * @throws RepositoryException
 	 */
-	public List<Element> sendAuthorizationRequest(final String nodeName,
-					final String fromJid, final String subID, final String subscriberJid,
+	public List<Packet> sendAuthorizationRequest(final String nodeName,
+					final JID fromJid, final String subID, final String subscriberJid,
 					IAffiliations nodeAffiliations)
 					throws RepositoryException {
 		Form x =
@@ -239,18 +246,16 @@ public class PendingSubscriptionModule
 		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE,
 																	"Allow this JID to subscribe to this pubsub node?"));
 
-		List<Element> result            = new ArrayList<Element>();
+		List<Packet> result            = new ArrayList<Packet>();
 		UsersAffiliation[] affiliations = nodeAffiliations.getAffiliations();
 
 		if (affiliations != null) {
 			for (UsersAffiliation affiliation : affiliations) {
 				if (affiliation.getAffiliation() == Affiliation.owner) {
-					Element message = new Element("message", new String[] { "id", "to", "from" },
-																				new String[] {
-																					Utils.createUID(affiliation.getJid()),
-																					affiliation.getJid(), fromJid });
+					Packet message = Message.getMessage(fromJid, JID.jidInstanceNS(affiliation.getJid()),
+								null, null, null, null, Utils.createUID(affiliation.getJid()));
 
-					message.addChild(x.getElement());
+					message.getElement().addChild(x.getElement());
 					result.add(message);
 				}
 			}

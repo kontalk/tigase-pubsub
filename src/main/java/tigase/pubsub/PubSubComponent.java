@@ -104,6 +104,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Map;
 import java.util.Set;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -176,7 +177,7 @@ public class PubSubComponent
 	protected PubSubDAO directPubSubRepository;
 
 	/** Field description */
-	protected final ElementWriter elementWriter;
+	protected final PacketWriter packetWriter;
 
 	/** Field description */
 	protected ManageAffiliationsModule manageAffiliationsModule;
@@ -244,25 +245,21 @@ public class PubSubComponent
 	 */
 	public PubSubComponent() {
 		setName("pubsub");
-		this.elementWriter = new ElementWriter() {
+		this.packetWriter = new PacketWriter() {
 			@Override
-			public void write(Collection<Element> elements) {
-				if (elements != null) {
-					for (Element element : elements) {
-						if (element != null) {
-							write(element);
+			public void write(Collection<Packet> packets) {
+				if (packets != null) {
+					for (Packet packet : packets) {
+						if (packet != null) {
+							write(packet);
 						}
 					}
 				}
 			}
 			@Override
-			public void write(final Element element) {
-				if (element != null) {
-					try {
-						addOutPacket(Packet.packetInstance(element));
-					} catch (TigaseStringprepException ex) {
-						log.info("Packet addressing problem, stringprep failed: " + element);
-					}
+			public void write(final Packet packet) {
+				if (packet != null) {
+					addOutPacket(packet);
 				}
 			}
 		};
@@ -290,7 +287,7 @@ public class PubSubComponent
 				final String cond = packet.getErrorCondition();
 
 				if ((cond != null) && R.contains(cond)) {
-					dropGhost(packet.getStanzaFrom());
+					dropGhost(packet.getStanzaTo().getBareJID(), packet.getStanzaFrom());
 				}
 			}
 		} catch (Exception e) {
@@ -298,7 +295,7 @@ public class PubSubComponent
 		}
 	}
 
-	private void dropGhost(JID stanzaFrom) throws RepositoryException {
+	private void dropGhost(BareJID toJid, JID stanzaFrom) throws RepositoryException {
 		if (log.isLoggable(Level.FINEST)) {
 			log.finest("Processing ghost: " + stanzaFrom);
 		}
@@ -311,11 +308,11 @@ public class PubSubComponent
 										 ". Killing...");
 				}
 
-				ISubscriptions s = pubsubRepository.getNodeSubscriptions(n.getName());
+				ISubscriptions s = pubsubRepository.getNodeSubscriptions(toJid, n.getName());
 
 				s.changeSubscription(stanzaFrom.getBareJID().toString(), Subscription.none);
 				if (s.isChanged()) {
-					this.pubsubRepository.update(n.getName(), s);
+					this.pubsubRepository.update(toJid, n.getName(), s);
 				}
 			}
 		}
@@ -671,27 +668,24 @@ public class PubSubComponent
 	 *
 	 * @throws PacketErrorTypeException
 	 */
-	public void process(final Element element, final ElementWriter writer)
+	public void process(final Packet packet, final PacketWriter writer)
 					throws PacketErrorTypeException {
 		try {
-			boolean handled = runModules(element, writer);
+			boolean handled = runModules(packet, writer);
 
 			if (!handled) {
-				final String t        = element.getAttributeStaticStr("type");
-				final StanzaType type = (t == null)
-																? null
-																: StanzaType.valueof(t);
+				final StanzaType type = packet.getType();
 
 				if (type != StanzaType.error) {
 					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED);
 				} else {
-					log.finer(element.getName() + " stanza with type='error' ignored");
+					log.finer(packet.getElemName() + " stanza with type='error' ignored");
 				}
 			}
 		} catch (PubSubException e) {
-			log.log(Level.INFO, "Exception thrown for " + element.toString(), e);
+			log.log(Level.INFO, "Exception thrown for " + packet.toString(), e);
 
-			Element result = e.makeElement(element);
+			Packet result = e.getErrorCondition().getResponseMessage(packet, e.getMessage(), true);
 
 			log.log(Level.INFO, "Sending back: " + result.toString());
 			writer.write(result);
@@ -724,7 +718,7 @@ public class PubSubComponent
 	public void processPacket(final Packet packet) {
 		detectGhosts(packet);
 		try {
-			process(packet.getElement(), this.elementWriter);
+			process(packet, this.packetWriter);
 		} catch (Exception e) {
 			log.log(Level.WARNING, "Unexpected exception: internal-server-error", e);
 			e.printStackTrace();
@@ -766,29 +760,27 @@ public class PubSubComponent
 	 *
 	 * @throws PubSubException
 	 */
-	protected boolean runModules(final Element element, final ElementWriter writer)
+	protected boolean runModules(final Packet packet, final PacketWriter writer)
 					throws PubSubException {
 		boolean handled = false;
 
 		if (log.isLoggable(Level.FINER)) {
-			log.finest("Processing packet: " + element.toString());
+			log.finest("Processing packet: " + packet.toString());
 		}
 		for (Module module : this.modules) {
 			Criteria criteria = module.getModuleCriteria();
 
-			if ((criteria != null) && criteria.match(element)) {
+			if ((criteria != null) && criteria.match(packet.getElement())) {
 				handled = true;
 				if (log.isLoggable(Level.FINER)) {
 					log.finest("Handled by module " + module.getClass());
 				}
 
-				List<Element> result = module.process(element, writer);
+				List<Packet> result = module.process(packet, writer);
 
 				if (result != null) {
-					for (Element element2 : result) {
-						writer.write(element2);
-					}
-
+					writer.write(result);
+					
 					return true;
 				}
 			}

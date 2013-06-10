@@ -37,6 +37,7 @@ import tigase.xml.Element;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import tigase.server.Packet;
 
 /**
  * Class description
@@ -76,7 +77,8 @@ public class AdHocCommandManager {
 	 *
 	 * @throws AdHocCommandException
 	 */
-	public Element process(Element element) throws AdHocCommandException {
+	public Packet process(Packet packet) throws AdHocCommandException {
+		final Element element = packet.getElement();
 		final String senderJid = element.getAttributeStaticStr("from");
 		final Element command  = element.getChild("command",
 															 "http://jabber.org/protocol/commands");
@@ -87,11 +89,8 @@ public class AdHocCommandManager {
 
 		if (adHocCommand == null) {}
 		else {
-			Element iqResult = new Element("iq", new String[] { "from", "to", "id", "type" },
-																		 new String[] { element.getAttributeStaticStr("to"),
-							senderJid, element.getAttributeStaticStr("id"), "result" });
 			State currentState          = null;
-			final AdhHocRequest request = new AdhHocRequest(element, command, node, senderJid,
+			final AdhHocRequest request = new AdhHocRequest(packet, command, node, senderJid,
 																			action, sessionId);
 			final AdHocResponse response = new AdHocResponse(sessionId, currentState);
 			final AdHocSession session   = (sessionId == null)
@@ -119,9 +118,8 @@ public class AdHocCommandManager {
 			for (Element r : response.getElements()) {
 				commandResult.addChild(r);
 			}
-			iqResult.addChild(commandResult);
 
-			return iqResult;
+			return packet.okResult(commandResult, 0);
 		}
 
 		return null;
