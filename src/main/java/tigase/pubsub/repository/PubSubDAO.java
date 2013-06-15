@@ -99,7 +99,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void addToRootCollection(String nodeName) throws RepositoryException {
+	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			repository.setData(config.getServiceBareJID(), ROOT_COLLECTION_KEY, nodeName, "root");
 		} catch (Exception e) {
@@ -129,7 +129,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
 			throws RepositoryException {
 		try {
 			nodeConfig.setNodeType(nodeType);
@@ -137,7 +137,7 @@ public class PubSubDAO implements IPubSubDAO {
 					String.valueOf(System.currentTimeMillis()));
 
 			if (nodeConfig != null) {
-				update(nodeName, nodeConfig);
+				update(serviceJid, nodeName, nodeConfig);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -164,7 +164,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void deleteItem(String nodeName, String id) throws RepositoryException {
+	public void deleteItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
 			repository.removeSubnode(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id);
 		} catch (Exception e) {
@@ -188,7 +188,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void deleteNode(String nodeName) throws RepositoryException {
+	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			repository.removeSubnode(config.getServiceBareJID(), NODES_KEY + nodeName);
 		} catch (Exception e) {
@@ -261,7 +261,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public Element getItem(String nodeName, String id) throws RepositoryException {
+	public Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
 			String itemData = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
 					"data");
@@ -293,7 +293,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
+	public Date getItemCreationDate(BareJID serviceJid, final String nodeName, final String id) throws RepositoryException {
 		try {
 			String tmp = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
 					"creation-date");
@@ -321,7 +321,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public String getItemPublisher(String nodeName, String id) throws RepositoryException {
+	public String getItemPublisher(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
 			return repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
 					"publisher");
@@ -341,7 +341,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getItemsIds(String nodeName) throws RepositoryException {
+	public String[] getItemsIds(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			String[] ids = repository.getSubnodes(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY);
 
@@ -365,7 +365,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
+	public Date getItemUpdateDate(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
 			String tmp = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
 					"update-date");
@@ -393,7 +393,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public NodeAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
+	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			String cnfData = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName, "affiliations");
 
@@ -441,9 +441,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException {
+	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, final String nodeName) throws RepositoryException {
 		try {
-			Form cnfForm = readNodeConfigForm(nodeName);
+			Form cnfForm = readNodeConfigForm(serviceJid, nodeName);
 
 			if (cnfForm == null) {
 				return null;
@@ -487,7 +487,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public Date getNodeCreationDate(String nodeName) throws RepositoryException {
+	public Date getNodeCreationDate(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			String tmp = this.repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName, CREATION_DATE_KEY);
 			long l = Long.parseLong(tmp);
@@ -507,7 +507,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getNodesList() throws RepositoryException {
+	public String[] getNodesList(BareJID serviceJid) throws RepositoryException {
 		try {
 			String[] nodes;
 
@@ -539,7 +539,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
+	public NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			final NodeSubscriptions ns = NodeSubscriptions.create();
 			int index = 0;
@@ -571,7 +571,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getRootNodes() throws RepositoryException {
+	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException {
 		try {
 			String[] ids = repository.getKeys(config.getServiceBareJID(), ROOT_COLLECTION_KEY);
 
@@ -640,8 +640,8 @@ public class PubSubDAO implements IPubSubDAO {
 		return q.element();
 	}
 
-	private Form readNodeConfigForm(final String nodeName) throws UserNotFoundException, TigaseDBException {
-		String cnfData = readNodeConfigFormData(nodeName);
+	private Form readNodeConfigForm(final BareJID serviceJid, final String nodeName) throws UserNotFoundException, TigaseDBException {
+		String cnfData = readNodeConfigFormData(serviceJid, nodeName);
 
 		if (cnfData == null) {
 			return null;
@@ -663,7 +663,7 @@ public class PubSubDAO implements IPubSubDAO {
 		return null;
 	}
 
-	protected String readNodeConfigFormData(final String nodeName) throws TigaseDBException {
+	protected String readNodeConfigFormData(final BareJID serviceJid, final String nodeName) throws TigaseDBException {
 		return repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName, "configuration");
 	}
 
@@ -680,7 +680,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void removeAllFromRootCollection() throws RepositoryException {
+	public void removeAllFromRootCollection(BareJID serviceJid) throws RepositoryException {
 		try {
 			repository.removeSubnode(config.getServiceBareJID(), ROOT_COLLECTION_KEY);
 		} catch (Exception e) {
@@ -697,7 +697,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void removeFromRootCollection(String nodeName) throws RepositoryException {
+	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			repository.removeData(config.getServiceBareJID(), ROOT_COLLECTION_KEY, nodeName);
 		} catch (Exception e) {
@@ -714,7 +714,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
+	public void removeSubscriptions(BareJID serviceJid, String nodeName, int changedIndex) throws RepositoryException {
 		try {
 			final String key = "subscriptions" + ((changedIndex == 0) ? "" : ("." + changedIndex));
 
@@ -735,10 +735,10 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException {
+	public void update(BareJID serviceJid, final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException {
 		String cnf = nodeConfig.getFormElement().toString();
 
-		updateNodeConfig(nodeName, cnf);
+		updateNodeConfig(serviceJid, nodeName, cnf);
 	}
 
 	/**
@@ -751,10 +751,10 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
+	public void update(BareJID serviceJid, String nodeName, IAffiliations affiliations) throws RepositoryException {
 		String data = affiliations.serialize();
 
-		updateAffiliations(nodeName, data);
+		updateAffiliations(serviceJid, nodeName, data);
 	}
 
 	/*
@@ -774,7 +774,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
+	public void updateAffiliations(BareJID serviceJid, String nodeName, String serializedData) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' affiliations...");
 			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName, "affiliations", serializedData);
@@ -792,7 +792,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void updateNodeConfig(final String nodeName, final String serializedData) throws RepositoryException {
+	public void updateNodeConfig(BareJID serviceJid, final String nodeName, final String serializedData) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' configuration...");
 			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName, "configuration", serializedData);
@@ -811,7 +811,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void updateSubscriptions(String nodeName, int changedIndex, String serializedData) throws RepositoryException {
+	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData) throws RepositoryException {
 		try {
 			final String key = "subscriptions" + ((changedIndex == 0) ? "" : ("." + changedIndex));
 
@@ -835,7 +835,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
+	public void writeItem(BareJID serviceJid, final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
 			throws RepositoryException {
 		try {
 			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "data",

@@ -77,7 +77,7 @@ public class AdHocConfigCommandModule extends AbstractModule {
 			List<Packet> result = makeArray(this.commandsManager.process(packet));
 			return result;
 		} catch (AdHocCommandException e) {
-			throw new PubSubException(e.getErrorCondition(), e.getMessage());
+			throw new PubSubException(e.getErrorCondition(), e.getMessage(), e);
 		}
 	}
 

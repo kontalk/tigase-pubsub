@@ -128,7 +128,7 @@ public class RetrieveSubscriptionsModule
 	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
-			final BareJID toJid  = packet.getStanzaTo().getBareJID();
+			final BareJID serviceJid  = packet.getStanzaTo().getBareJID();
 			final Element pubsub = packet.getElement().getChild("pubsub",
 															 "http://jabber.org/protocol/pubsub");
 			final Element subscriptions = pubsub.getChild("subscriptions");
@@ -146,16 +146,16 @@ public class RetrieveSubscriptionsModule
 			pubsubResult.addChild(subscriptionsResult);
 			if (nodeName == null) {
 				IPubSubDAO directRepo = this.repository.getPubSubDAO();
-				String[] nodes        = directRepo.getNodesList();
+				String[] nodes        = directRepo.getNodesList(serviceJid);
 
 				if (nodes != null) {
 					for (String node : nodes) {
-						final ISubscriptions subscribers = directRepo.getNodeSubscriptions(node);
+						final ISubscriptions subscribers = directRepo.getNodeSubscriptions(serviceJid, node);
 
 						if (subscribers != null) {
 							for (UsersSubscription usersSubscription : subscribers.getSubscriptions()) {
 								if (senderBareJid.equals(usersSubscription.getJid())) {
-									ISubscriptions ns         = directRepo.getNodeSubscriptions(nodeName);
+									ISubscriptions ns         = directRepo.getNodeSubscriptions(serviceJid, nodeName);
 									Subscription subscription =
 										ns.getSubscription(usersSubscription.getJid().toString());
 									Element a = new Element("subscription", new String[] { "node", "jid",
@@ -169,7 +169,7 @@ public class RetrieveSubscriptionsModule
 					}
 				}
 			} else {
-				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(serviceJid, nodeName);
 
 				subscriptionsResult.addAttribute("node", nodeName);
 

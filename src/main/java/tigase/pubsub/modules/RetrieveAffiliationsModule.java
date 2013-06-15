@@ -47,6 +47,7 @@ import tigase.xml.Element;
 import java.util.List;
 import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -121,6 +122,7 @@ public class RetrieveAffiliationsModule
 	public List<Packet> process(Packet packet, PacketWriter packetWriter)
 					throws PubSubException {
 		try {
+			final BareJID serviceJid = packet.getStanzaTo().getBareJID();
 			final Element pubsub = packet.getElement().getChild("pubsub",
 															 "http://jabber.org/protocol/pubsub");
 			final Element affiliations = pubsub.getChild("affiliations");
@@ -137,12 +139,12 @@ public class RetrieveAffiliationsModule
 			pubsubResult.addChild(affiliationsResult);
 
 			IPubSubDAO directRepo = this.repository.getPubSubDAO();
-			String[] nodes        = directRepo.getNodesList();
+			String[] nodes        = directRepo.getNodesList(serviceJid);
 
 			if (nodes != null) {
 				for (String node : nodes) {
 					UsersAffiliation[] affilitaions =
-						directRepo.getNodeAffiliations(node).getAffiliations();
+						directRepo.getNodeAffiliations(serviceJid, node).getAffiliations();
 
 					if (affiliations != null) {
 						for (UsersAffiliation usersAffiliation : affilitaions) {

@@ -17,6 +17,7 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
+import tigase.xmpp.BareJID;
 
 //~--- classes ----------------------------------------------------------------
 
@@ -87,7 +88,7 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 						final Boolean rebuild = form.getAsBoolean("tigase-pubsub#delete-all");
 
 						if ((rebuild != null) && (rebuild.booleanValue() == true)) {
-							startRemoving();
+							startRemoving(request.getIq().getStanzaTo().getBareJID());
 
 							Form f = new Form(null, "Info", "Nodes has been deleted");
 
@@ -139,8 +140,8 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 	// ~--- methods
 	// --------------------------------------------------------------
 
-	private void startRemoving() throws RepositoryException, UserNotFoundException, TigaseDBException {
-		dao.removeAllFromRootCollection();
+	private void startRemoving(BareJID serviceJid) throws RepositoryException, UserNotFoundException, TigaseDBException {
+		dao.removeAllFromRootCollection(serviceJid);
 		userRepo.removeSubnode(config.getServiceBareJID(), "nodes");
 	}
 }

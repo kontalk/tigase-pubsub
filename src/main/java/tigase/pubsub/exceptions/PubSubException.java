@@ -90,6 +90,17 @@ public class PubSubException
 	 * Constructs ...
 	 *
 	 *
+	 * @param errorCondition
+	 * @param message
+	 */
+	public PubSubException(final Authorization errorCondition, String message, Exception ex) {
+		this(null, errorCondition, message, ex);
+	}
+
+	/**
+	 * Constructs ...
+	 *
+	 *
 	 * @param item
 	 * @param errorCondition
 	 */
@@ -135,11 +146,17 @@ public class PubSubException
 	 */
 	public PubSubException(final Element item, final Authorization errorCondition,
 												 final String message) {
+		this(item, errorCondition, message, null);
+	}
+
+	public PubSubException(final Element item, final Authorization errorCondition,
+												 final String message, final Exception ex) {
+		super(ex);
 		this.item           = item;
 		this.errorCondition = errorCondition;
 		this.message        = message;
 	}
-
+	
 	//~--- get methods ----------------------------------------------------------
 
 	/**

@@ -85,7 +85,7 @@ public class DefaultConfigCommand implements AdHocCommand {
 					nodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 					fireOnChangeDefaultNodeConfig();
 
-					Form f = new Form(null, "Info", "Default config saved.");
+					Form f = new Form("result", "Info", "Default config saved.");
 
 					response.getElements().add(f.getElement());
 					response.completeSession();

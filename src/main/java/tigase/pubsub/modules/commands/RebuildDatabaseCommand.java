@@ -20,6 +20,7 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
+import tigase.xmpp.BareJID;
 
 public class RebuildDatabaseCommand implements AdHocCommand {
 
@@ -55,11 +56,11 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 					final Boolean rebuild = form.getAsBoolean("tigase-pubsub#rebuild");
 
 					if (rebuild != null && rebuild.booleanValue() == true) {
-						startRebuild();
-						Form f = new Form(null, "Info", "Nodes tree has been rebuild");
+						startRebuild(request.getIq().getStanzaTo().getBareJID());
+						Form f = new Form("result", "Info", "Nodes tree has been rebuild");
 						response.getElements().add(f.getElement());
 					} else {
-						Form f = new Form(null, "Info", "Rebuild cancelled.");
+						Form f = new Form("result", "Info", "Rebuild cancelled.");
 						response.getElements().add(f.getElement());
 					}
 				}
@@ -84,12 +85,12 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 		return "rebuild-db";
 	}
 
-	private void startRebuild() throws RepositoryException {
-		final String[] allNodesId = dao.getNodesList();
+	private void startRebuild(BareJID serviceJid) throws RepositoryException {
+		final String[] allNodesId = dao.getNodesList(serviceJid);
 		final Set<String> rootCollection = new HashSet<String>();
 		final Map<String, AbstractNodeConfig> nodeConfigs = new HashMap<String, AbstractNodeConfig>();
 		for (String nodeName : allNodesId) {
-			AbstractNodeConfig nodeConfig = dao.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = dao.getNodeConfig(serviceJid, nodeName);
 			nodeConfigs.put(nodeName, nodeConfig);
 			if (nodeConfig instanceof CollectionNodeConfig) {
 				CollectionNodeConfig collectionNodeConfig = (CollectionNodeConfig) nodeConfig;
@@ -120,12 +121,12 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 		for (Entry<String, AbstractNodeConfig> entry : nodeConfigs.entrySet()) {
 			final AbstractNodeConfig nodeConfig = entry.getValue();
 			final String nodeName = entry.getKey();
-			dao.update(nodeName, nodeConfig);
+			dao.update(serviceJid, nodeName, nodeConfig);
 		}
 
-		dao.removeAllFromRootCollection();
+		dao.removeAllFromRootCollection(serviceJid);
 		for (String nodeName : rootCollection) {
-			dao.addToRootCollection(nodeName);
+			dao.addToRootCollection(serviceJid, nodeName);
 		}
 
 	}
