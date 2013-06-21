@@ -1,12 +1,8 @@
 package tigase.pubsub.repository;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.xmpp.BareJID;
-
-//~--- interfaces -------------------------------------------------------------
 
 /**
  * Interface description
@@ -39,8 +35,8 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, 
-			AbstractNodeConfig nodeConfig, NodeType nodeType, String collection) throws RepositoryException;
+	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -51,9 +47,6 @@ public interface IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	public abstract void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -121,9 +114,6 @@ public interface IPubSubRepository {
 	 */
 	public abstract AbstractNodeConfig getNodeConfig(BareJID serviceJid, String nodeName) throws RepositoryException;
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -166,9 +156,6 @@ public interface IPubSubRepository {
 	 */
 	public abstract String[] getRootCollection(BareJID serviceJid) throws RepositoryException;
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -196,9 +183,6 @@ public interface IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException;
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -233,7 +217,3 @@ public interface IPubSubRepository {
 	 */
 	public void update(BareJID serviceJid, String nodeName, ISubscriptions subscriptions) throws RepositoryException;
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

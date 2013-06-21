@@ -20,67 +20,49 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
-
-//~--- non-JDK imports --------------------------------------------------------
-
-import tigase.criteria.Criteria;
-import tigase.criteria.ElementCriteria;
-
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.Module;
-
-import tigase.util.JIDUtils;
-
-import tigase.xml.Element;
-
-//~--- JDK imports ------------------------------------------------------------
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Logger;
+
+import tigase.criteria.Criteria;
+import tigase.criteria.ElementCriteria;
+import tigase.pubsub.Module;
 import tigase.pubsub.PacketWriter;
+import tigase.pubsub.exceptions.PubSubException;
 import tigase.server.Packet;
 import tigase.server.Presence;
+import tigase.util.JIDUtils;
+import tigase.xml.Element;
 import tigase.xmpp.JID;
 import tigase.xmpp.StanzaType;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
  */
-public class PresenceCollectorModule
-				implements Module {
+public class PresenceCollectorModule implements Module {
 	private static final Criteria CRIT = ElementCriteria.name("presence");
 
-	//~--- fields ---------------------------------------------------------------
-
 	/** Field description */
-	protected Logger log                             =
-		Logger.getLogger(this.getClass().getName());
+	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final Map<String, Set<String>> resources = new HashMap<String, Set<String>>();
-
-	//~--- methods --------------------------------------------------------------
 
 	// private final Set<String> onlineUsers = new HashSet<String>();
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
 	public synchronized boolean addJid(final String jid) {
@@ -88,8 +70,8 @@ public class PresenceCollectorModule
 			return false;
 		}
 
-		boolean added         = false;
-		final String bareJid  = JIDUtils.getNodeID(jid);
+		boolean added = false;
+		final String bareJid = JIDUtils.getNodeID(jid);
 		final String resource = JIDUtils.getNodeResource(jid);
 
 		if (resource != null) {
@@ -107,12 +89,10 @@ public class PresenceCollectorModule
 		return added;
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public List<String> getAllAvailableJids() {
@@ -129,15 +109,15 @@ public class PresenceCollectorModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
 	public List<String> getAllAvailableResources(final String jid) {
-		final String bareJid        = JIDUtils.getNodeID(jid);
-		final List<String> result   = new ArrayList<String>();
+		final String bareJid = JIDUtils.getNodeID(jid);
+		final List<String> result = new ArrayList<String>();
 		final Set<String> resources = this.resources.get(bareJid);
 
 		if (resources != null) {
@@ -151,8 +131,8 @@ public class PresenceCollectorModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -162,8 +142,8 @@ public class PresenceCollectorModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -173,29 +153,25 @@ public class PresenceCollectorModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
 	public boolean isJidAvailable(final String jid) {
-		final String bareJid        = JIDUtils.getNodeID(jid);
+		final String bareJid = JIDUtils.getNodeID(jid);
 		final Set<String> resources = this.resources.get(bareJid);
 
 		return (resources != null) && (resources.size() > 0);
 	}
-
-	//~--- methods --------------------------------------------------------------
 
 	private Packet preparePresence(final Packet presence, String type) {
 		JID to = presence.getTo();
 
 		if (to != null) {
 			JID jid = to.copyWithoutResource();
-			Element p  = new Element("presence", new String[] { "to", "from" },
-															 new String[] { jid.toString(),
-							to.toString() });
+			Element p = new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(), to.toString() });
 
 			if (type != null) {
 				p.setAttribute("type", type);
@@ -209,39 +185,36 @@ public class PresenceCollectorModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
 		final StanzaType type = packet.getType();
-		final JID jid         = packet.getStanzaFrom();
-		final JID toJid       = packet.getStanzaTo();
-		List<Packet> result  = new ArrayList<Packet>();
+		final JID jid = packet.getStanzaFrom();
+		final JID toJid = packet.getStanzaTo();
+		List<Packet> result = new ArrayList<Packet>();
 
 		if (type == null) {
 			boolean added = addJid(jid.toString());
 
 			if (added) {
-				Packet p = new Presence(new Element("presence", new String[] { "to", "from" },
-																new String[] { jid.toString(),
-								toJid.toString() }), toJid, jid);
+				Packet p = new Presence(new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(),
+						toJid.toString() }), toJid, jid);
 
 				result.add(p);
 			}
 		} else if ("unavailable".equals(type)) {
 			removeJid(jid.toString());
 
-			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" },
-															new String[] { jid.toString(),
-							toJid.toString(), "unavailable" }), toJid, jid);
+			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" }, new String[] {
+					jid.toString(), toJid.toString(), "unavailable" }), toJid, jid);
 
 			result.add(p);
 		} else if ("subscribe".equals(type)) {
@@ -270,17 +243,15 @@ public class PresenceCollectorModule
 			}
 		}
 
-		return (result.size() == 0)
-					 ? null
-					 : result;
+		return (result.size() == 0) ? null : result;
 	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param jid
-	 *
+	 * 
 	 * @return
 	 */
 	protected synchronized boolean removeJid(final String jid) {
@@ -288,9 +259,9 @@ public class PresenceCollectorModule
 			return false;
 		}
 
-		final String bareJid  = JIDUtils.getNodeID(jid);
+		final String bareJid = JIDUtils.getNodeID(jid);
 		final String resource = JIDUtils.getNodeResource(jid);
-		boolean removed       = false;
+		boolean removed = false;
 
 		// onlineUsers.remove(jid);
 		if (resource == null) {
@@ -310,6 +281,3 @@ public class PresenceCollectorModule
 		return removed;
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

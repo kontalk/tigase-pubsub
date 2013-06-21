@@ -20,81 +20,59 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.ArrayList;
+import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubErrorCondition;
-import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
+import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.exceptions.PubSubErrorCondition;
+import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayList;
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
  */
-public class PurgeItemsModule
-				extends AbstractModule {
-	private static final Criteria CRIT =
-		ElementCriteria.nameType("iq", "set").add(
-				ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(
-				ElementCriteria.name("purge"));
-
-	//~--- fields ---------------------------------------------------------------
+public class PurgeItemsModule extends AbstractModule {
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("purge"));
 
 	private final PublishItemModule publishModule;
 
-	//~--- constructors ---------------------------------------------------------
-
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 * @param publishModule
 	 */
-	public PurgeItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-													PublishItemModule publishModule) {
+	public PurgeItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishModule;
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -104,8 +82,8 @@ public class PurgeItemsModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -113,32 +91,27 @@ public class PurgeItemsModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
-		final BareJID toJid  = packet.getStanzaTo().getBareJID();
-		final Element pubSub = packet.getElement().getChild("pubsub",
-														 "http://jabber.org/protocol/pubsub#owner");
-		final Element purge   = pubSub.getChild("purge");
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+		final BareJID toJid = packet.getStanzaTo().getBareJID();
+		final Element pubSub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
+		final Element purge = pubSub.getChild("purge");
 		final String nodeName = purge.getAttributeStaticStr("node");
 
 		try {
 			if (nodeName == null) {
-				throw new PubSubException(Authorization.BAD_REQUEST,
-																	PubSubErrorCondition.NODE_REQUIRED);
+				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
 
 			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(toJid, nodeName);
@@ -146,13 +119,12 @@ public class PurgeItemsModule
 			if (nodeConfig == null) {
 				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
 			} else if (nodeConfig.getNodeType() == NodeType.collection) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-																	new PubSubErrorCondition("unsupported", "purge-nodes"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"purge-nodes"));
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation affiliation   =
-				nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().toString());
+			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().toString());
 
 			if (!affiliation.getAffiliation().isPurgeNode()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
@@ -161,23 +133,20 @@ public class PurgeItemsModule
 			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 
 			if (!leafNodeConfig.isPersistItem()) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-																	new PubSubErrorCondition("unsupported",
-																		"persistent-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"persistent-items"));
 			}
 
 			List<Packet> result = new ArrayList<Packet>();
 
 			result.add(packet.okResult((Element) null, 0));
 
-			final IItems nodeItems           = this.repository.getNodeItems(toJid, nodeName);
-			String[] itemsToDelete           = nodeItems.getItemsIds();
+			final IItems nodeItems = this.repository.getNodeItems(toJid, nodeName);
+			String[] itemsToDelete = nodeItems.getItemsIds();
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 
-			result.addAll(publishModule.prepareNotification(new Element("purge",
-							new String[] { "node" },
-							new String[] { nodeName }), packet.getStanzaTo(), nodeName,
-								nodeConfig, nodeAffiliations, nodeSubscriptions));
+			result.addAll(publishModule.prepareNotification(new Element("purge", new String[] { "node" },
+					new String[] { nodeName }), packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 			log.info("Purging node " + nodeName);
 			if (itemsToDelete != null) {
 				for (String id : itemsToDelete) {
@@ -195,6 +164,3 @@ public class PurgeItemsModule
 		}
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

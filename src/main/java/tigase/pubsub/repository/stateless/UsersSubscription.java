@@ -22,12 +22,8 @@
 
 package tigase.pubsub.repository.stateless;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.pubsub.Subscription;
 import tigase.xmpp.BareJID;
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
@@ -40,9 +36,6 @@ public class UsersSubscription implements Cloneable {
 	private final BareJID jid;
 	private final String subid;
 	private Subscription subscription;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
@@ -74,9 +67,6 @@ public class UsersSubscription implements Cloneable {
 		this.subscription = subscriptionType;
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -91,9 +81,6 @@ public class UsersSubscription implements Cloneable {
 
 		return a;
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -125,9 +112,6 @@ public class UsersSubscription implements Cloneable {
 		return subscription;
 	}
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -138,7 +122,3 @@ public class UsersSubscription implements Cloneable {
 		this.subscription = subscriptionType;
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

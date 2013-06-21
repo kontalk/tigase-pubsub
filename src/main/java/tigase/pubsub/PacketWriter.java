@@ -5,10 +5,11 @@
 package tigase.pubsub;
 
 import java.util.Collection;
+
 import tigase.server.Packet;
 
 /**
- *
+ * 
  * @author andrzej
  */
 public interface PacketWriter {
@@ -16,5 +17,5 @@ public interface PacketWriter {
 	void write(Collection<Packet> packets);
 
 	void write(final Packet packet);
-	
+
 }

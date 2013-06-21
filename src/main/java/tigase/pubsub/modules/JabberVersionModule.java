@@ -20,48 +20,33 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
-
-//~--- non-JDK imports --------------------------------------------------------
-
-import tigase.criteria.Criteria;
-import tigase.criteria.ElementCriteria;
-
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.Module;
-import tigase.pubsub.PubSubVersion;
-
-import tigase.xml.Element;
-
-//~--- JDK imports ------------------------------------------------------------
 
 import java.util.ArrayList;
 import java.util.List;
+
+import tigase.criteria.Criteria;
+import tigase.criteria.ElementCriteria;
+import tigase.pubsub.Module;
 import tigase.pubsub.PacketWriter;
+import tigase.pubsub.PubSubVersion;
+import tigase.pubsub.exceptions.PubSubException;
 import tigase.server.Packet;
+import tigase.xml.Element;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
  */
-public class JabberVersionModule
-				implements Module {
-	private static final Criteria CRIT = ElementCriteria.nameType("iq",
-																				 "get").add(ElementCriteria.name("query",
-																					 "jabber:iq:version"));
-
-	//~--- get methods ----------------------------------------------------------
+public class JabberVersionModule implements Module {
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
+			ElementCriteria.name("query", "jabber:iq:version"));
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -71,8 +56,8 @@ public class JabberVersionModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -80,40 +65,29 @@ public class JabberVersionModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
 		List<Packet> result = new ArrayList<Packet>();
-		Element query = new Element("query", new String[] { "xmlns" },
-																new String[] { "jabber:iq:version" });
+		Element query = new Element("query", new String[] { "xmlns" }, new String[] { "jabber:iq:version" });
 
 		query.addChild(new Element("name", "Tigase PubSub"));
 		query.addChild(new Element("version", PubSubVersion.getVersion()));
-		query.addChild(new Element("os",
-															 System.getProperty("os.name") + "-" +
-															 System.getProperty("os.arch") + "-" +
-															 System.getProperty("os.version") + ", " +
-															 System.getProperty("java.vm.name") + "-" +
-															 System.getProperty("java.version") + " " +
-															 System.getProperty("java.vm.vendor")));
+		query.addChild(new Element("os", System.getProperty("os.name") + "-" + System.getProperty("os.arch") + "-"
+				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-"
+				+ System.getProperty("java.version") + " " + System.getProperty("java.vm.vendor")));
 		result.add(packet.okResult(query, 0));
-		
+
 		return result;
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

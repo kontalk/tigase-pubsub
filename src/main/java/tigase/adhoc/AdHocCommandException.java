@@ -20,40 +20,28 @@
  *
  */
 
-
-
 package tigase.adhoc;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.xml.Element;
-
 import tigase.xmpp.Authorization;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
  */
-public class AdHocCommandException
-				extends Exception {
+public class AdHocCommandException extends Exception {
 	private static final long serialVersionUID = 1L;
 
-	//~--- fields ---------------------------------------------------------------
-
-	private String xmlns = "urn:ietf:params:xml:ns:xmpp-stanzas";
 	private Authorization errorCondition;
 	private Element item;
 	private String message;
-
-	//~--- constructors ---------------------------------------------------------
+	private String xmlns = "urn:ietf:params:xml:ns:xmpp-stanzas";
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param errorCondition
 	 */
 	public AdHocCommandException(final Authorization errorCondition) {
@@ -62,8 +50,8 @@ public class AdHocCommandException
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param errorCondition
 	 * @param message
 	 */
@@ -73,8 +61,8 @@ public class AdHocCommandException
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param item
 	 * @param errorCondition
 	 */
@@ -84,20 +72,17 @@ public class AdHocCommandException
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param item
 	 * @param errorCondition
 	 * @param message
 	 */
-	public AdHocCommandException(final Element item, final Authorization errorCondition,
-															 final String message) {
-		this.item           = item;
+	public AdHocCommandException(final Element item, final Authorization errorCondition, final String message) {
+		this.item = item;
 		this.errorCondition = errorCondition;
-		this.message        = message;
+		this.message = message;
 	}
-
-	//~--- get methods ----------------------------------------------------------
 
 	/**
 	 * @return Returns the code.
@@ -108,8 +93,8 @@ public class AdHocCommandException
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public Authorization getErrorCondition() {
@@ -125,8 +110,8 @@ public class AdHocCommandException
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -148,12 +133,10 @@ public class AdHocCommandException
 		return errorCondition.getErrorType();
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	public Element makeElement() {
@@ -162,16 +145,14 @@ public class AdHocCommandException
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param insertOriginal
-	 *
+	 * 
 	 * @return
 	 */
 	public Element makeElement(boolean insertOriginal) {
-		Element answer = insertOriginal
-										 ? item.clone()
-										 : new Element(item.getName());
+		Element answer = insertOriginal ? item.clone() : new Element(item.getName());
 
 		answer.addAttribute("id", item.getAttributeStaticStr("id"));
 		answer.addAttribute("type", "error");
@@ -179,7 +160,7 @@ public class AdHocCommandException
 		answer.addAttribute("from", item.getAttributeStaticStr("to"));
 		if (this.message != null) {
 			Element text = new Element("text", this.message, new String[] { "xmlns" },
-																 new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
+					new String[] { "urn:ietf:params:xml:ns:xmpp-stanzas" });
 
 			answer.addChild(text);
 		}
@@ -190,10 +171,10 @@ public class AdHocCommandException
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param sourceElement
-	 *
+	 * 
 	 * @return
 	 */
 	public Element makeElement(Element sourceElement) {
@@ -210,12 +191,8 @@ public class AdHocCommandException
 
 		error.setAttribute("code", String.valueOf(this.errorCondition.getErrorCode()));
 		error.setAttribute("type", this.errorCondition.getErrorType());
-		error.addChild(new Element(this.errorCondition.getCondition(),
-															 new String[] { "xmlns" }, new String[] { xmlns }));
+		error.addChild(new Element(this.errorCondition.getCondition(), new String[] { "xmlns" }, new String[] { xmlns }));
 
 		return error;
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

@@ -14,18 +14,19 @@ public class Node {
 
 	// private Long nodeAffiliationsChangeTimestamp;
 
-	private BareJID serviceJid;
 	private NodeAffiliations nodeAffiliations;
 	private AbstractNodeConfig nodeConfig;
+	private NodeSubscriptions nodeSubscriptions;
 
 	// private Long nodeConfigChangeTimestamp;
 
-	private NodeSubscriptions nodeSubscriptions;
+	private BareJID serviceJid;
 	private boolean subNeedsWriting = false;
 
 	// private Long nodeSubscriptionsChangeTimestamp;
 
-	public Node(BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations, NodeSubscriptions nodeSubscriptions) {
+	public Node(BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations,
+			NodeSubscriptions nodeSubscriptions) {
 		this.serviceJid = serviceJid;
 		this.nodeConfig = nodeConfig;
 		this.nodeAffiliations = nodeAffiliations;
@@ -91,6 +92,10 @@ public class Node {
 		return nodeSubscriptions;
 	}
 
+	public BareJID getServiceJid() {
+		return serviceJid;
+	}
+
 	public boolean isDeleted() {
 		return deleted;
 	}
@@ -99,10 +104,6 @@ public class Node {
 		return subNeedsWriting || affNeedsWriting || conNeedsWriting;
 	}
 
-	public BareJID getServiceJid() {
-		return serviceJid;
-	}
-	
 	public void setDeleted(boolean deleted) {
 		this.deleted = deleted;
 	}

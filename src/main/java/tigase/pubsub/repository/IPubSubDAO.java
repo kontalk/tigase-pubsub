@@ -22,16 +22,12 @@
 
 package tigase.pubsub.repository;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.util.Date;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
-
-//~--- interfaces -------------------------------------------------------------
 
 /**
  * Interface description
@@ -64,8 +60,8 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
-			String collection) throws RepositoryException;
+	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -77,9 +73,6 @@ public interface IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	public abstract void deleteItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -99,9 +92,6 @@ public interface IPubSubDAO {
 
 	String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException;
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException;
 
 	Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException;
@@ -117,12 +107,10 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract Date getItemCreationDate(BareJID serviceJid, final String nodeName, final String id) throws RepositoryException;
+	public abstract Date getItemCreationDate(BareJID serviceJid, final String nodeName, final String id)
+			throws RepositoryException;
 
 	String[] getItemsIds(BareJID serviceJid, String nodeName) throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -135,7 +123,8 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract Date getItemUpdateDate(BareJID serviceJid, final String nodeName, final String id) throws RepositoryException;
+	public abstract Date getItemUpdateDate(BareJID serviceJid, final String nodeName, final String id)
+			throws RepositoryException;
 
 	/**
 	 * Method description
@@ -161,9 +150,6 @@ public interface IPubSubDAO {
 	 */
 	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, final String nodeName) throws RepositoryException;
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -185,9 +171,6 @@ public interface IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	String[] getUserRoster(BareJID owner) throws RepositoryException;
 
@@ -218,7 +201,8 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void update(BareJID serviceJid, final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException;
+	public abstract void update(BareJID serviceJid, final String nodeName, final AbstractNodeConfig nodeConfig)
+			throws RepositoryException;
 
 	/**
 	 * Method description
@@ -243,10 +227,6 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void writeItem(BareJID serviceJid, final String nodeName, long timeInMilis, final String id, final String publisher,
-			final Element item) throws RepositoryException;
+	public abstract void writeItem(BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
+			final String publisher, final Element item) throws RepositoryException;
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

@@ -129,8 +129,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException {
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException {
 
 		ResultSet rs = null;
 		try {
@@ -142,7 +142,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 
 			checkConnection();
 			synchronized (create_node_sp) {
-				create_node_sp.setString(1,serviceJid.toString());
+				create_node_sp.setString(1, serviceJid.toString());
 				create_node_sp.setString(2, nodeName);
 				create_node_sp.setInt(3, nodeType.ordinal());
 				create_node_sp.setString(4, JIDUtils.getNodeID(ownerJid));
@@ -232,7 +232,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public Date getItemCreationDate(final BareJID serviceJid, final String nodeName, final String id) throws RepositoryException {
+	public Date getItemCreationDate(final BareJID serviceJid, final String nodeName, final String id)
+			throws RepositoryException {
 		return getDateFromItem(serviceJid, nodeName, id, 3);
 	}
 
@@ -532,7 +533,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeConfig(final BareJID serviceJid, final String nodeName, final String serializedData) throws RepositoryException {
+	public void updateNodeConfig(final BareJID serviceJid, final String nodeName, final String serializedData)
+			throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -550,7 +552,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData) throws RepositoryException {
+	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData)
+			throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -569,8 +572,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void writeItem(final BareJID serviceJid, final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
-			throws RepositoryException {
+	public void writeItem(final BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
+			final String publisher, final Element item) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();

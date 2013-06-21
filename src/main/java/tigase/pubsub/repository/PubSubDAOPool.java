@@ -63,8 +63,8 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException {
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
@@ -314,7 +314,8 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeConfig(final BareJID serviceJid, final String nodeName, final String serializedData) throws RepositoryException {
+	public void updateNodeConfig(final BareJID serviceJid, final String nodeName, final String serializedData)
+			throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
@@ -328,7 +329,8 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData) throws RepositoryException {
+	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData)
+			throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {
@@ -342,8 +344,8 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void writeItem(final BareJID serviceJid, final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
-			throws RepositoryException {
+	public void writeItem(final BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
+			final String publisher, final Element item) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
 			try {

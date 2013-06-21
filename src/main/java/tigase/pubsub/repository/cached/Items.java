@@ -13,7 +13,7 @@ class Items implements IItems {
 	private final IPubSubDAO dao;
 
 	private final String nodeName;
-	
+
 	private final BareJID serviceJid;
 
 	public Items(BareJID serviceJid, String nodeName, IPubSubDAO dao) {
