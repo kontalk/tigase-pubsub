@@ -22,17 +22,14 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import tigase.component.PacketWriter;
+import tigase.component.modules.ModulesManager;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Field;
 import tigase.form.Form;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.Module;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
@@ -46,11 +43,11 @@ import tigase.xmpp.Authorization;
  * 
  * 
  */
-public class DiscoverInfoModule extends AbstractModule {
+public class DiscoverInfoModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("query", "http://jabber.org/protocol/disco#info"));
 
-	private ArrayList<Module> modules;
+	private final ModulesManager modulesManager;
 
 	/**
 	 * Constructs ...
@@ -60,9 +57,10 @@ public class DiscoverInfoModule extends AbstractModule {
 	 * @param pubsubRepository
 	 * @param modules
 	 */
-	public DiscoverInfoModule(PubSubConfig config, IPubSubRepository pubsubRepository, ArrayList<Module> modules) {
-		super(config, pubsubRepository);
-		this.modules = modules;
+	public DiscoverInfoModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			ModulesManager modulesManager) {
+		super(config, pubsubRepository, packetWriter);
+		this.modulesManager = modulesManager;
 	}
 
 	/**
@@ -92,14 +90,12 @@ public class DiscoverInfoModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			final Element element = packet.getElement();
 			final String senderJid = element.getAttributeStaticStr("from");
@@ -113,14 +109,8 @@ public class DiscoverInfoModule extends AbstractModule {
 			if (nodeName == null) {
 				resultQuery.addChild(new Element("identity", new String[] { "category", "type", "name" }, new String[] {
 						"pubsub", "service", "Publish-Subscribe" }));
-				for (Module module : this.modules) {
-					String[] features = module.getFeatures();
-
-					if (features != null) {
-						for (String f : features) {
-							resultQuery.addChild(new Element("feature", new String[] { "var" }, new String[] { f }));
-						}
-					}
+				for (String f : modulesManager.getFeatures()) {
+					resultQuery.addChild(new Element("feature", new String[] { "var" }, new String[] { f }));
 				}
 			} else {
 				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(packet.getStanzaTo().getBareJID(), nodeName);
@@ -147,7 +137,7 @@ public class DiscoverInfoModule extends AbstractModule {
 				resultQuery.addChild(form.getElement());
 			}
 
-			return makeArray(resultIq);
+			packetWriter.write(resultIq);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

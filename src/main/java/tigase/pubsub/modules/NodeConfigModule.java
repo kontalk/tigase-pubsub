@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Field;
@@ -35,7 +36,6 @@ import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -122,9 +122,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	 * @param defaultNodeConfig
 	 * @param publishItemModule
 	 */
-	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
-			PublishItemModule publishItemModule) {
-		super(config, pubsubRepository, defaultNodeConfig);
+	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			LeafNodeConfig defaultNodeConfig, PublishItemModule publishItemModule) {
+		super(config, pubsubRepository, defaultNodeConfig, packetWriter);
 		this.publishModule = publishItemModule;
 	}
 
@@ -215,14 +215,12 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			final BareJID toJid = packet.getStanzaTo().getBareJID();
 			final Element element = packet.getElement();
@@ -380,7 +378,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				throw new PubSubException(element, Authorization.BAD_REQUEST);
 			}
 
-			return resultArray;
+			packetWriter.write(resultArray);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

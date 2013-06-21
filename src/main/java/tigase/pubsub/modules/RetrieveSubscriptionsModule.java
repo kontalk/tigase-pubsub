@@ -22,12 +22,10 @@
 
 package tigase.pubsub.modules;
 
-import java.util.List;
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
@@ -46,7 +44,7 @@ import tigase.xmpp.BareJID;
  * @version 5.0.0, 2010.03.27 at 05:27:10 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class RetrieveSubscriptionsModule extends AbstractModule {
+public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscriptions"));
 
@@ -57,8 +55,8 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveSubscriptionsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public RetrieveSubscriptionsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	/**
@@ -88,14 +86,12 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			final BareJID serviceJid = packet.getStanzaTo().getBareJID();
 			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
@@ -149,7 +145,7 @@ public class RetrieveSubscriptionsModule extends AbstractModule {
 				}
 			}
 
-			return makeArray(result);
+			packetWriter.write(result);
 		} catch (Exception e) {
 			e.printStackTrace();
 

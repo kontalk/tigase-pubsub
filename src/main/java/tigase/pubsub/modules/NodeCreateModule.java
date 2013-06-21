@@ -23,9 +23,9 @@
 package tigase.pubsub.modules;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Form;
@@ -34,7 +34,6 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
@@ -69,9 +68,9 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	 * @param defaultNodeConfig
 	 * @param publishItemModule
 	 */
-	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
-			PublishItemModule publishItemModule) {
-		super(config, pubsubRepository, defaultNodeConfig);
+	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			LeafNodeConfig defaultNodeConfig, PublishItemModule publishItemModule) {
+		super(config, pubsubRepository, defaultNodeConfig, packetWriter);
 		this.publishModule = publishItemModule;
 	}
 
@@ -129,14 +128,12 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		final long time1 = System.currentTimeMillis();
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element element = packet.getElement();
@@ -248,7 +245,6 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			result.getElement().addChild(new Element("text", "Created in " + (time2 - time1) + " ms"));
 			packetWriter.write(result);
 
-			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

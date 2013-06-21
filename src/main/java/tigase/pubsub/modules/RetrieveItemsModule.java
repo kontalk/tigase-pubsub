@@ -26,15 +26,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -55,7 +55,7 @@ import tigase.xmpp.BareJID;
  * 
  * 
  */
-public class RetrieveItemsModule extends AbstractModule {
+public class RetrieveItemsModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("items"));
 
@@ -66,8 +66,8 @@ public class RetrieveItemsModule extends AbstractModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public RetrieveItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	private Integer asInteger(String attribute) {
@@ -126,14 +126,12 @@ public class RetrieveItemsModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(final Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(final Packet packet) throws PubSubException {
 		try {
 			final BareJID toJid = packet.getStanzaTo().getBareJID();
 			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
@@ -226,7 +224,7 @@ public class RetrieveItemsModule extends AbstractModule {
 				}
 			}
 
-			return makeArray(iq);
+			packetWriter.write(iq);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

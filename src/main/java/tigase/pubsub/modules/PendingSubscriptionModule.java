@@ -25,14 +25,14 @@ package tigase.pubsub.modules;
 import java.util.ArrayList;
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Field;
 import tigase.form.Form;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -56,7 +56,7 @@ import tigase.xmpp.JID;
  * 
  * 
  */
-public class PendingSubscriptionModule extends AbstractModule {
+public class PendingSubscriptionModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.name("message").add(
 			ElementCriteria.name("x", new String[] { "xmlns", "type" }, new String[] { "jabber:x:data", "submit" })).add(
 			ElementCriteria.name("field", new String[] { "var" }, new String[] { "FORM_TYPE" })).add(
@@ -69,8 +69,8 @@ public class PendingSubscriptionModule extends AbstractModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public PendingSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public PendingSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	/**
@@ -98,16 +98,15 @@ public class PendingSubscriptionModule extends AbstractModule {
 	/**
 	 * Method description
 	 * 
-	 * 
 	 * @param message
-	 * @param packetWriter
+	 * 
 	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet message, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet message) throws PubSubException {
 		try {
 			BareJID toJid = message.getStanzaTo().getBareJID();
 			Element element = message.getElement();
@@ -118,7 +117,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 			final Boolean allow = x.getAsBoolean("pubsub#allow");
 
 			if (allow == null) {
-				return null;
+				return;
 			}
 
 			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, node);
@@ -148,7 +147,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 			Subscription subscription = nodeSubscriptions.getSubscription(subscriberJid);
 
 			if (subscription != Subscription.pending) {
-				return null;
+				return;
 			}
 
 			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
@@ -174,7 +173,7 @@ public class PendingSubscriptionModule extends AbstractModule {
 
 			msg.getElement().addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid, subscription, null));
 
-			return makeArray(msg);
+			packetWriter.write(msg);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

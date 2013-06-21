@@ -19,19 +19,26 @@
  * Last modified by $Author$
  * $Date$
  */
-package tigase.pubsub;
+package tigase.component.exceptions;
 
-import java.util.List;
+public class RepositoryException extends Exception {
 
-import tigase.criteria.Criteria;
-import tigase.pubsub.exceptions.PubSubException;
-import tigase.server.Packet;
+	private static final long serialVersionUID = 1L;
 
-public interface Module {
+	public RepositoryException() {
+		super();
+	}
 
-	String[] getFeatures();
+	public RepositoryException(String message) {
+		super(message);
+	}
 
-	Criteria getModuleCriteria();
+	public RepositoryException(String message, Throwable cause) {
+		super(message, cause);
+	}
 
-	List<Packet> process(final Packet packet, PacketWriter packetWriter) throws PubSubException;
+	public RepositoryException(Throwable cause) {
+		super(cause);
+	}
+
 }

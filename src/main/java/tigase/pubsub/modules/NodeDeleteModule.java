@@ -25,12 +25,12 @@ package tigase.pubsub.modules;
 import java.util.ArrayList;
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.CollectionNodeConfig;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
@@ -48,7 +48,7 @@ import tigase.xmpp.BareJID;
  * 
  * 
  */
-public class NodeDeleteModule extends AbstractModule {
+public class NodeDeleteModule extends AbstractPubSubModule {
 	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
 
@@ -63,8 +63,9 @@ public class NodeDeleteModule extends AbstractModule {
 	 * @param pubsubRepository
 	 * @param publishItemModule
 	 */
-	public NodeDeleteModule(PubSubConfig config, IPubSubRepository pubsubRepository, PublishItemModule publishItemModule) {
-		super(config, pubsubRepository);
+	public NodeDeleteModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			PublishItemModule publishItemModule) {
+		super(config, pubsubRepository, packetWriter);
 		this.publishModule = publishItemModule;
 	}
 
@@ -117,14 +118,12 @@ public class NodeDeleteModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
@@ -201,7 +200,7 @@ public class NodeDeleteModule extends AbstractModule {
 			repository.deleteNode(toJid, nodeName);
 			fireOnNodeDeleted(nodeName);
 
-			return resultArray;
+			packetWriter.write(resultArray);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

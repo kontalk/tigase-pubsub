@@ -22,13 +22,11 @@
 
 package tigase.pubsub.modules;
 
-import java.util.List;
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
@@ -43,7 +41,7 @@ import tigase.xmpp.BareJID;
  * 
  * 
  */
-public class RetrieveAffiliationsModule extends AbstractModule {
+public class RetrieveAffiliationsModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("affiliations"));
 
@@ -54,8 +52,8 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public RetrieveAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	/**
@@ -87,14 +85,12 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			final BareJID serviceJid = packet.getStanzaTo().getBareJID();
 			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
@@ -131,7 +127,7 @@ public class RetrieveAffiliationsModule extends AbstractModule {
 				}
 			}
 
-			return makeArray(result);
+			packetWriter.write(result);
 		} catch (Exception e) {
 			e.printStackTrace();
 

@@ -24,12 +24,12 @@ package tigase.pubsub.modules;
 
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -51,7 +51,7 @@ import tigase.xmpp.StanzaType;
  * 
  * 
  */
-public class ManageAffiliationsModule extends AbstractModule {
+public class ManageAffiliationsModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.name("iq").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("affiliations"));
 
@@ -77,8 +77,8 @@ public class ManageAffiliationsModule extends AbstractModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public ManageAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public ManageAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	/**
@@ -108,14 +108,12 @@ public class ManageAffiliationsModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			BareJID toJid = packet.getStanzaTo().getBareJID();
 			Element element = packet.getElement();
@@ -156,7 +154,6 @@ public class ManageAffiliationsModule extends AbstractModule {
 				repository.update(toJid, nodeName, nodeAffiliations);
 			}
 
-			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

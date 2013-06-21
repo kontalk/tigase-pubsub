@@ -22,14 +22,12 @@
 
 package tigase.pubsub.modules;
 
-import java.util.List;
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -49,7 +47,7 @@ import tigase.xmpp.BareJID;
  * 
  * 
  */
-public class UnsubscribeNodeModule extends AbstractModule {
+public class UnsubscribeNodeModule extends AbstractPubSubModule {
 	private static final Criteria CRIT_UNSUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("unsubscribe"));
 
@@ -60,8 +58,8 @@ public class UnsubscribeNodeModule extends AbstractModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public UnsubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public UnsubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	/**
@@ -91,14 +89,12 @@ public class UnsubscribeNodeModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
@@ -150,7 +146,7 @@ public class UnsubscribeNodeModule extends AbstractModule {
 				this.repository.update(toJid, nodeName, nodeSubscriptions);
 			}
 
-			return makeArray(packet.okResult((Element) null, 0));
+			packetWriter.write(packet.okResult((Element) null, 0));
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

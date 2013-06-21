@@ -22,15 +22,14 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.criteria.Or;
-import tigase.pubsub.Module;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.AbstractPubSubModule;
+import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 
@@ -39,10 +38,15 @@ import tigase.xml.Element;
  * 
  * 
  */
-public class XmppPingModule implements Module {
+public class XmppPingModule extends AbstractPubSubModule {
+
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			new Or(ElementCriteria.name("ping", "http://www.xmpp.org/extensions/xep-0199.html#ns"), ElementCriteria.name(
 					"ping", "urn:xmpp:ping")));
+
+	public XmppPingModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
+	}
 
 	/**
 	 * Method description
@@ -78,12 +82,8 @@ public class XmppPingModule implements Module {
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet iq, PacketWriter elementWriter) throws PubSubException {
+	public void process(Packet iq) throws PubSubException {
 		Packet reposnse = iq.okResult((Element) null, 0);
-		List<Packet> x = new ArrayList<Packet>();
-
-		x.add(reposnse);
-
-		return x;
+		packetWriter.write(reposnse);
 	}
 }

@@ -22,15 +22,14 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.Module;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.AbstractPubSubModule;
+import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.PubSubVersion;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 
@@ -39,9 +38,14 @@ import tigase.xml.Element;
  * 
  * 
  */
-public class JabberVersionModule implements Module {
+public class JabberVersionModule extends AbstractPubSubModule {
+
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("query", "jabber:iq:version"));
+
+	public JabberVersionModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
+	}
 
 	/**
 	 * Method description
@@ -77,8 +81,7 @@ public class JabberVersionModule implements Module {
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
-		List<Packet> result = new ArrayList<Packet>();
+	public void process(Packet packet) throws PubSubException {
 		Element query = new Element("query", new String[] { "xmlns" }, new String[] { "jabber:iq:version" });
 
 		query.addChild(new Element("name", "Tigase PubSub"));
@@ -86,8 +89,8 @@ public class JabberVersionModule implements Module {
 		query.addChild(new Element("os", System.getProperty("os.name") + "-" + System.getProperty("os.arch") + "-"
 				+ System.getProperty("os.version") + ", " + System.getProperty("java.vm.name") + "-"
 				+ System.getProperty("java.version") + " " + System.getProperty("java.vm.vendor")));
-		result.add(packet.okResult(query, 0));
 
-		return result;
+		packetWriter.write(packet.okResult(query, 0));
 	}
+
 }

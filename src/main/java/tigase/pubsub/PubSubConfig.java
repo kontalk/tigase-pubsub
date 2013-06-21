@@ -22,6 +22,11 @@
 
 package tigase.pubsub;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import tigase.component.AbstractComponent;
+import tigase.component.ComponentConfig;
 import tigase.xmpp.BareJID;
 
 /**
@@ -31,10 +36,15 @@ import tigase.xmpp.BareJID;
  * @version 5.0.0, 2010.03.27 at 05:10:54 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PubSubConfig {
+public class PubSubConfig extends ComponentConfig {
+
 	private String[] admins;
+
 	private BareJID serviceBareJID;
-	private String serviceName;
+
+	protected PubSubConfig(AbstractComponent<?> component) {
+		super(component);
+	}
 
 	/**
 	 * Method description
@@ -46,14 +56,10 @@ public class PubSubConfig {
 		return admins;
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @return
-	 */
-	public BareJID getServiceBareJID() {
-		return serviceBareJID;
+	@Override
+	public Map<String, Object> getDefaults(Map<String, Object> params) {
+		final HashMap<String, Object> props = new HashMap<String, Object>();
+		return props;
 	}
 
 	/**
@@ -62,8 +68,8 @@ public class PubSubConfig {
 	 * 
 	 * @return
 	 */
-	public String getServiceName() {
-		return serviceName;
+	public BareJID getServiceBareJID() {
+		return serviceBareJID;
 	}
 
 	/**
@@ -98,8 +104,9 @@ public class PubSubConfig {
 		this.admins = strings;
 	}
 
-	void setServiceName(String serviceName) {
-		this.serviceName = serviceName;
-		serviceBareJID = BareJID.bareJIDInstanceNS(serviceName);
+	@Override
+	public void setProperties(Map<String, Object> props) {
+		// TODO Auto-generated method stub
+
 	}
 }

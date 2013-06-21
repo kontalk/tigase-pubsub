@@ -25,13 +25,13 @@ package tigase.pubsub.modules;
 import java.util.ArrayList;
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -52,7 +52,7 @@ import tigase.xmpp.BareJID;
  * 
  * 
  */
-public class SubscribeNodeModule extends AbstractModule {
+public class SubscribeNodeModule extends AbstractPubSubModule {
 	private static final Criteria CRIT_SUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscribe"));
 
@@ -101,9 +101,9 @@ public class SubscribeNodeModule extends AbstractModule {
 	 * @param pubsubRepository
 	 * @param manageSubscriptionModule
 	 */
-	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository,
+	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
 			PendingSubscriptionModule manageSubscriptionModule) {
-		super(config, pubsubRepository);
+		super(config, pubsubRepository, packetWriter);
 		this.pendingSubscriptionModule = manageSubscriptionModule;
 	}
 
@@ -136,14 +136,12 @@ public class SubscribeNodeModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element pubSub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element subscribe = pubSub.getChild("subscribe");
@@ -266,7 +264,7 @@ public class SubscribeNodeModule extends AbstractModule {
 
 			results.add(result);
 
-			return results;
+			packetWriter.write(results);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

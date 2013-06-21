@@ -29,13 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Logger;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.Module;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.AbstractPubSubModule;
+import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.server.Presence;
 import tigase.util.JIDUtils;
@@ -48,14 +49,15 @@ import tigase.xmpp.StanzaType;
  * 
  * 
  */
-public class PresenceCollectorModule implements Module {
+public class PresenceCollectorModule extends AbstractPubSubModule {
+
 	private static final Criteria CRIT = ElementCriteria.name("presence");
 
-	/** Field description */
-	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final Map<String, Set<String>> resources = new HashMap<String, Set<String>>();
 
-	// private final Set<String> onlineUsers = new HashSet<String>();
+	public PresenceCollectorModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
+	}
 
 	/**
 	 * Method description
@@ -195,11 +197,10 @@ public class PresenceCollectorModule implements Module {
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		final StanzaType type = packet.getType();
 		final JID jid = packet.getStanzaFrom();
 		final JID toJid = packet.getStanzaTo();
-		List<Packet> result = new ArrayList<Packet>();
 
 		if (type == null) {
 			boolean added = addJid(jid.toString());
@@ -208,7 +209,7 @@ public class PresenceCollectorModule implements Module {
 				Packet p = new Presence(new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(),
 						toJid.toString() }), toJid, jid);
 
-				result.add(p);
+				packetWriter.write(p);
 			}
 		} else if ("unavailable".equals(type)) {
 			removeJid(jid.toString());
@@ -216,18 +217,18 @@ public class PresenceCollectorModule implements Module {
 			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" }, new String[] {
 					jid.toString(), toJid.toString(), "unavailable" }), toJid, jid);
 
-			result.add(p);
+			packetWriter.write(p);
 		} else if ("subscribe".equals(type)) {
 			log.finest("Contact " + jid + " wants to subscribe PubSub");
 
 			Packet presence = preparePresence(packet, "subscribed");
 
 			if (presence != null) {
-				result.add(presence);
+				packetWriter.write(presence);
 			}
 			presence = preparePresence(packet, "subscribe");
 			if (presence != null) {
-				result.add(presence);
+				packetWriter.write(presence);
 			}
 		} else if ("unsubscribe".equals(type) || "unsubscribed".equals(type)) {
 			log.finest("Contact " + jid + " wants to unsubscribe PubSub");
@@ -235,15 +236,14 @@ public class PresenceCollectorModule implements Module {
 			Packet presence = preparePresence(packet, "unsubscribed");
 
 			if (presence != null) {
-				result.add(presence);
+				packetWriter.write(presence);
 			}
 			presence = preparePresence(packet, "unsubscribe");
 			if (presence != null) {
-				result.add(presence);
+				packetWriter.write(presence);
 			}
 		}
 
-		return (result.size() == 0) ? null : result;
 	}
 
 	/**

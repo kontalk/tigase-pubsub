@@ -21,13 +21,11 @@
  */
 package tigase.pubsub.modules;
 
-import java.util.List;
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -36,15 +34,16 @@ import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
-public class DefaultConfigModule extends AbstractModule {
+public class DefaultConfigModule extends AbstractPubSubModule {
 
 	private static final Criteria CRIT_DEFAULT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("default"));
 
 	private final LeafNodeConfig defaultNodeConfig;
 
-	public DefaultConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig nodeConfig) {
-		super(config, pubsubRepository);
+	public DefaultConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig nodeConfig,
+			PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 		this.defaultNodeConfig = nodeConfig;
 	}
 
@@ -59,7 +58,7 @@ public class DefaultConfigModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			Element pubsub = new Element("pubsub", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/pubsub#owner" });
@@ -75,8 +74,6 @@ public class DefaultConfigModule extends AbstractModule {
 			Packet result = packet.okResult(pubsub, 0);
 
 			packetWriter.write(result);
-
-			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

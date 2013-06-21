@@ -28,6 +28,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import tigase.component.PacketWriter;
+import tigase.component.modules.Module;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
@@ -45,7 +47,7 @@ import tigase.xml.Element;
  * @version 5.0.0, 2010.03.27 at 05:24:03 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public abstract class AbstractModule implements Module {
+public abstract class AbstractPubSubModule implements Module {
 
 	/**
 	 * Method description
@@ -91,6 +93,98 @@ public abstract class AbstractModule implements Module {
 	 * Method description
 	 * 
 	 * 
+	 * @param allSubscribers
+	 * @param jid
+	 * 
+	 * @return
+	 */
+	protected static String findBestJid(final String[] allSubscribers, final String jid) {
+		final String bareJid = JIDUtils.getNodeID(jid);
+		String best = null;
+
+		for (String j : allSubscribers) {
+			if (j.equals(jid)) {
+				return j;
+			} else {
+				if (bareJid.equals(j)) {
+					best = j;
+				}
+			}
+		}
+
+		return best;
+	}
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeConfig
+	 * @param affiliations
+	 * @param subscriptions
+	 * 
+	 * @return
+	 * 
+	 * @throws RepositoryException
+	 */
+	public static List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final IAffiliations affiliations,
+			final ISubscriptions subscriptions) throws RepositoryException {
+		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
+
+		if (subscribers == null) {
+			return Collections.emptyList();
+		}
+
+		String[] jids = new String[subscribers.length];
+
+		for (int i = 0; i < subscribers.length; i++) {
+			jids[i] = subscribers[i].getJid().toString();
+		}
+
+		return getActiveSubscribers(nodeConfig, jids, affiliations, subscriptions);
+	}
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeConfig
+	 * @param jids
+	 * @param affiliations
+	 * @param subscriptions
+	 * 
+	 * @return
+	 */
+	public static List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final String[] jids,
+			final IAffiliations affiliations, final ISubscriptions subscriptions) {
+		List<String> result = new ArrayList<String>();
+		final boolean presenceExpired = nodeConfig.isPresenceExpired();
+
+		if (jids != null) {
+			for (String jid : jids) {
+				if (presenceExpired) {
+				}
+
+				UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
+
+				// /* && affiliation.getAffiliation() != Affiliation.none */
+				if (affiliation.getAffiliation() != Affiliation.outcast) {
+					Subscription subscription = subscriptions.getSubscription(jid);
+
+					if (subscription == Subscription.subscribed) {
+						result.add(jid);
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Method description
+	 * 
+	 * 
 	 * @param elements
 	 * 
 	 * @return
@@ -127,7 +221,9 @@ public abstract class AbstractModule implements Module {
 	protected final PubSubConfig config;
 
 	/** Field description */
-	protected Logger log = Logger.getLogger(this.getClass().getName());
+	protected final Logger log = Logger.getLogger(this.getClass().getName());
+
+	protected final PacketWriter packetWriter;
 
 	/** Field description */
 	protected final IPubSubRepository repository;
@@ -138,102 +234,13 @@ public abstract class AbstractModule implements Module {
 	 * 
 	 * @param config
 	 * @param pubsubRepository
+	 * @param packetWriter
+	 *            TODO
 	 */
-	public AbstractModule(final PubSubConfig config, final IPubSubRepository pubsubRepository) {
+	public AbstractPubSubModule(final PubSubConfig config, final IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
 		this.config = config;
 		this.repository = pubsubRepository;
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param allSubscribers
-	 * @param jid
-	 * 
-	 * @return
-	 */
-	protected String findBestJid(final String[] allSubscribers, final String jid) {
-		final String bareJid = JIDUtils.getNodeID(jid);
-		String best = null;
-
-		for (String j : allSubscribers) {
-			if (j.equals(jid)) {
-				return j;
-			} else {
-				if (bareJid.equals(j)) {
-					best = j;
-				}
-			}
-		}
-
-		return best;
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param nodeConfig
-	 * @param affiliations
-	 * @param subscriptions
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
-	public List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final IAffiliations affiliations,
-			final ISubscriptions subscriptions) throws RepositoryException {
-		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
-
-		if (subscribers == null) {
-			return Collections.emptyList();
-		}
-
-		String[] jids = new String[subscribers.length];
-
-		for (int i = 0; i < subscribers.length; i++) {
-			jids[i] = subscribers[i].getJid().toString();
-		}
-
-		return getActiveSubscribers(nodeConfig, jids, affiliations, subscriptions);
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param nodeConfig
-	 * @param jids
-	 * @param affiliations
-	 * @param subscriptions
-	 * 
-	 * @return
-	 */
-	public List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final String[] jids,
-			final IAffiliations affiliations, final ISubscriptions subscriptions) {
-		List<String> result = new ArrayList<String>();
-		final boolean presenceExpired = nodeConfig.isPresenceExpired();
-
-		if (jids != null) {
-			for (String jid : jids) {
-				if (presenceExpired) {
-				}
-
-				UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
-
-				// /* && affiliation.getAffiliation() != Affiliation.none */
-				if (affiliation.getAffiliation() != Affiliation.outcast) {
-					Subscription subscription = subscriptions.getSubscription(jid);
-
-					if (subscription == Subscription.subscribed) {
-						result.add(jid);
-					}
-				}
-			}
-		}
-
-		return result;
+		this.packetWriter = packetWriter;
 	}
 
 	/**

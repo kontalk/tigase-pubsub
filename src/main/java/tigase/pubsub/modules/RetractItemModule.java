@@ -26,13 +26,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
@@ -51,7 +51,7 @@ import tigase.xmpp.BareJID;
  * 
  * 
  */
-public class RetractItemModule extends AbstractModule {
+public class RetractItemModule extends AbstractPubSubModule {
 	private static final Criteria CRIT_RETRACT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("retract"));
 
@@ -65,9 +65,9 @@ public class RetractItemModule extends AbstractModule {
 	 * @param pubsubRepository
 	 * @param publishItemModule
 	 */
-	public RetractItemModule(final PubSubConfig config, final IPubSubRepository pubsubRepository,
+	public RetractItemModule(final PubSubConfig config, final IPubSubRepository pubsubRepository, PacketWriter packetWriter,
 			final PublishItemModule publishItemModule) {
-		super(config, pubsubRepository);
+		super(config, pubsubRepository, packetWriter);
 		this.publishModule = publishItemModule;
 	}
 
@@ -108,14 +108,12 @@ public class RetractItemModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element pubSub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element retract = pubSub.getChild("retract");
@@ -184,7 +182,7 @@ public class RetractItemModule extends AbstractModule {
 				}
 			}
 
-			return result;
+			packetWriter.write(result);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

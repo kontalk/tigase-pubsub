@@ -24,12 +24,12 @@ package tigase.pubsub.modules;
 
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -56,7 +56,7 @@ import tigase.xmpp.StanzaType;
  * @version 5.0.0, 2010.03.27 at 05:25:49 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class ManageSubscriptionModule extends AbstractModule {
+public class ManageSubscriptionModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.name("iq").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(
 			ElementCriteria.name("subscriptions"));
@@ -83,8 +83,8 @@ public class ManageSubscriptionModule extends AbstractModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public ManageSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public ManageSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	/**
@@ -114,14 +114,12 @@ public class ManageSubscriptionModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			BareJID toJid = packet.getStanzaTo().getBareJID();
 			Element element = packet.getElement();
@@ -165,7 +163,6 @@ public class ManageSubscriptionModule extends AbstractModule {
 				repository.update(toJid, nodeName, nodeSubscriptions);
 			}
 
-			return null;
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

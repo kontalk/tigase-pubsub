@@ -27,10 +27,10 @@ import java.util.List;
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocCommandManager;
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -38,15 +38,15 @@ import tigase.server.Packet;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 
-public class AdHocConfigCommandModule extends AbstractModule {
+public class AdHocConfigCommandModule extends AbstractPubSubModule {
 
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("command", "http://jabber.org/protocol/commands"));
 
 	private final AdHocCommandManager commandsManager = new AdHocCommandManager();
 
-	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
 
 	public List<Element> getCommandListItems(final String senderJid, final String toJid) {
@@ -71,10 +71,10 @@ public class AdHocConfigCommandModule extends AbstractModule {
 	}
 
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
-			List<Packet> result = makeArray(this.commandsManager.process(packet));
-			return result;
+			Packet result = this.commandsManager.process(packet);
+			packetWriter.write(result);
 		} catch (AdHocCommandException e) {
 			throw new PubSubException(e.getErrorCondition(), e.getMessage(), e);
 		}

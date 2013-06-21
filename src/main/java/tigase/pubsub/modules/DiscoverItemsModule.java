@@ -24,12 +24,12 @@ package tigase.pubsub.modules;
 
 import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.NodeType;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
@@ -45,7 +45,7 @@ import tigase.xmpp.BareJID;
  * 
  * 
  */
-public class DiscoverItemsModule extends AbstractModule {
+public class DiscoverItemsModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("query", "http://jabber.org/protocol/disco#items"));
 
@@ -59,8 +59,9 @@ public class DiscoverItemsModule extends AbstractModule {
 	 * @param pubsubRepository
 	 * @param adCommandModule
 	 */
-	public DiscoverItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, AdHocConfigCommandModule adCommandModule) {
-		super(config, pubsubRepository);
+	public DiscoverItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			AdHocConfigCommandModule adCommandModule) {
+		super(config, pubsubRepository, packetWriter);
 		this.adHocCommandsModule = adCommandModule;
 	}
 
@@ -91,14 +92,12 @@ public class DiscoverItemsModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			final Element element = packet.getElement();
 			final Element query = element.getChild("query", "http://jabber.org/protocol/disco#items");
@@ -183,8 +182,7 @@ public class DiscoverItemsModule extends AbstractModule {
 					}
 				}
 			}
-
-			return makeArray(resultIq);
+			packetWriter.write(resultIq);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

@@ -35,14 +35,14 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
-import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.PublisherModel;
 import tigase.pubsub.Subscription;
@@ -69,7 +69,7 @@ import tigase.xmpp.JID;
  * @version 5.0.0, 2010.03.27 at 05:21:54 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PublishItemModule extends AbstractModule {
+public class PublishItemModule extends AbstractPubSubModule {
 
 	private static class Item {
 		final String id;
@@ -103,9 +103,9 @@ public class PublishItemModule extends AbstractModule {
 	 * @param xsltTool
 	 * @param presenceCollector
 	 */
-	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, XsltTool xsltTool,
-			PresenceCollectorModule presenceCollector) {
-		super(config, pubsubRepository);
+	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			XsltTool xsltTool, PresenceCollectorModule presenceCollector) {
+		super(config, pubsubRepository, packetWriter);
 		this.xslTransformer = xsltTool;
 		this.presenceCollector = presenceCollector;
 		for (String xmlns : SUPPORTED_PEP_XMLNS) {
@@ -227,8 +227,7 @@ public class PublishItemModule extends AbstractModule {
 		return items;
 	}
 
-	private List<Packet> pepProcess(final Packet packet, final Element pubSub, final Element publish)
-			throws RepositoryException {
+	private void pepProcess(final Packet packet, final Element pubSub, final Element publish) throws RepositoryException {
 		final JID senderJid = packet.getStanzaFrom();
 		final Element item = publish.getChild("item");
 		final Element items = new Element("items", new String[] { "node" },
@@ -244,7 +243,7 @@ public class PublishItemModule extends AbstractModule {
 		result.addAll(prepareNotification(new String[] { senderJid.toString() }, items, senderJid, null,
 				publish.getAttributeStaticStr("node"), null));
 
-		return result;
+		packetWriter.write(result);
 	}
 
 	/**
@@ -394,14 +393,12 @@ public class PublishItemModule extends AbstractModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
 	 * @return
 	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
@@ -410,7 +407,8 @@ public class PublishItemModule extends AbstractModule {
 
 		try {
 			if (isPEPNodeName(nodeName)) {
-				return pepProcess(packet, pubSub, publish);
+				pepProcess(packet, pubSub, publish);
+				return;
 			}
 
 			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
@@ -504,7 +502,7 @@ public class PublishItemModule extends AbstractModule {
 				}
 			}
 
-			return result;
+			packetWriter.write(result);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

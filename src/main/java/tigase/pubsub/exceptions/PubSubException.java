@@ -22,6 +22,7 @@
 
 package tigase.pubsub.exceptions;
 
+import tigase.component.exceptions.ComponentException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -34,7 +35,7 @@ import tigase.xmpp.Authorization;
  * @author bmalkow
  * @version $Rev$
  */
-public class PubSubException extends Exception {
+public class PubSubException extends ComponentException {
 	private static final long serialVersionUID = 1L;
 
 	private Authorization errorCondition;
@@ -136,7 +137,7 @@ public class PubSubException extends Exception {
 	}
 
 	public PubSubException(final Element item, final Authorization errorCondition, final String message, final Exception ex) {
-		super(ex);
+		super(errorCondition);
 		this.item = item;
 		this.errorCondition = errorCondition;
 		this.message = message;
@@ -145,6 +146,7 @@ public class PubSubException extends Exception {
 	/**
 	 * @return Returns the code.
 	 */
+	@Override
 	public String getCode() {
 		return String.valueOf(this.errorCondition.getErrorCode());
 	}
@@ -155,6 +157,7 @@ public class PubSubException extends Exception {
 	 * 
 	 * @return
 	 */
+	@Override
 	public Authorization getErrorCondition() {
 		return errorCondition;
 	}
@@ -180,6 +183,7 @@ public class PubSubException extends Exception {
 	/**
 	 * @return Returns the name.
 	 */
+	@Override
 	public String getName() {
 		return errorCondition.getCondition();
 	}
@@ -187,6 +191,7 @@ public class PubSubException extends Exception {
 	/**
 	 * @return Returns the type.
 	 */
+	@Override
 	public String getType() {
 		return errorCondition.getErrorType();
 	}
