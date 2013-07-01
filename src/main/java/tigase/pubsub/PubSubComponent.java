@@ -139,7 +139,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	@Override
 	public void onChangeDefaultNodeConfig() {
 		try {
-			this.defaultNodeConfig.read(userRepository, componentConfig, ____PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+			this.defaultNodeConfig.read(userRepository, componentConfig, DEFAULT_LEAF_NODE_CONFIG_KEY);
 			log.info("Node " + getComponentId() + " read default node configuration.");
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Reading default config error", e);
