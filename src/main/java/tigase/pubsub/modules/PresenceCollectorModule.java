@@ -236,7 +236,7 @@ public class PresenceCollectorModule
 
 				result.add(p);
 			}
-		} else if ("unavailable".equals(type)) {
+		} else if (type == StanzaType.unavailable) {
 			removeJid(jid.toString());
 
 			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" },
@@ -244,7 +244,7 @@ public class PresenceCollectorModule
 							toJid.toString(), "unavailable" }), toJid, jid);
 
 			result.add(p);
-		} else if ("subscribe".equals(type)) {
+		} else if (type == StanzaType.available) {
 			log.finest("Contact " + jid + " wants to subscribe PubSub");
 
 			Packet presence = preparePresence(packet, "subscribed");
@@ -256,7 +256,7 @@ public class PresenceCollectorModule
 			if (presence != null) {
 				result.add(presence);
 			}
-		} else if ("unsubscribe".equals(type) || "unsubscribed".equals(type)) {
+		} else if (type == StanzaType.unsubscribe || type == StanzaType.unsubscribed) {
 			log.finest("Contact " + jid + " wants to unsubscribe PubSub");
 
 			Packet presence = preparePresence(packet, "unsubscribed");

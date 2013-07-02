@@ -181,9 +181,9 @@ public class ManageAffiliationsModule
 					throw new PubSubException(element, Authorization.FORBIDDEN);
 				}
 			}
-			if (type.equals("get")) {
+			if (type == StanzaType.get) {
 				processGet(packet, affiliations, nodeName, nodeAffiliations, packetWriter);
-			} else if (type.equals("set")) {
+			} else if (type == StanzaType.set) {
 				processSet(packet, affiliations, nodeName, nodeConfig, nodeAffiliations,
 									 packetWriter);
 			}
