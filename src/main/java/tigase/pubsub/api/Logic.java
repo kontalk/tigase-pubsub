@@ -84,6 +84,9 @@ public interface Logic {
 	/**
 	 * Method adds item to store using logic specific for this service and node
 	 * 
+	 * but how to send notifications to about publish if item should exists in
+	 * more than one node?
+	 * 
 	 * @param from - source jid of stanza
 	 * @param service
 	 * @param node
