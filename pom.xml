@@ -1,6 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.build.timestamp.format>yyyy-MM-dd/HH:mm:ss</maven.build.timestamp.format>
 	</properties>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>tigase</groupId>
@@ -64,6 +65,37 @@
 					</execution>
 				</executions>
 			</plugin>
+						<plugin>
+				<groupId>org.codehaus.gmaven</groupId>
+				<artifactId>gmaven-plugin</artifactId>
+				<version>1.5</version>
+				<executions>
+					<execution>
+						<id>gitver</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>execute</goal>
+						</goals>
+						<configuration>
+							<providerSelection>2.0</providerSelection>
+							<properties>
+								<script>git rev-list master --count</script>
+							</properties>
+							<source>
+								def command = project.properties.script
+								def process = command.execute()
+								process.waitFor()
+
+								def describe = process.in.text.trim()
+								println "setting revision to: " + describe
+
+								project.properties.setProperty('gitVersion',describe)
+							</source>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -75,38 +107,25 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.4</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<packageName>tigase.pubsub</packageName>
-							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-						</manifest>
-						<manifestEntries>
-							<Implementation-Version>${project.version} build ${buildNumber} (${timestamp})</Implementation-Version>
-							<Implementation-Build>${buildNumber} (${timestamp})</Implementation-Build>
-						</manifestEntries>
-						<manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
-					</archive>
-				</configuration>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-pmd-plugin</artifactId>
 				<version>2.7.1</version>
 			</plugin>
-                        <plugin>
-                                <groupId>org.apache.felix</groupId>
-                                <artifactId>maven-bundle-plugin</artifactId>
-                                <extensions>true</extensions>
-                                <configuration>
-                                        <instructions>
-                                                <Bundle-Activator>tigase.pubsub.Activator</Bundle-Activator>
-                                                <DynamicImport-Package>*</DynamicImport-Package>
-                                        </instructions>
-                                </configuration>
-                        </plugin>
+			<plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<version>2.4.0</version>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions combine.inherited="append">
+						<manifestLocation>src/main/resources/META-INF/MANIFEST.MF</manifestLocation>
+						<Implementation-Version>${project.version}-b${gitVersion}/${buildNumber}</Implementation-Version>
+						<Implementation-Build>${gitVersion}/${buildNumber} (${maven.build.timestamp})</Implementation-Build>
+						<Bundle-Activator>tigase.pubsub.Activator</Bundle-Activator>
+						<DynamicImport-Package>*</DynamicImport-Package>
+					</instructions>
+				</configuration>
+			</plugin>
 		</plugins>
 		<extensions>
 			<extension>
