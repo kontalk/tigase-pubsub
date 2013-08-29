@@ -127,6 +127,16 @@
 				</configuration>
 			</plugin>
 		</plugins>
+
+		<resources>
+			<resource>
+				<directory>database</directory>
+				<includes>
+					<include>**/*.sql</include>
+				</includes>
+			</resource>
+		</resources>
+		
 		<extensions>
 			<extension>
 				<groupId>org.apache.maven.wagon</groupId>
