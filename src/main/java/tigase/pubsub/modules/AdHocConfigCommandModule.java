@@ -27,6 +27,7 @@ import java.util.List;
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocCommandManager;
+import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
@@ -44,10 +45,14 @@ public class AdHocConfigCommandModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("command", "http://jabber.org/protocol/commands"));
 
+	private static final String[] COMMAND_PATH = { "iq", "command" };
+	
 	private final AdHocCommandManager commandsManager = new AdHocCommandManager();
+	private AdHocScriptCommandManager scriptCommandManager;
 
-	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
+	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository, AdHocScriptCommandManager scriptCommandManager) {
 		super(config, pubsubRepository);
+		this.scriptCommandManager = scriptCommandManager;
 	}
 
 	public List<Element> getCommandListItems(final String senderJid, final String toJid) {
@@ -58,9 +63,14 @@ public class AdHocConfigCommandModule extends AbstractModule {
 						command.getNode(), command.getName() }));
 			}
 		}
+		
+		List<Element> scriptCommandsList = scriptCommandManager.getCommandListItems(senderJid, toJid);
+		if (scriptCommandsList != null) {
+			commandsList.addAll(scriptCommandsList);
+		}
 		return commandsList;
 	}
-
+	
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/commands" };
@@ -73,11 +83,17 @@ public class AdHocConfigCommandModule extends AbstractModule {
 
 	@Override
 	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
-		try {
-			List<Packet> result = makeArray(this.commandsManager.process(packet));
-			return result;
-		} catch (AdHocCommandException e) {
-			throw new PubSubException(e.getErrorCondition(), e.getMessage());
+		String node = packet.getAttributeStaticStr(COMMAND_PATH, "node");
+		if (commandsManager.hasCommand(node)) {
+			try {
+				List<Packet> result = makeArray(this.commandsManager.process(packet));
+				return result;
+			} catch (AdHocCommandException e) {
+				throw new PubSubException(e.getErrorCondition(), e.getMessage());
+			}
+		}
+		else {
+			return scriptCommandManager.process(packet);
 		}
 	}
 

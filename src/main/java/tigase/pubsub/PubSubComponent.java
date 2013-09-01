@@ -26,6 +26,7 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.ArrayDeque;
 import tigase.conf.Configurable;
 
 import tigase.criteria.Criteria;
@@ -103,7 +104,11 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import javax.script.Bindings;
+import tigase.adhoc.AdHocScriptCommandManager;
+import tigase.server.Command;
 import tigase.xmpp.BareJID;
 
 /**
@@ -119,6 +124,8 @@ public class PubSubComponent
 	/** Field description */
 	public static final String ADMINS_KEY = "admin";
 
+	private static final String COMPONENT = "component";
+	
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 
@@ -215,6 +222,8 @@ public class PubSubComponent
 	/** Field description */
 	protected RetrieveItemsModule retrirveItemsModule;
 
+	protected AdHocScriptCommandManager scriptCommandManager;
+	
 	/** Field description */
 	protected ServiceEntity serviceEntity;
 
@@ -263,6 +272,7 @@ public class PubSubComponent
 				}
 			}
 		};
+		this.scriptCommandManager = new AdHocScriptCommandManagerImpl(this);
 	}
 
 	//~--- methods --------------------------------------------------------------
@@ -552,7 +562,7 @@ public class PubSubComponent
 						this.pubsubRepository, this.publishNodeModule));
 		registerModule(new JabberVersionModule());
 		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(this.config,
-						this.pubsubRepository));
+						this.pubsubRepository, this.scriptCommandManager));		
 		registerModule(new DiscoverInfoModule(this.config, this.pubsubRepository,
 						this.modules));
 		registerModule(new DiscoverItemsModule(this.config, this.pubsubRepository,
@@ -566,6 +576,12 @@ public class PubSubComponent
 	// ~--- set methods
 	// ----------------------------------------------------------
 
+	@Override
+	public void initBindings(Bindings binds) {
+		super.initBindings(binds); //To change body of generated methods, choose Tools | Templates.
+		binds.put(COMPONENT, this);
+	}
+	
 	/**
 	 * Method description
 	 *
@@ -916,6 +932,37 @@ public class PubSubComponent
 			}
 		}
 		log.config("Supported features: " + sb.toString());
+	}
+	
+	private class AdHocScriptCommandManagerImpl implements AdHocScriptCommandManager {
+
+		private final PubSubComponent component;
+		
+		public AdHocScriptCommandManagerImpl(PubSubComponent component) {
+			this.component = component;
+		}
+		
+		@Override
+		public List<Element> getCommandListItems(String senderJid, String toJid) {
+			try {
+				return component.getScriptItems(Command.XMLNS, JID.jidInstance(toJid), JID.jidInstance(senderJid));
+			} catch (TigaseStringprepException ex) {
+				log.warning("could not process jid, should not happend...");
+				return null;
+			}
+		}
+
+		@Override
+		public List<Packet> process(Packet packet) {
+			Queue<Packet> results = new ArrayDeque<Packet>();
+			
+			if (component.processScriptCommand(packet, results)) {
+				return new ArrayList<Packet>(results);
+			}
+			
+			return null;
+		}
+		
 	}
 }
 
