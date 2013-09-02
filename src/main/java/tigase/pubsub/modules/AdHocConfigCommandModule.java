@@ -28,6 +28,7 @@ import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocCommandManager;
 import tigase.component.PacketWriter;
+import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;
@@ -43,10 +44,15 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("command", "http://jabber.org/protocol/commands"));
 
+	private static final String[] COMMAND_PATH = { "iq", "command" };
+	
 	private final AdHocCommandManager commandsManager = new AdHocCommandManager();
+	private AdHocScriptCommandManager scriptCommandManager;
 
-	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			AdHocScriptCommandManager scriptCommandManager) {
 		super(config, pubsubRepository, packetWriter);
+		this.scriptCommandManager = scriptCommandManager;
 	}
 
 	public List<Element> getCommandListItems(final String senderJid, final String toJid) {
@@ -57,9 +63,14 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 						command.getNode(), command.getName() }));
 			}
 		}
+		
+		List<Element> scriptCommandsList = scriptCommandManager.getCommandListItems(senderJid, toJid);
+		if (scriptCommandsList != null) {
+			commandsList.addAll(scriptCommandsList);
+		}
 		return commandsList;
 	}
-
+	
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/commands" };
@@ -72,11 +83,16 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 
 	@Override
 	public void process(Packet packet) throws PubSubException {
-		try {
-			Packet result = this.commandsManager.process(packet);
-			packetWriter.write(result);
-		} catch (AdHocCommandException e) {
-			throw new PubSubException(e.getErrorCondition(), e.getMessage(), e);
+		String node = packet.getAttributeStaticStr(COMMAND_PATH, "node");
+		if (commandsManager.hasCommand(node)) {
+			try {
+				packetWriter.write(this.commandsManager.process(packet));
+			} catch (AdHocCommandException e) {
+				throw new PubSubException(e.getErrorCondition(), e.getMessage());
+			}
+		}
+		else {
+			packetWriter.write(scriptCommandManager.process(packet));
 		}
 	}
 

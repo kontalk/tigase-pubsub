@@ -51,6 +51,17 @@ public class AdHocCommandManager {
 	}
 
 	/**
+	 * Method checks if exists implementation for this command in this 
+	 * CommandManager
+	 * 
+	 * @param node
+	 * @return true - if command exists for this node
+	 */
+	public boolean hasCommand(String node) {
+		return this.commands.containsKey(node);
+	}
+	
+	/**
 	 * Method description
 	 * 
 	 * 

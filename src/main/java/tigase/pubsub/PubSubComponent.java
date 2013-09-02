@@ -27,6 +27,10 @@ import java.util.logging.Level;
 
 import tigase.component.AbstractComponent;
 import tigase.component.PacketWriter;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
 import tigase.conf.Configurable;
 import tigase.db.UserRepository;
 import tigase.pubsub.modules.AdHocConfigCommandModule;
@@ -54,6 +58,14 @@ import tigase.pubsub.modules.XsltTool;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.DisableDisco;
 
+import javax.script.Bindings;
+import tigase.adhoc.AdHocScriptCommandManager;
+import tigase.server.Command;
+import tigase.server.Packet;
+import tigase.util.TigaseStringprepException;
+import tigase.xml.Element;
+import tigase.xmpp.JID;
+
 /**
  * Class description
  * 
@@ -64,6 +76,9 @@ import tigase.server.DisableDisco;
 public class PubSubComponent extends AbstractComponent<PubSubConfig> implements Configurable, DisableDisco,
 		DefaultNodeConfigListener {
 
+	private static final String COMPONENT = "component";
+	
+	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 	private AdHocConfigCommandModule adHocCommandsModule;
 	private DefaultConfigModule defaultConfigModule;
@@ -81,12 +96,23 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	private RetractItemModule retractItemModule;
 	private RetrieveItemsModule retrirveItemsModule;
 	private SubscribeNodeModule subscribeNodeModule;
-
 	private UnsubscribeNodeModule unsubscribeNodeModule;
 
 	protected UserRepository userRepository;
+	private AdHocScriptCommandManager scriptCommandManager;
 
 	private XsltTool xslTransformer;
+	private Integer maxRepositoryCacheSize;
+
+	//~--- constructors ---------------------------------------------------------
+
+	/**
+	 * Constructs ...
+	 *
+	 */
+	public PubSubComponent() {
+		this.scriptCommandManager = new AdHocScriptCommandManagerImpl(this);
+	}
 
 	@Override
 	protected PubSubConfig createComponentConfigInstance(AbstractComponent<?> abstractComponent) {
@@ -126,14 +152,38 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		this.purgeItemsModule = registerModule(new PurgeItemsModule(componentConfig, this.pubsubRepository, writer,
 				this.publishNodeModule));
 		registerModule(new JabberVersionModule(componentConfig, pubsubRepository, writer));
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, this.pubsubRepository, writer));
+		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, this.pubsubRepository, writer, scriptCommandManager));
 		registerModule(new DiscoverInfoModule(componentConfig, this.pubsubRepository, writer, modulesManager));
 		registerModule(new DiscoverItemsModule(componentConfig, this.pubsubRepository, writer, this.adHocCommandsModule));
 		registerModule(new RetrieveAffiliationsModule(componentConfig, this.pubsubRepository, writer));
 		registerModule(new RetrieveSubscriptionsModule(componentConfig, this.pubsubRepository, writer));
 		registerModule(new XmppPingModule(componentConfig, pubsubRepository, writer));
-
 		this.pubsubRepository.init();
+	}
+
+	// ~--- set methods
+	// ----------------------------------------------------------
+
+	@Override
+	public void initBindings(Bindings binds) {
+		super.initBindings(binds); //To change body of generated methods, choose Tools | Templates.
+		binds.put(COMPONENT, this);
+	}
+	
+	//~--- get methods ----------------------------------------------------------
+
+	// ~--- methods
+	// --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
+	@Override
+	public boolean isSubdomain() {
+		return true;
 	}
 
 	@Override
@@ -151,5 +201,36 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		super.setProperties(props);
 
 		init();
+	}
+	
+	private class AdHocScriptCommandManagerImpl implements AdHocScriptCommandManager {
+
+		private final PubSubComponent component;
+		
+		public AdHocScriptCommandManagerImpl(PubSubComponent component) {
+			this.component = component;
+		}
+		
+		@Override
+		public List<Element> getCommandListItems(String senderJid, String toJid) {
+			try {
+				return component.getScriptItems(Command.XMLNS, JID.jidInstance(toJid), JID.jidInstance(senderJid));
+			} catch (TigaseStringprepException ex) {
+				log.warning("could not process jid, should not happend...");
+				return null;
+			}
+		}
+
+		@Override
+		public List<Packet> process(Packet packet) {
+			Queue<Packet> results = new ArrayDeque<Packet>();
+			
+			if (component.processScriptCommand(packet, results)) {
+				return new ArrayList<Packet>(results);
+			}
+			
+			return null;
+		}
+		
 	}
 }
