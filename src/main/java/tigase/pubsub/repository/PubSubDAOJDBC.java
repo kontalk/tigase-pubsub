@@ -147,7 +147,16 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				create_node_sp.setInt(3, nodeType.ordinal());
 				create_node_sp.setString(4, ownerJid.toString());
 				create_node_sp.setString(5, serializedNodeConfig);
+
+				if ( db_conn != null ){
+					if ( db_conn.contains( "mysql" ) ){
 				rs = create_node_sp.executeQuery();
+			}
+					if ( db_conn.contains( "sqlserver" ) ){
+						create_node_sp.executeUpdate();
+						rs = create_node_sp.getGeneratedKeys();
+					}
+				}
 			}
 		} catch (SQLIntegrityConstraintViolationException e) {
 			throw new RepositoryException("Error while adding node to repository, already exists?", e);
@@ -525,7 +534,15 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				set_node_affiliations_sp.setString(1, serviceJid.toString());
 				set_node_affiliations_sp.setString(2, nodeName);
 				set_node_affiliations_sp.setString(3, serializedData);
+				if ( db_conn != null ){
+					if ( db_conn.contains( "mysql" ) ){
 				rs = set_node_affiliations_sp.executeQuery();
+			}
+					if ( db_conn.contains( "sqlserver" ) ){
+						set_node_affiliations_sp.executeUpdate();
+						rs = set_node_affiliations_sp.getGeneratedKeys();
+					}
+				}
 			}
 		} catch (SQLException e) {
 			throw new RepositoryException("Node subscribers writing error", e);
@@ -544,7 +561,15 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				set_node_configuration_sp.setString(1, serviceJid.toString());
 				set_node_configuration_sp.setString(1, nodeName);
 				set_node_configuration_sp.setString(2, serializedData);
+				if ( db_conn != null ){
+					if ( db_conn.contains( "mysql" ) ){
 				rs = set_node_configuration_sp.executeQuery();
+			}
+					if ( db_conn.contains( "sqlserver" ) ){
+						set_node_configuration_sp.executeUpdate();
+						rs = set_node_configuration_sp.getGeneratedKeys();
+					}
+				}
 			}
 		} catch (SQLException e) {
 			throw new RepositoryException("Node configuration writing error", e);
@@ -564,7 +589,15 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				set_node_subscriptions_sp.setString(2, nodeName);
 				set_node_subscriptions_sp.setInt(3, changedIndex);
 				set_node_subscriptions_sp.setString(4, serializedData);
+				if ( db_conn != null ){
+					if ( db_conn.contains( "mysql" ) ){
 				rs = set_node_subscriptions_sp.executeQuery();
+			}
+					if ( db_conn.contains( "sqlserver" ) ){
+						set_node_subscriptions_sp.executeUpdate();
+						rs = set_node_subscriptions_sp.getGeneratedKeys();
+					}
+				}
 			}
 		} catch (SQLException e) {
 			throw new RepositoryException("Node subscribers writing error", e);
@@ -585,7 +618,15 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				write_item_sp.setString(3, id);
 				write_item_sp.setString(4, publisher);
 				write_item_sp.setString(5, item.toString());
+				if ( db_conn != null ){
+					if ( db_conn.contains( "mysql" ) ){
 				rs = write_item_sp.executeQuery();
+			}
+					if ( db_conn.contains( "sqlserver" ) ){
+						write_item_sp.executeUpdate();
+						rs = write_item_sp.getGeneratedKeys();
+					}
+				}
 			}
 		} catch (SQLException e) {
 			throw new RepositoryException("Item writing error", e);
