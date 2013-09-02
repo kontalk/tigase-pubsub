@@ -20,94 +20,54 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
-
-//~--- non-JDK imports --------------------------------------------------------
-
-import tigase.criteria.Criteria;
-import tigase.criteria.ElementCriteria;
-
-import tigase.form.Field;
-import tigase.form.Form;
-
-import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.Affiliation;
-import tigase.pubsub.CollectionNodeConfig;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubErrorCondition;
-import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.stateless.UsersAffiliation;
-
-import tigase.util.JIDUtils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+
+import tigase.criteria.Criteria;
+import tigase.criteria.ElementCriteria;
+import tigase.form.Field;
+import tigase.form.Form;
+import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
+import tigase.pubsub.CollectionNodeConfig;
+import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PacketWriter;
+import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.exceptions.PubSubErrorCondition;
+import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
+import tigase.util.JIDUtils;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.StanzaType;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
+ * @version Enter version here..., 13/02/20
+ * @author Enter your name here...
  */
-public class NodeConfigModule
-				extends AbstractConfigCreateNode {
-	private static final Criteria CRIT_CONFIG =
-		ElementCriteria.name("iq").add(ElementCriteria.name("pubsub",
-			"http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("configure"));
-
-	//~--- fields ---------------------------------------------------------------
-
-	private final ArrayList<NodeConfigListener> nodeConfigListeners =
-		new ArrayList<NodeConfigListener>();
-	private final PublishItemModule publishModule;
-
-	//~--- constructors ---------------------------------------------------------
-
-	/**
-	 * Constructs ...
-	 *
-	 *
-	 * @param config
-	 * @param pubsubRepository
-	 * @param defaultNodeConfig
-	 * @param publishItemModule
-	 */
-	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-													LeafNodeConfig defaultNodeConfig,
-													PublishItemModule publishItemModule) {
-		super(config, pubsubRepository, defaultNodeConfig);
-		this.publishModule = publishItemModule;
-	}
-
-	//~--- methods --------------------------------------------------------------
+public class NodeConfigModule extends AbstractConfigCreateNode {
+	private static final Criteria CRIT_CONFIG = ElementCriteria.name("iq").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("configure"));
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param a
 	 * @param b
-	 *
+	 * 
 	 * @return
 	 */
 	protected static String[] diff(String[] a, String[] b) {
@@ -128,22 +88,21 @@ public class NodeConfigModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param conf
 	 * @param configure
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
-	public static void parseConf(final AbstractNodeConfig conf, final Element configure)
-					throws PubSubException {
+	public static void parseConf(final AbstractNodeConfig conf, final Element configure) throws PubSubException {
 		Element x = configure.getChild("x", "jabber:x:data");
-		Form foo  = new Form(x);
+		Form foo = new Form(x);
 
 		if ((x != null) && "submit".equals(x.getAttributeStaticStr("type"))) {
 			for (Field field : conf.getForm().getAllFields()) {
 				final String var = field.getVar();
-				Field cf         = foo.get(var);
+				Field cf = foo.get(var);
 
 				if (cf != null) {
 					field.setValues(cf.getValues());
@@ -152,42 +111,55 @@ public class NodeConfigModule
 		}
 	}
 
+	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
+
+	private final PublishItemModule publishModule;
+
+	/**
+	 * Constructs ...
+	 * 
+	 * 
+	 * @param config
+	 * @param pubsubRepository
+	 * @param defaultNodeConfig
+	 * @param publishItemModule
+	 */
+	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+			PublishItemModule publishItemModule) {
+		super(config, pubsubRepository, defaultNodeConfig);
+		this.publishModule = publishItemModule;
+	}
+
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param listener
 	 */
 	public void addNodeConfigListener(NodeConfigListener listener) {
 		this.nodeConfigListeners.add(listener);
 	}
 
-	private Element createAssociateNotification(final String collectionNodeName,
-					String associatedNodeName) {
-		Element colE = new Element("collection", new String[] { "node" },
-															 new String[] { collectionNodeName });
+	private Element createAssociateNotification(final String collectionNodeName, String associatedNodeName) {
+		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
 
-		colE.addChild(new Element("associate", new String[] { "node" },
-															new String[] { associatedNodeName }));
+		colE.addChild(new Element("associate", new String[] { "node" }, new String[] { associatedNodeName }));
 
 		return colE;
 	}
 
-	private Element createDisassociateNotification(final String collectionNodeName,
-					String disassociatedNodeName) {
-		Element colE = new Element("collection", new String[] { "node" },
-															 new String[] { collectionNodeName });
+	private Element createDisassociateNotification(final String collectionNodeName, String disassociatedNodeName) {
+		Element colE = new Element("collection", new String[] { "node" }, new String[] { collectionNodeName });
 
-		colE.addChild(new Element("disassociate", new String[] { "node" },
-															new String[] { disassociatedNodeName }));
+		colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { disassociatedNodeName }));
 
 		return colE;
 	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
 	 */
 	protected void fireOnNodeConfigChange(final String nodeName) {
@@ -196,12 +168,10 @@ public class NodeConfigModule
 		}
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -211,8 +181,8 @@ public class NodeConfigModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -222,11 +192,11 @@ public class NodeConfigModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param node
 	 * @param children
-	 *
+	 * 
 	 * @return
 	 */
 	protected boolean isIn(String node, String[] children) {
@@ -242,35 +212,30 @@ public class NodeConfigModule
 		return false;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
 		try {
 			final BareJID toJid = packet.getStanzaTo().getBareJID();
 			final Element element = packet.getElement();
-			final Element pubSub = element.getChild("pubsub",
-															 "http://jabber.org/protocol/pubsub#owner");
+			final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub#owner");
 			final Element configure = pubSub.getChild("configure");
-			final String nodeName   = configure.getAttributeStaticStr("node");
-			final StanzaType type   = packet.getType();
-			final String id         = element.getAttributeStaticStr("id");
+			final String nodeName = configure.getAttributeStaticStr("node");
+			final StanzaType type = packet.getType();
+			final String id = element.getAttributeStaticStr("id");
 
 			if (nodeName == null) {
-				throw new PubSubException(element, Authorization.BAD_REQUEST,
-																	PubSubErrorCondition.NODEID_REQUIRED);
+				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
 			}
 
 			final AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
@@ -279,13 +244,11 @@ public class NodeConfigModule
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			final IAffiliations nodeAffiliations =
-				this.repository.getNodeAffiliations(toJid, nodeName);
+			final IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(toJid, nodeName);
 			String jid = element.getAttributeStaticStr("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				UsersAffiliation senderAffiliation =
-					nodeAffiliations.getSubscriberAffiliation(jid);
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
@@ -294,103 +257,80 @@ public class NodeConfigModule
 
 			// TODO 8.2.3.4 No Configuration Options
 
-			//final Element result             = createResultIQ(element);
-			final Packet result             = packet.okResult((Element) null, 0);
-			final List<Packet> resultArray  = makeArray(result);
+			// final Element result = createResultIQ(element);
+			final Packet result = packet.okResult((Element) null, 0);
+			final List<Packet> resultArray = makeArray(result);
 			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(toJid, nodeName);
 
 			if (type == StanzaType.get) {
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
-																			new String[] {
-																				"http://jabber.org/protocol/pubsub#owner" });
-				Element rConfigure = new Element("configure", new String[] { "node" },
-																				 new String[] { nodeName });
+						new String[] { "http://jabber.org/protocol/pubsub#owner" });
+				Element rConfigure = new Element("configure", new String[] { "node" }, new String[] { nodeName });
 				Element f = nodeConfig.getFormElement();
 
 				rConfigure.addChild(f);
 				rPubSub.addChild(rConfigure);
 				result.getElement().addChild(rPubSub);
 			} else if (type == StanzaType.set) {
-				String[] children = (nodeConfig.getChildren() == null)
-														? new String[] {}
-														: Arrays.copyOf(nodeConfig.getChildren(),
-															nodeConfig.getChildren().length);
-				final String collectionOld = (nodeConfig.getCollection() == null)
-																		 ? ""
-																		 : nodeConfig.getCollection();
+				String[] children = (nodeConfig.getChildren() == null) ? new String[] {} : Arrays.copyOf(
+						nodeConfig.getChildren(), nodeConfig.getChildren().length);
+				final String collectionOld = (nodeConfig.getCollection() == null) ? "" : nodeConfig.getCollection();
 
 				parseConf(nodeConfig, configure);
 				if (!collectionOld.equals(nodeConfig.getCollection())) {
 					if (collectionOld.equals("")) {
-						AbstractNodeConfig colNodeConfig =
-							repository.getNodeConfig(toJid, nodeConfig.getCollection());
+						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(toJid, nodeConfig.getCollection());
 
 						if (colNodeConfig == null) {
-							throw new PubSubException(Authorization.ITEM_NOT_FOUND,
-																				"(#1) Node '" + nodeConfig.getCollection() +
-																				"' doesn't exists");
+							throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#1) Node '" + nodeConfig.getCollection()
+									+ "' doesn't exists");
 						}
 						if (!(colNodeConfig instanceof CollectionNodeConfig)) {
-							throw new PubSubException(Authorization.NOT_ALLOWED,
-																				"(#1) Node '" + nodeConfig.getCollection() +
-																				"' is not collection node");
+							throw new PubSubException(Authorization.NOT_ALLOWED, "(#1) Node '" + nodeConfig.getCollection()
+									+ "' is not collection node");
 						}
 						((CollectionNodeConfig) colNodeConfig).addChildren(nodeName);
 						repository.update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
 						repository.removeFromRootCollection(toJid, nodeName);
 
-						IAffiliations colNodeAffiliations =
-							repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
-						ISubscriptions colNodeSubscriptions =
-							repository.getNodeSubscriptions(toJid, colNodeConfig.getNodeName());
-						Element associateNotification =
-							createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
+						IAffiliations colNodeAffiliations = repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
+						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(toJid,
+								colNodeConfig.getNodeName());
+						Element associateNotification = createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
 
-						resultArray.addAll(publishModule.prepareNotification(associateNotification,
-										packet.getStanzaTo(), nodeName, nodeConfig,
-										colNodeAffiliations, colNodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, packet.getStanzaTo(),
+								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 					}
 					if (nodeConfig.getCollection().equals("")) {
 						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(toJid, collectionOld);
 
-						if ((colNodeConfig != null) &&
-								(colNodeConfig instanceof CollectionNodeConfig)) {
+						if ((colNodeConfig != null) && (colNodeConfig instanceof CollectionNodeConfig)) {
 							((CollectionNodeConfig) colNodeConfig).removeChildren(nodeName);
 							repository.update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
 						}
 						repository.addToRootCollection(toJid, nodeName);
 
-						IAffiliations colNodeAffiliations =
-							repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
-						ISubscriptions colNodeSubscriptions =
-							repository.getNodeSubscriptions(toJid, colNodeConfig.getNodeName());
-						Element disassociateNotification =
-							createDisassociateNotification(collectionOld, nodeName);
+						IAffiliations colNodeAffiliations = repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
+						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(toJid,
+								colNodeConfig.getNodeName());
+						Element disassociateNotification = createDisassociateNotification(collectionOld, nodeName);
 
-						resultArray.addAll(
-								publishModule.prepareNotification(
-									disassociateNotification, packet.getStanzaTo(),
-									nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(disassociateNotification, packet.getStanzaTo(),
+								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 					}
 				}
 				if (nodeConfig instanceof CollectionNodeConfig) {
-					final String[] removedChildNodes = diff((children == null)
-									? new String[] {}
-									: children, (nodeConfig.getChildren() == null)
-															? new String[] {}
-															: nodeConfig.getChildren());
-					final String[] addedChildNodes = diff((nodeConfig.getChildren() == null)
-									? new String[] {}
-									: nodeConfig.getChildren(), (children == null)
-									? new String[] {}
-									: children);
+					final String[] removedChildNodes = diff((children == null) ? new String[] {} : children,
+							(nodeConfig.getChildren() == null) ? new String[] {} : nodeConfig.getChildren());
+					final String[] addedChildNodes = diff(
+							(nodeConfig.getChildren() == null) ? new String[] {} : nodeConfig.getChildren(),
+							(children == null) ? new String[] {} : children);
 
 					for (String ann : addedChildNodes) {
 						AbstractNodeConfig nc = repository.getNodeConfig(toJid, ann);
 
 						if (nc == null) {
-							throw new PubSubException(Authorization.ITEM_NOT_FOUND,
-																				"(#2) Node '" + ann + "' doesn't exists");
+							throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#2) Node '" + ann + "' doesn't exists");
 						}
 						if (nc.getCollection().equals("")) {
 							repository.removeFromRootCollection(toJid, nc.getNodeName());
@@ -398,14 +338,12 @@ public class NodeConfigModule
 							AbstractNodeConfig cnc = repository.getNodeConfig(toJid, nc.getCollection());
 
 							if (cnc == null) {
-								throw new PubSubException(Authorization.ITEM_NOT_FOUND,
-																					"(#3) Node '" + nc.getCollection() +
-																					"' doesn't exists");
+								throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#3) Node '" + nc.getCollection()
+										+ "' doesn't exists");
 							}
 							if (!(cnc instanceof CollectionNodeConfig)) {
-								throw new PubSubException(Authorization.NOT_ALLOWED,
-																					"(#2) Node '" + nc.getCollection() +
-																					"' is not collection node");
+								throw new PubSubException(Authorization.NOT_ALLOWED, "(#2) Node '" + nc.getCollection()
+										+ "' is not collection node");
 							}
 							((CollectionNodeConfig) cnc).removeChildren(nc.getNodeName());
 							repository.update(toJid, cnc.getNodeName(), cnc);
@@ -415,9 +353,8 @@ public class NodeConfigModule
 
 						Element associateNotification = createAssociateNotification(nodeName, ann);
 
-						resultArray.addAll(publishModule.prepareNotification(associateNotification,
-										packet.getStanzaTo(), nodeName, nodeConfig,
-										nodeAffiliations, nodeSubscriptions));
+						resultArray.addAll(publishModule.prepareNotification(associateNotification, packet.getStanzaTo(),
+								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 					}
 					for (String rnn : removedChildNodes) {
 						AbstractNodeConfig nc = repository.getNodeConfig(toJid, rnn);
@@ -427,23 +364,19 @@ public class NodeConfigModule
 							repository.update(toJid, nc.getNodeName(), nc);
 						}
 						if ((rnn != null) && (rnn.length() != 0)) {
-							Element disassociateNotification = createDisassociateNotification(nodeName,
-																									 rnn);
+							Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
 
-							resultArray.addAll(
-									publishModule.prepareNotification(
-										disassociateNotification, packet.getStanzaTo(),
-										nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+							resultArray.addAll(publishModule.prepareNotification(disassociateNotification,
+									packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 						}
 					}
 				}
 				repository.update(toJid, nodeName, nodeConfig);
 				if (nodeConfig.isNotify_config()) {
-					Element configuration = new Element("configuration", new String[] { "node" },
-																		new String[] { nodeName });
+					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
 
-					resultArray.addAll(this.publishModule.prepareNotification(configuration,
-									packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+					resultArray.addAll(this.publishModule.prepareNotification(configuration, packet.getStanzaTo(), nodeName,
+							nodeConfig, nodeAffiliations, nodeSubscriptions));
 				}
 			} else {
 				throw new PubSubException(element, Authorization.BAD_REQUEST);
@@ -461,14 +394,11 @@ public class NodeConfigModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param listener
 	 */
 	public void removeNodeConfigListener(NodeConfigListener listener) {
 		this.nodeConfigListeners.remove(listener);
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

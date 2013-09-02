@@ -1,7 +1,5 @@
 package tigase.pubsub.repository.cached;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,8 +26,6 @@ import tigase.pubsub.utils.FragmentedMap;
 import tigase.stats.StatisticsList;
 import tigase.xmpp.BareJID;
 
-//~--- classes ----------------------------------------------------------------
-
 /**
  * Class description
  * 
@@ -42,18 +38,12 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private class LazyWriteThread implements Runnable {
 		private boolean stop = false;
 
-		// ~--- constructors
-		// -------------------------------------------------------
-
 		/**
 		 * Constructs ...
 		 * 
 		 */
 		public LazyWriteThread() {
 		}
-
-		// ~--- methods
-		// ------------------------------------------------------------
 
 		/**
 		 * Method description
@@ -164,9 +154,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		}
 	}
 
-	// ~--- fields
-	// ---------------------------------------------------------------
-
 	private class NodeComparator implements Comparator<Node> {
 
 		/**
@@ -195,13 +182,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private class SizedCache extends LinkedHashMap<String, Node> {
 		private static final long serialVersionUID = 1L;
 
-		// ~--- fields
-		// -------------------------------------------------------------
-
 		private int maxCacheSize = 1000;
-
-		// ~--- constructors
-		// -------------------------------------------------------
 
 		/**
 		 * Constructs ...
@@ -213,9 +194,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			super(maxSize, 0.1f, true);
 			maxCacheSize = maxSize;
 		}
-
-		// ~--- methods
-		// ------------------------------------------------------------
 
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<String, Node> eldest) {
@@ -238,15 +216,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private final Set<String> rootCollection = new HashSet<String>();
 	private LazyWriteThread tlazyWriteThread;
 
-	// ~--- constructors
-	// ---------------------------------------------------------
-
 	// private final Object writeThreadMutex = new Object();
 
 	private long updateSubscriptionsCalled = 0;
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	private long writingTime = 0;
 
@@ -386,8 +358,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException {
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException {
 		long start = System.currentTimeMillis();
 
 		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
@@ -436,9 +408,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		this.nodes.remove(nodeName);
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -595,9 +564,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		return new Items(nodeName, this.dao);
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -675,17 +641,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		log.config("Cached PubSubRepository initialising...");
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	private LazyWriteThread makeLazyWriteThread(final boolean immediatelly) {
 
 		// Thread.dumpStack();
 		return new LazyWriteThread();
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -701,9 +661,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		dao.removeFromRootCollection(nodeName);
 		rootCollection.remove(nodeName);
 	}
-
-	// ~--- inner classes
-	// --------------------------------------------------------
 
 	/**
 	 * Method description
@@ -804,7 +761,3 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		}
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

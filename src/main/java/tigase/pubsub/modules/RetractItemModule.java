@@ -20,84 +20,61 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubErrorCondition;
-import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
+import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.exceptions.PubSubErrorCondition;
+import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
+ * @version Enter version here..., 13/02/20
+ * @author Enter your name here...
  */
-public class RetractItemModule
-				extends AbstractModule {
-	private static final Criteria CRIT_RETRACT =
-		ElementCriteria.nameType("iq", "set").add(
-				ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(
-				ElementCriteria.name("retract"));
-
-	//~--- fields ---------------------------------------------------------------
+public class RetractItemModule extends AbstractModule {
+	private static final Criteria CRIT_RETRACT = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("retract"));
 
 	private final PublishItemModule publishModule;
 
-	//~--- constructors ---------------------------------------------------------
-
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 * @param publishItemModule
 	 */
-	public RetractItemModule(final PubSubConfig config,
-													 final IPubSubRepository pubsubRepository,
-													 final PublishItemModule publishItemModule) {
+	public RetractItemModule(final PubSubConfig config, final IPubSubRepository pubsubRepository,
+			final PublishItemModule publishItemModule) {
 		super(config, pubsubRepository);
 		this.publishModule = publishItemModule;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
-	private Element createNotification(final LeafNodeConfig config,
-																		 final List<String> itemsToSend,
-																		 final String nodeName) {
-		Element items = new Element("items", new String[] { "node" },
-																new String[] { nodeName });
+	private Element createNotification(final LeafNodeConfig config, final List<String> itemsToSend, final String nodeName) {
+		Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
 
 		for (String id : itemsToSend) {
 			items.addChild(new Element("retract", new String[] { "id" }, new String[] { id }));
@@ -106,12 +83,10 @@ public class RetractItemModule
 		return items;
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -121,8 +96,8 @@ public class RetractItemModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -130,32 +105,27 @@ public class RetractItemModule
 		return CRIT_RETRACT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
-		final BareJID toJid  = packet.getStanzaTo().getBareJID();
-		final Element pubSub = packet.getElement().getChild("pubsub",
-														 "http://jabber.org/protocol/pubsub");
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+		final BareJID toJid = packet.getStanzaTo().getBareJID();
+		final Element pubSub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element retract = pubSub.getChild("retract");
 		final String nodeName = retract.getAttributeStaticStr("node");
 
 		try {
 			if (nodeName == null) {
-				throw new PubSubException(Authorization.BAD_REQUEST,
-																	PubSubErrorCondition.NODE_REQUIRED);
+				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
 
 			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
@@ -163,14 +133,12 @@ public class RetractItemModule
 			if (nodeConfig == null) {
 				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
 			} else if (nodeConfig.getNodeType() == NodeType.collection) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-																	new PubSubErrorCondition("unsupported",
-																		"retract-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"retract-items"));
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation affiliation   =
-				nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().toString());
+			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().toString());
 
 			if (!affiliation.getAffiliation().isDeleteItem()) {
 				throw new PubSubException(Authorization.FORBIDDEN);
@@ -179,9 +147,8 @@ public class RetractItemModule
 			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 
 			if (!leafNodeConfig.isPersistItem()) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-																	new PubSubErrorCondition("unsupported",
-																		"persistent-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"persistent-items"));
 			}
 
 			List<String> itemsToDelete = new ArrayList<String>();
@@ -193,13 +160,11 @@ public class RetractItemModule
 					if (n != null) {
 						itemsToDelete.add(n);
 					} else {
-						throw new PubSubException(Authorization.BAD_REQUEST,
-																			PubSubErrorCondition.ITEM_REQUIRED);
+						throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.ITEM_REQUIRED);
 					}
 				}
 			} else {
-				throw new PubSubException(Authorization.BAD_REQUEST,
-																	PubSubErrorCondition.ITEM_REQUIRED);
+				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.ITEM_REQUIRED);
 			}
 
 			List<Packet> result = new ArrayList<Packet>();
@@ -207,18 +172,16 @@ public class RetractItemModule
 			result.add(packet.okResult((Element) null, 0));
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
-			IItems nodeItems                 = this.repository.getNodeItems(toJid, nodeName);
+			IItems nodeItems = this.repository.getNodeItems(toJid, nodeName);
 
 			for (String id : itemsToDelete) {
 				Date date = nodeItems.getItemCreationDate(id);
 
 				if (date != null) {
-					Element notification = createNotification(leafNodeConfig, itemsToDelete,
-																	 nodeName);
+					Element notification = createNotification(leafNodeConfig, itemsToDelete, nodeName);
 
-					result.addAll(publishModule.prepareNotification(notification,
-									packet.getStanzaTo(), nodeName, nodeConfig,
-									nodeAffiliations, nodeSubscriptions));
+					result.addAll(publishModule.prepareNotification(notification, packet.getStanzaTo(), nodeName, nodeConfig,
+							nodeAffiliations, nodeSubscriptions));
 					nodeItems.deleteItem(id);
 				}
 			}
@@ -233,6 +196,3 @@ public class RetractItemModule
 		}
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

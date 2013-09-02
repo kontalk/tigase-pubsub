@@ -20,88 +20,65 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
-
-//~--- non-JDK imports --------------------------------------------------------
-
-import tigase.criteria.Criteria;
-import tigase.criteria.ElementCriteria;
-
-import tigase.form.Form;
-
-import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.Affiliation;
-import tigase.pubsub.CollectionNodeConfig;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.NodeType;
-import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.Subscription;
-
-import tigase.util.JIDUtils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import tigase.criteria.Criteria;
+import tigase.criteria.ElementCriteria;
+import tigase.form.Form;
+import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
+import tigase.pubsub.CollectionNodeConfig;
+import tigase.pubsub.LeafNodeConfig;
+import tigase.pubsub.NodeType;
 import tigase.pubsub.PacketWriter;
+import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IAffiliations;
+import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.server.Packet;
+import tigase.util.JIDUtils;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
 /**
  * Case 8.1.2
- *
+ * 
  * @author bmalkow
- *
+ * 
  */
-public class NodeCreateModule
-				extends AbstractConfigCreateNode {
-	private static final Criteria CRIT_CREATE =
-		ElementCriteria.nameType("iq", "set").add(
-				ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(
-				ElementCriteria.name("create"));
+public class NodeCreateModule extends AbstractConfigCreateNode {
+	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
-	//~--- fields ---------------------------------------------------------------
-
-	private final ArrayList<NodeConfigListener> nodeConfigListeners =
-		new ArrayList<NodeConfigListener>();
+	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
 	private final PublishItemModule publishModule;
-
-	//~--- constructors ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 * @param defaultNodeConfig
 	 * @param publishItemModule
 	 */
-	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-													LeafNodeConfig defaultNodeConfig,
-													PublishItemModule publishItemModule) {
+	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig defaultNodeConfig,
+			PublishItemModule publishItemModule) {
 		super(config, pubsubRepository, defaultNodeConfig);
 		this.publishModule = publishItemModule;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param listener
 	 */
 	public void addNodeConfigListener(NodeConfigListener listener) {
@@ -110,8 +87,8 @@ public class NodeCreateModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
 	 */
 	protected void fireOnNodeCreatedConfigChange(final String nodeName) {
@@ -120,34 +97,26 @@ public class NodeCreateModule
 		}
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
 	public String[] getFeatures() {
-		return new String[] {
-			"http://jabber.org/protocol/pubsub#create-and-configure",
-			"http://jabber.org/protocol/pubsub#collections",
-			"http://jabber.org/protocol/pubsub#create-nodes",
-			"http://jabber.org/protocol/pubsub#instant-nodes",
-			"http://jabber.org/protocol/pubsub#multi-collection",
-			"http://jabber.org/protocol/pubsub#access-authorize",
-			"http://jabber.org/protocol/pubsub#access-open",
-			"http://jabber.org/protocol/pubsub#access-presence",
-			"http://jabber.org/protocol/pubsub#access-roster",
-			"http://jabber.org/protocol/pubsub#access-whitelist",
-		};
+		return new String[] { "http://jabber.org/protocol/pubsub#create-and-configure",
+				"http://jabber.org/protocol/pubsub#collections", "http://jabber.org/protocol/pubsub#create-nodes",
+				"http://jabber.org/protocol/pubsub#instant-nodes", "http://jabber.org/protocol/pubsub#multi-collection",
+				"http://jabber.org/protocol/pubsub#access-authorize", "http://jabber.org/protocol/pubsub#access-open",
+				"http://jabber.org/protocol/pubsub#access-presence", "http://jabber.org/protocol/pubsub#access-roster",
+				"http://jabber.org/protocol/pubsub#access-whitelist", };
 	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -155,30 +124,26 @@ public class NodeCreateModule
 		return CRIT_CREATE;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
-		final long time1     = System.currentTimeMillis();
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
+		final long time1 = System.currentTimeMillis();
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element element = packet.getElement();
-		final Element pubSub = element.getChild("pubsub",
-														 "http://jabber.org/protocol/pubsub");
-		final Element create    = pubSub.getChild("create");
+		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
+		final Element create = pubSub.getChild("create");
 		final Element configure = pubSub.getChild("configure");
-		String nodeName         = create.getAttributeStaticStr("node");
+		String nodeName = create.getAttributeStaticStr("node");
 
 		try {
 			boolean instantNode = nodeName == null;
@@ -190,8 +155,8 @@ public class NodeCreateModule
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
 
-			NodeType nodeType             = NodeType.leaf;
-			String collection             = null;
+			NodeType nodeType = NodeType.leaf;
+			String collection = null;
 			AbstractNodeConfig nodeConfig = new LeafNodeConfig(nodeName, defaultNodeConfig);
 
 			if (configure != null) {
@@ -201,16 +166,14 @@ public class NodeCreateModule
 					for (Element field : x.getChildren()) {
 						if ("field".equals(field.getName())) {
 							final String var = field.getAttributeStaticStr("var");
-							String val       = null;
-							Element value    = field.getChild("value");
+							String val = null;
+							Element value = field.getChild("value");
 
 							if (value != null) {
 								val = value.getCData();
 							}
 							if ("pubsub#node_type".equals(var)) {
-								nodeType = (val == null)
-													 ? NodeType.leaf
-													 : NodeType.valueOf(val);
+								nodeType = (val == null) ? NodeType.leaf : NodeType.valueOf(val);
 							} else if ("pubsub#collection".equals(var)) {
 								collection = val;
 							}
@@ -242,19 +205,14 @@ public class NodeCreateModule
 			if ((nodeType != NodeType.leaf) && (nodeType != NodeType.collection)) {
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 			}
-			repository.createNode(toJid, nodeName,
-														JIDUtils.getNodeID(element.getAttributeStaticStr("from")),
-														nodeConfig, nodeType, (collection == null)
-							? ""
-							: collection);
+			repository.createNode(toJid, nodeName, JIDUtils.getNodeID(element.getAttributeStaticStr("from")), nodeConfig,
+					nodeType, (collection == null) ? "" : collection);
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
-			IAffiliations nodeaAffiliations  = repository.getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(toJid, nodeName);
 
-			nodeSubscriptions.addSubscriberJid(element.getAttributeStaticStr("from"),
-																				 Subscription.subscribed);
-			nodeaAffiliations.addAffiliation(element.getAttributeStaticStr("from"),
-																			 Affiliation.owner);
+			nodeSubscriptions.addSubscriberJid(element.getAttributeStaticStr("from"), Subscription.subscribed);
+			nodeaAffiliations.addAffiliation(element.getAttributeStaticStr("from"), Affiliation.owner);
 			repository.update(toJid, nodeName, nodeaAffiliations);
 			repository.update(toJid, nodeName, nodeSubscriptions);
 			if (colNodeConfig == null) {
@@ -268,24 +226,18 @@ public class NodeCreateModule
 			Packet result = packet.okResult((Element) null, 0);
 
 			if (collection != null) {
-				ISubscriptions colNodeSubscriptions =
-					this.repository.getNodeSubscriptions(toJid, collection);
-				IAffiliations colNodeAffiliations =
-					this.repository.getNodeAffiliations(toJid, collection);
-				Element colE = new Element("collection", new String[] { "node" },
-																	 new String[] { collection });
+				ISubscriptions colNodeSubscriptions = this.repository.getNodeSubscriptions(toJid, collection);
+				IAffiliations colNodeAffiliations = this.repository.getNodeAffiliations(toJid, collection);
+				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
 
-				colE.addChild(new Element("associate", new String[] { "node" },
-																	new String[] { nodeName }));
-				packetWriter.write(publishModule.prepareNotification(colE,
-								packet.getStanzaTo(), collection, nodeConfig,
-								colNodeAffiliations, colNodeSubscriptions));
+				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
+				packetWriter.write(publishModule.prepareNotification(colE, packet.getStanzaTo(), collection, nodeConfig,
+						colNodeAffiliations, colNodeSubscriptions));
 			}
 			if (instantNode) {
 				Element ps = new Element("pubsub", new String[] { "xmlns" },
-																 new String[] { "http://jabber.org/protocol/pubsub" });
-				Element cr = new Element("create", new String[] { "node" },
-																 new String[] { nodeName });
+						new String[] { "http://jabber.org/protocol/pubsub" });
+				Element cr = new Element("create", new String[] { "node" }, new String[] { nodeName });
 
 				ps.addChild(cr);
 				result.getElement().addChild(ps);
@@ -308,14 +260,11 @@ public class NodeCreateModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param listener
 	 */
 	public void removeNodeConfigListener(NodeConfigListener listener) {
 		this.nodeConfigListeners.remove(listener);
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

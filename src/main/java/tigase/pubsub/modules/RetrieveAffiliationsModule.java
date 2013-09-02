@@ -20,83 +20,62 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-
-import tigase.util.JIDUtils;
-
-import tigase.xml.Element;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.xml.Element;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
+ * @version Enter version here..., 13/02/20
+ * @author Enter your name here...
  */
-public class RetrieveAffiliationsModule
-				extends AbstractModule {
+public class RetrieveAffiliationsModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
-																				 ElementCriteria.name(
-																					 "pubsub",
-																					 "http://jabber.org/protocol/pubsub")).add(
-																						 ElementCriteria.name("affiliations"));
-
-	//~--- constructors ---------------------------------------------------------
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("affiliations"));
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveAffiliationsModule(PubSubConfig config,
-																		IPubSubRepository pubsubRepository) {
+	public RetrieveAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/pubsub#retrieve-affiliations",
-													"http://jabber.org/protocol/pubsub#publisher-affiliation",
-													"http://jabber.org/protocol/pubsub#outcast-affiliation",
-													"http://jabber.org/protocol/pubsub#member-affiliation" };
+				"http://jabber.org/protocol/pubsub#publisher-affiliation",
+				"http://jabber.org/protocol/pubsub#outcast-affiliation", "http://jabber.org/protocol/pubsub#member-affiliation" };
 	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -104,53 +83,46 @@ public class RetrieveAffiliationsModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
 		try {
-			final Element pubsub = packet.getElement().getChild("pubsub",
-															 "http://jabber.org/protocol/pubsub");
+			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element affiliations = pubsub.getChild("affiliations");
-			final String senderJid     = packet.getStanzaFrom().toString();
+			final String senderJid = packet.getStanzaFrom().toString();
 			final String senderBareJid = packet.getStanzaFrom().getBareJID().toString();
 			final Element pubsubResult = new Element("pubsub", new String[] { "xmlns" },
-																		 new String[] {
-																			 "http://jabber.org/protocol/pubsub" });
+					new String[] { "http://jabber.org/protocol/pubsub" });
 
-			final Packet result        = packet.okResult(pubsubResult, 0);
+			final Packet result = packet.okResult(pubsubResult, 0);
 
 			final Element affiliationsResult = new Element("affiliations");
 
 			pubsubResult.addChild(affiliationsResult);
 
 			IPubSubDAO directRepo = this.repository.getPubSubDAO();
-			String[] nodes        = directRepo.getNodesList();
+			String[] nodes = directRepo.getNodesList();
 
 			if (nodes != null) {
 				for (String node : nodes) {
-					UsersAffiliation[] affilitaions =
-						directRepo.getNodeAffiliations(node).getAffiliations();
+					UsersAffiliation[] affilitaions = directRepo.getNodeAffiliations(node).getAffiliations();
 
 					if (affiliations != null) {
 						for (UsersAffiliation usersAffiliation : affilitaions) {
 							if (senderBareJid.equals(usersAffiliation.getJid())) {
 								Affiliation affiliation = usersAffiliation.getAffiliation();
-								Element a               = new Element("affiliation",
-																						new String[] { "node",
-												"affiliation" }, new String[] { node, affiliation.name() });
+								Element a = new Element("affiliation", new String[] { "node", "affiliation" }, new String[] {
+										node, affiliation.name() });
 
 								affiliationsResult.addChild(a);
 							}
@@ -167,6 +139,3 @@ public class RetrieveAffiliationsModule
 		}
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

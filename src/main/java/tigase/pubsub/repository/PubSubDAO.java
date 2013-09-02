@@ -22,8 +22,6 @@
 
 package tigase.pubsub.repository;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.lang.reflect.Constructor;
 import java.util.Date;
 import java.util.Queue;
@@ -45,8 +43,6 @@ import tigase.xml.SimpleParser;
 import tigase.xml.SingletonFactory;
 import tigase.xmpp.BareJID;
 
-//~--- classes ----------------------------------------------------------------
-
 /**
  * Class description
  * 
@@ -64,16 +60,10 @@ public class PubSubDAO implements IPubSubDAO {
 	public static final String NODES_KEY = "nodes/";
 	private static final String ROOT_COLLECTION_KEY = "root-collection";
 
-	// ~--- fields
-	// ---------------------------------------------------------------
-
 	final PubSubConfig config;
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final SimpleParser parser = SingletonFactory.getParserInstance();
 	final UserRepository repository;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
@@ -86,9 +76,6 @@ public class PubSubDAO implements IPubSubDAO {
 		this.repository = repository;
 		this.config = pubSubConfig;
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -205,9 +192,6 @@ public class PubSubDAO implements IPubSubDAO {
 
 		// Do nothing here, no extra resources have been allocated by the init.
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -600,9 +584,6 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -851,7 +832,3 @@ public class PubSubDAO implements IPubSubDAO {
 		}
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

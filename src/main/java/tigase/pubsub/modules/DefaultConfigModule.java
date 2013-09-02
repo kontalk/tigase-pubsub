@@ -26,7 +26,6 @@ import java.util.List;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
-import tigase.pubsub.ElementWriter;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;

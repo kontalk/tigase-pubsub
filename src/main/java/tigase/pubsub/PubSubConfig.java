@@ -22,11 +22,7 @@
 
 package tigase.pubsub;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.xmpp.BareJID;
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
@@ -39,9 +35,6 @@ public class PubSubConfig {
 	private String[] admins;
 	private BareJID serviceBareJID;
 	private String serviceName;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -95,9 +88,6 @@ public class PubSubConfig {
 		return false;
 	}
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -113,7 +103,3 @@ public class PubSubConfig {
 		serviceBareJID = BareJID.bareJIDInstanceNS(serviceName);
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

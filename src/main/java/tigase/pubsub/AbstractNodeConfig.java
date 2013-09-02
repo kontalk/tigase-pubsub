@@ -22,8 +22,6 @@
 
 package tigase.pubsub;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
@@ -31,8 +29,6 @@ import tigase.form.Field;
 import tigase.form.Field.FieldType;
 import tigase.form.Form;
 import tigase.xml.Element;
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
@@ -49,17 +45,11 @@ public abstract class AbstractNodeConfig {
 	/** Field description */
 	public static final String TIGASE = "tigase#";
 
-	// ~--- fields
-	// ---------------------------------------------------------------
-
 	/**
 	 * List with do-not-write elements
 	 */
 	protected final Form form = new Form("form", null, null);
 	private final String nodeName;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
@@ -85,9 +75,6 @@ public abstract class AbstractNodeConfig {
 		copyFrom(config);
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -97,9 +84,6 @@ public abstract class AbstractNodeConfig {
 	public void add(Field f) {
 		form.addField(f);
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	protected String[] asStrinTable(Enum<?>[] values) {
 		String[] result = new String[values.length];
@@ -148,9 +132,6 @@ public abstract class AbstractNodeConfig {
 	public void copyFromForm(Form f) {
 		form.copyValuesFrom(f);
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -382,9 +363,6 @@ public abstract class AbstractNodeConfig {
 		return form.getAsBoolean("pubsub#presence_based_delivery");
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -406,9 +384,6 @@ public abstract class AbstractNodeConfig {
 
 		return (x == null) ? false : x.booleanValue();
 	}
-
-	// ~--- set methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -486,9 +461,6 @@ public abstract class AbstractNodeConfig {
 	public void setDomains(String... domains) {
 		setValues(PUBSUB + "domains", domains);
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -569,9 +541,6 @@ public abstract class AbstractNodeConfig {
 		}
 	}
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -592,7 +561,3 @@ public abstract class AbstractNodeConfig {
 		repo.setData(config.getServiceBareJID(), subnode, "configuration", form.getElement().toString());
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

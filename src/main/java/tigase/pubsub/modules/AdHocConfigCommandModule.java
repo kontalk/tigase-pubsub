@@ -31,7 +31,6 @@ import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractModule;
-import tigase.pubsub.ElementWriter;
 import tigase.pubsub.PacketWriter;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
@@ -42,15 +41,16 @@ import tigase.xml.Element;
 
 public class AdHocConfigCommandModule extends AbstractModule {
 
+	private static final String[] COMMAND_PATH = { "iq", "command" };
+
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("command", "http://jabber.org/protocol/commands"));
 
-	private static final String[] COMMAND_PATH = { "iq", "command" };
-	
 	private final AdHocCommandManager commandsManager = new AdHocCommandManager();
 	private AdHocScriptCommandManager scriptCommandManager;
 
-	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository, AdHocScriptCommandManager scriptCommandManager) {
+	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository,
+			AdHocScriptCommandManager scriptCommandManager) {
 		super(config, pubsubRepository);
 		this.scriptCommandManager = scriptCommandManager;
 	}
@@ -63,14 +63,14 @@ public class AdHocConfigCommandModule extends AbstractModule {
 						command.getNode(), command.getName() }));
 			}
 		}
-		
+
 		List<Element> scriptCommandsList = scriptCommandManager.getCommandListItems(senderJid, toJid);
 		if (scriptCommandsList != null) {
 			commandsList.addAll(scriptCommandsList);
 		}
 		return commandsList;
 	}
-	
+
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/commands" };
@@ -91,8 +91,7 @@ public class AdHocConfigCommandModule extends AbstractModule {
 			} catch (AdHocCommandException e) {
 				throw new PubSubException(e.getErrorCondition(), e.getMessage());
 			}
-		}
-		else {
+		} else {
 			return scriptCommandManager.process(packet);
 		}
 	}

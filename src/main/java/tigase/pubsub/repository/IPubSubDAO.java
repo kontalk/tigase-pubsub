@@ -22,16 +22,12 @@
 
 package tigase.pubsub.repository;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.util.Date;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
-
-//~--- interfaces -------------------------------------------------------------
 
 /**
  * Interface description
@@ -78,9 +74,6 @@ public interface IPubSubDAO {
 	 */
 	public abstract void deleteItem(String nodeName, String id) throws RepositoryException;
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -98,9 +91,6 @@ public interface IPubSubDAO {
 	public void destroy();
 
 	String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException;
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException;
 
@@ -120,9 +110,6 @@ public interface IPubSubDAO {
 	public abstract Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException;
 
 	String[] getItemsIds(String nodeName) throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -161,9 +148,6 @@ public interface IPubSubDAO {
 	 */
 	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException;
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -185,9 +169,6 @@ public interface IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	public String[] getRootNodes() throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	String[] getUserRoster(BareJID owner) throws RepositoryException;
 
@@ -246,7 +227,3 @@ public interface IPubSubDAO {
 	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher,
 			final Element item) throws RepositoryException;
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

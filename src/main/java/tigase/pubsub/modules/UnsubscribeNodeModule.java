@@ -20,61 +20,45 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.ElementWriter;
+import tigase.pubsub.PacketWriter;
+import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-import tigase.pubsub.Subscription;
-
-import tigase.util.JIDUtils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.util.JIDUtils;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
+ * @version Enter version here..., 13/02/20
+ * @author Enter your name here...
  */
-public class UnsubscribeNodeModule
-				extends AbstractModule {
-	private static final Criteria CRIT_UNSUBSCRIBE =
-		ElementCriteria.nameType("iq", "set").add(
-				ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(
-				ElementCriteria.name("unsubscribe"));
-
-	//~--- constructors ---------------------------------------------------------
+public class UnsubscribeNodeModule extends AbstractModule {
+	private static final Criteria CRIT_UNSUBSCRIBE = ElementCriteria.nameType("iq", "set").add(
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("unsubscribe"));
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 */
@@ -82,12 +66,10 @@ public class UnsubscribeNodeModule
 		super(config, pubsubRepository);
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -97,8 +79,8 @@ public class UnsubscribeNodeModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -106,31 +88,27 @@ public class UnsubscribeNodeModule
 		return CRIT_UNSUBSCRIBE;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public List<Packet> process(Packet packet, PacketWriter packetWriter) throws PubSubException {
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element element = packet.getElement();
-		final Element pubSub = element.getChild("pubsub",
-														 "http://jabber.org/protocol/pubsub");
+		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element unsubscribe = pubSub.getChild("unsubscribe");
-		final String senderJid    = element.getAttributeStaticStr("from");
-		final String nodeName     = unsubscribe.getAttributeStaticStr("node");
-		final String jid          = unsubscribe.getAttributeStaticStr("jid");
-		final String subid        = unsubscribe.getAttributeStaticStr("subid");
+		final String senderJid = element.getAttributeStaticStr("from");
+		final String nodeName = unsubscribe.getAttributeStaticStr("node");
+		final String jid = unsubscribe.getAttributeStaticStr("jid");
+		final String subid = unsubscribe.getAttributeStaticStr("subid");
 
 		try {
 			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
@@ -139,16 +117,14 @@ public class UnsubscribeNodeModule
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			IAffiliations nodeAffiliations     = repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation senderAffiliation =
-				nodeAffiliations.getSubscriberAffiliation(senderJid);
+			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 
-			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid)) &&
-					(senderAffiliation.getAffiliation() != Affiliation.owner) &&
-					!JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
-				throw new PubSubException(element, Authorization.BAD_REQUEST,
-																	PubSubErrorCondition.INVALID_JID);
+			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))
+					&& (senderAffiliation.getAffiliation() != Affiliation.owner)
+					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
+				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 			if (affiliation != null) {
 				if (affiliation.getAffiliation() == Affiliation.outcast) {
@@ -162,16 +138,14 @@ public class UnsubscribeNodeModule
 				String s = nodeSubscriptions.getSubscriptionId(jid);
 
 				if (!subid.equals(s)) {
-					throw new PubSubException(element, Authorization.NOT_ACCEPTABLE,
-																		PubSubErrorCondition.INVALID_SUBID);
+					throw new PubSubException(element, Authorization.NOT_ACCEPTABLE, PubSubErrorCondition.INVALID_SUBID);
 				}
 			}
 
 			Subscription subscription = nodeSubscriptions.getSubscription(jid);
 
 			if (subscription == null) {
-				throw new PubSubException(Authorization.UNEXPECTED_REQUEST,
-																	PubSubErrorCondition.NOT_SUBSCRIBED);
+				throw new PubSubException(Authorization.UNEXPECTED_REQUEST, PubSubErrorCondition.NOT_SUBSCRIBED);
 			}
 			nodeSubscriptions.changeSubscription(jid, Subscription.none);
 			if (nodeSubscriptions.isChanged()) {
@@ -188,6 +162,3 @@ public class UnsubscribeNodeModule
 		}
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

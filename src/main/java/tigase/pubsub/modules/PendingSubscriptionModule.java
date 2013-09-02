@@ -20,86 +20,65 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.ArrayList;
+import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.form.Field;
 import tigase.form.Form;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
-import tigase.pubsub.ElementWriter;
+import tigase.pubsub.PacketWriter;
+import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
-
-import tigase.util.JIDUtils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayList;
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Message;
 import tigase.server.Packet;
+import tigase.util.JIDUtils;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
-import tigase.xmpp.StanzaType;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
+ * @version Enter version here..., 13/02/20
+ * @author Enter your name here...
  */
-public class PendingSubscriptionModule
-				extends AbstractModule {
-	private static final Criteria CRIT =
-		ElementCriteria.name("message").add(ElementCriteria.name("x", new String[] { "xmlns",
-					"type" }, new String[] { "jabber:x:data",
-					"submit" })).add(ElementCriteria.name("field", new String[] { "var" },
-						new String[] { "FORM_TYPE" })).add(ElementCriteria.name("value",
-							"http://jabber.org/protocol/pubsub#subscribe_authorization", null, null));
-
-	//~--- constructors ---------------------------------------------------------
+public class PendingSubscriptionModule extends AbstractModule {
+	private static final Criteria CRIT = ElementCriteria.name("message").add(
+			ElementCriteria.name("x", new String[] { "xmlns", "type" }, new String[] { "jabber:x:data", "submit" })).add(
+			ElementCriteria.name("field", new String[] { "var" }, new String[] { "FORM_TYPE" })).add(
+			ElementCriteria.name("value", "http://jabber.org/protocol/pubsub#subscribe_authorization", null, null));
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public PendingSubscriptionModule(PubSubConfig config,
-																	 IPubSubRepository pubsubRepository) {
+	public PendingSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -109,8 +88,8 @@ public class PendingSubscriptionModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -118,30 +97,27 @@ public class PendingSubscriptionModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param message
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet message, PacketWriter packetWriter)
-					throws PubSubException {
+	public List<Packet> process(Packet message, PacketWriter packetWriter) throws PubSubException {
 		try {
-			BareJID toJid              = message.getStanzaTo().getBareJID();
-			Element element            = message.getElement();
-			Form x                     = new Form(element.getChild("x", "jabber:x:data"));
-			final String subId         = x.getAsString("pubsub#subid");
-			final String node          = x.getAsString("pubsub#node");
+			BareJID toJid = message.getStanzaTo().getBareJID();
+			Element element = message.getElement();
+			Form x = new Form(element.getChild("x", "jabber:x:data"));
+			final String subId = x.getAsString("pubsub#subid");
+			final String node = x.getAsString("pubsub#node");
 			final String subscriberJid = x.getAsString("pubsub#subscriber_jid");
-			final Boolean allow        = x.getAsBoolean("pubsub#allow");
+			final Boolean allow = x.getAsBoolean("pubsub#allow");
 
 			if (allow == null) {
 				return null;
@@ -154,12 +130,11 @@ public class PendingSubscriptionModule
 			}
 
 			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, node);
-			final IAffiliations nodeAffiliations   = repository.getNodeAffiliations(toJid, node);
-			String jid                             = message.getAttributeStaticStr("from");
+			final IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, node);
+			String jid = message.getAttributeStaticStr("from");
 
 			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				UsersAffiliation senderAffiliation =
-					nodeAffiliations.getSubscriberAffiliation(jid);
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
@@ -168,9 +143,8 @@ public class PendingSubscriptionModule
 
 			String userSubId = nodeSubscriptions.getSubscriptionId(subscriberJid);
 
-			if ((subId != null) &&!subId.equals(userSubId)) {
-				throw new PubSubException(element, Authorization.NOT_ACCEPTABLE,
-																	PubSubErrorCondition.INVALID_SUBID);
+			if ((subId != null) && !subId.equals(userSubId)) {
+				throw new PubSubException(element, Authorization.NOT_ACCEPTABLE, PubSubErrorCondition.INVALID_SUBID);
 			}
 
 			Subscription subscription = nodeSubscriptions.getSubscription(subscriberJid);
@@ -179,12 +153,11 @@ public class PendingSubscriptionModule
 				return null;
 			}
 
-			Affiliation affiliation =
-				nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
+			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
 
 			if (allow) {
 				subscription = Subscription.subscribed;
-				affiliation  = Affiliation.member;
+				affiliation = Affiliation.member;
 				nodeSubscriptions.changeSubscription(subscriberJid, subscription);
 				nodeAffiliations.changeAffiliation(subscriberJid, affiliation);
 			} else {
@@ -198,11 +171,10 @@ public class PendingSubscriptionModule
 				this.repository.update(toJid, node, nodeAffiliations);
 			}
 
-			Packet msg = Message.getMessage(message.getStanzaTo(), JID.jidInstance(subscriberJid), null, null,
-						null, null, Utils.createUID(subscriberJid));
+			Packet msg = Message.getMessage(message.getStanzaTo(), JID.jidInstance(subscriberJid), null, null, null, null,
+					Utils.createUID(subscriberJid));
 
-			msg.getElement().addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid,
-							subscription, null));
+			msg.getElement().addChild(SubscribeNodeModule.makeSubscription(node, subscriberJid, subscription, null));
 
 			return makeArray(msg);
 		} catch (PubSubException e1) {
@@ -216,44 +188,37 @@ public class PendingSubscriptionModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param nodeName
 	 * @param fromJid
 	 * @param subID
 	 * @param subscriberJid
 	 * @param nodeAffiliations
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws RepositoryException
 	 */
-	public List<Packet> sendAuthorizationRequest(final String nodeName,
-					final JID fromJid, final String subID, final String subscriberJid,
-					IAffiliations nodeAffiliations)
-					throws RepositoryException {
-		Form x =
-			new Form("form", "PubSub subscriber request",
+	public List<Packet> sendAuthorizationRequest(final String nodeName, final JID fromJid, final String subID,
+			final String subscriberJid, IAffiliations nodeAffiliations) throws RepositoryException {
+		Form x = new Form("form", "PubSub subscriber request",
 				"To approve this entity's subscription request, click the OK button. To deny the request, click the cancel button.");
 
-		x.addField(
-				Field.fieldHidden(
-					"FORM_TYPE", "http://jabber.org/protocol/pubsub#subscribe_authorization"));
+		x.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#subscribe_authorization"));
 		x.addField(Field.fieldHidden("pubsub#subid", subID));
 		x.addField(Field.fieldTextSingle("pubsub#node", nodeName, "Node ID"));
-		x.addField(Field.fieldJidSingle("pubsub#subscriber_jid", subscriberJid,
-																		"UsersSubscription Address"));
-		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE,
-																	"Allow this JID to subscribe to this pubsub node?"));
+		x.addField(Field.fieldJidSingle("pubsub#subscriber_jid", subscriberJid, "UsersSubscription Address"));
+		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
 
-		List<Packet> result            = new ArrayList<Packet>();
+		List<Packet> result = new ArrayList<Packet>();
 		UsersAffiliation[] affiliations = nodeAffiliations.getAffiliations();
 
 		if (affiliations != null) {
 			for (UsersAffiliation affiliation : affiliations) {
 				if (affiliation.getAffiliation() == Affiliation.owner) {
-					Packet message = Message.getMessage(fromJid, JID.jidInstanceNS(affiliation.getJid()),
-								null, null, null, null, Utils.createUID(affiliation.getJid()));
+					Packet message = Message.getMessage(fromJid, JID.jidInstanceNS(affiliation.getJid()), null, null, null,
+							null, Utils.createUID(affiliation.getJid()));
 
 					message.getElement().addChild(x.getElement());
 					result.add(message);
@@ -264,6 +229,3 @@ public class PendingSubscriptionModule
 		return result;
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

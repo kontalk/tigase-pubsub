@@ -20,75 +20,57 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
-import tigase.pubsub.ElementWriter;
+import tigase.pubsub.LeafNodeConfig;
+import tigase.pubsub.PacketWriter;
+import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
+ * @version Enter version here..., 13/02/20
+ * @author Enter your name here...
  */
-public class RetrieveItemsModule
-				extends AbstractModule {
+public class RetrieveItemsModule extends AbstractModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
-																				 ElementCriteria.name(
-																					 "pubsub",
-																					 "http://jabber.org/protocol/pubsub")).add(
-																						 ElementCriteria.name("items"));
-
-	//~--- constructors ---------------------------------------------------------
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("items"));
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 */
 	public RetrieveItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository) {
 		super(config, pubsubRepository);
 	}
-
-	//~--- methods --------------------------------------------------------------
 
 	private Integer asInteger(String attribute) {
 		if (attribute == null) {
@@ -119,12 +101,10 @@ public class RetrieveItemsModule
 		return result;
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -134,8 +114,8 @@ public class RetrieveItemsModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -143,34 +123,29 @@ public class RetrieveItemsModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(final Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public List<Packet> process(final Packet packet, PacketWriter packetWriter) throws PubSubException {
 		try {
-			final BareJID toJid  = packet.getStanzaTo().getBareJID();
-			final Element pubsub = packet.getElement().getChild("pubsub",
-															 "http://jabber.org/protocol/pubsub");
-			final Element items    = pubsub.getChild("items");
-			final String nodeName  = items.getAttributeStaticStr("node");
+			final BareJID toJid = packet.getStanzaTo().getBareJID();
+			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
+			final Element items = pubsub.getChild("items");
+			final String nodeName = items.getAttributeStaticStr("node");
 			final Integer maxItems = asInteger(items.getAttributeStaticStr("max_items"));
 			final String senderJid = packet.getAttributeStaticStr("from");
 
 			if (nodeName == null) {
-				throw new PubSubException(Authorization.BAD_REQUEST,
-																	PubSubErrorCondition.NODEID_REQUIRED);
+				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
 			}
 
 			// XXX CHECK RIGHTS AUTH ETC
@@ -179,64 +154,52 @@ public class RetrieveItemsModule
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
-			if ((nodeConfig.getNodeAccessModel() == AccessModel.open) &&
-					!Utils.isAllowedDomain(senderJid, nodeConfig.getDomains())) {
+			if ((nodeConfig.getNodeAccessModel() == AccessModel.open)
+					&& !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains())) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			IAffiliations nodeAffiliations     = this.repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation senderAffiliation =
-				nodeAffiliations.getSubscriberAffiliation(senderJid);
+			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(toJid, nodeName);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
 
 			if (senderAffiliation.getAffiliation() == Affiliation.outcast) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
-			Subscription senderSubscription  = nodeSubscriptions.getSubscription(senderJid);
+			Subscription senderSubscription = nodeSubscriptions.getSubscription(senderJid);
 
-			if ((nodeConfig.getNodeAccessModel() == AccessModel.whitelist) &&
-					!senderAffiliation.getAffiliation().isRetrieveItem()) {
-				throw new PubSubException(Authorization.NOT_ALLOWED,
-																	PubSubErrorCondition.CLOSED_NODE);
-			} else if ((nodeConfig.getNodeAccessModel() == AccessModel.authorize) &&
-								 ((senderSubscription != Subscription.subscribed) ||
-									!senderAffiliation.getAffiliation().isRetrieveItem())) {
-				throw new PubSubException(Authorization.NOT_AUTHORIZED,
-																	PubSubErrorCondition.NOT_SUBSCRIBED);
+			if ((nodeConfig.getNodeAccessModel() == AccessModel.whitelist)
+					&& !senderAffiliation.getAffiliation().isRetrieveItem()) {
+				throw new PubSubException(Authorization.NOT_ALLOWED, PubSubErrorCondition.CLOSED_NODE);
+			} else if ((nodeConfig.getNodeAccessModel() == AccessModel.authorize)
+					&& ((senderSubscription != Subscription.subscribed) || !senderAffiliation.getAffiliation().isRetrieveItem())) {
+				throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_SUBSCRIBED);
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.presence) {
-				boolean allowed = hasSenderSubscription(senderJid, nodeAffiliations,
-														nodeSubscriptions);
+				boolean allowed = hasSenderSubscription(senderJid, nodeAffiliations, nodeSubscriptions);
 
 				if (!allowed) {
-					throw new PubSubException(Authorization.NOT_AUTHORIZED,
-																		PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
+					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
 				}
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.roster) {
-				boolean allowed = isSenderInRosterGroup(senderJid, nodeConfig, nodeAffiliations,
-														nodeSubscriptions);
+				boolean allowed = isSenderInRosterGroup(senderJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
 				if (!allowed) {
-					throw new PubSubException(Authorization.NOT_AUTHORIZED,
-																		PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
+					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);
 				}
 			}
 			if (nodeConfig instanceof CollectionNodeConfig) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-																	new PubSubErrorCondition("unsupported",
-																		"retrieve-items"));
-			} else if ((nodeConfig instanceof LeafNodeConfig) &&
-								 !((LeafNodeConfig) nodeConfig).isPersistItem()) {
-				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
-																	new PubSubErrorCondition("unsupported",
-																		"persistent-items"));
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"retrieve-items"));
+			} else if ((nodeConfig instanceof LeafNodeConfig) && !((LeafNodeConfig) nodeConfig).isPersistItem()) {
+				throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
+						"persistent-items"));
 			}
 
 			List<String> requestedId = extractItemsIds(items);
-			final Element rpubsub    = new Element("pubsub", new String[] { "xmlns" },
-																	 new String[] { "http://jabber.org/protocol/pubsub" });
-			final Element ritems = new Element("items", new String[] { "node" },
-																				 new String[] { nodeName });
+			final Element rpubsub = new Element("pubsub", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub" });
+			final Element ritems = new Element("items", new String[] { "node" }, new String[] { nodeName });
 			final Packet iq = packet.okResult(rpubsub, 0);
 
 			rpubsub.addChild(ritems);
@@ -275,6 +238,3 @@ public class RetrieveItemsModule
 		}
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20
