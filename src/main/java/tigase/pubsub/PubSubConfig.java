@@ -40,7 +40,7 @@ public class PubSubConfig extends ComponentConfig {
 
 	private String[] admins;
 
-	private BareJID serviceBareJID;
+	private BareJID serviceBareJID = BareJID.bareJIDInstanceNS("tigase-pubsub");
 
 	protected PubSubConfig(AbstractComponent<?> component) {
 		super(component);
