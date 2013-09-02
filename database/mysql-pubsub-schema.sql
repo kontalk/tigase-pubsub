@@ -5,7 +5,7 @@ CREATE  TABLE IF NOT EXISTS tig_pubsub_nodes (
  `name_sha1` CHAR(40) NOT NULL  /* SHA1 hash of node_name used for uniqueness */,
  `type` INT(1) NOT NULL  /* Node type (0:collection, 1:leaf). */ ,
  `title` VARCHAR(1000) NULL  /* A friendly name for the node. */ ,
- `description` TEXT NOT NULL  /* A description of the node. */ ,
+ `description` TEXT  /* A description of the node. */ ,
  `creator` VARCHAR(2047) NULL  /* The JID of the node creator. */ ,
  `creation_date` DATETIME NULL  /* The datetime when the node was created. */ ,
  `configuration` MEDIUMTEXT NULL ,

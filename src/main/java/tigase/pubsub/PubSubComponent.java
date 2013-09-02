@@ -35,6 +35,7 @@ import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component.AbstractComponent;
 import tigase.component.PacketWriter;
 import tigase.conf.Configurable;
+import tigase.db.DataRepository;
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
@@ -206,25 +207,29 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		Map<String, Object> props = super.getDefaults(params);
 
 		// By default use the same repository as all other components:
-		String repo_class = DERBY_REPO_CLASS_PROP_VAL;
-		String repo_uri = DERBY_REPO_URL_PROP_VAL;
+		String repo_class = RepositoryFactory.DERBY_REPO_CLASS_PROP_VAL;
+		String repo_uri = RepositoryFactory.DERBY_REPO_URL_PROP_VAL;
 		String conf_db = null;
 
-		if (params.get(GEN_USER_DB) != null) {
-			conf_db = (String) params.get(GEN_USER_DB);
+		if (params.get(RepositoryFactory.GEN_USER_DB) != null) {
+			conf_db = (String) params.get(RepositoryFactory.GEN_USER_DB);
 		} // end of if (params.get(GEN_USER_DB) != null)
 		if (conf_db != null) {
 			if (conf_db.equals("mysql")) {
-				repo_class = MYSQL_REPO_CLASS_PROP_VAL;
-				repo_uri = MYSQL_REPO_URL_PROP_VAL;
+				repo_class = RepositoryFactory.MYSQL_REPO_CLASS_PROP_VAL;
+				repo_uri = RepositoryFactory.MYSQL_REPO_URL_PROP_VAL;
 			}
 			if (conf_db.equals("pgsql")) {
-				repo_class = PGSQL_REPO_CLASS_PROP_VAL;
-				repo_uri = PGSQL_REPO_URL_PROP_VAL;
+				repo_class = RepositoryFactory.PGSQL_REPO_CLASS_PROP_VAL;
+				repo_uri = RepositoryFactory.PGSQL_REPO_URL_PROP_VAL;
+			}
+			if (conf_db.equals("sqlserver")) {
+				repo_class = RepositoryFactory.SQLSERVER_REPO_CLASS_PROP_VAL;
+				repo_uri = RepositoryFactory.SQLSERVER_REPO_URL_PROP_VAL;
 			}
 		} // end of if (conf_db != null)
-		if (params.get(GEN_USER_DB_URI) != null) {
-			repo_uri = (String) params.get(GEN_USER_DB_URI);
+		if (params.get(RepositoryFactory.GEN_USER_DB_URI) != null) {
+			repo_uri = (String) params.get(RepositoryFactory.GEN_USER_DB_URI);
 		} // end of if (params.get(GEN_USER_DB_URI) != null)
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
