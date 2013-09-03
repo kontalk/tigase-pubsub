@@ -124,7 +124,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 		try {
 			nodeConfig.setNodeType(nodeType);
@@ -220,7 +220,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getBuddyGroups(BareJID owner, String buddy) throws RepositoryException {
+	public String[] getBuddyGroups(BareJID owner, BareJID buddy) throws RepositoryException {
 		try {
 			return this.repository.getDataList(owner, "roster/" + buddy, "groups");
 		} catch (Exception e) {
@@ -240,7 +240,7 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException {
+	public String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException {
 		try {
 			return this.repository.getData(owner, "roster/" + buddy, "subscription");
 		} catch (Exception e) {
@@ -614,9 +614,14 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getUserRoster(BareJID owner) throws RepositoryException {
+	public BareJID[] getUserRoster(BareJID owner) throws RepositoryException {
 		try {
-			return this.repository.getSubnodes(owner, "roster");
+			String[] tmp = this.repository.getSubnodes(owner, "roster");
+			BareJID[] result = new BareJID[tmp.length];
+			for (int i = 0; i < tmp.length; i++) {
+				result[i] = BareJID.bareJIDInstanceNS(tmp[i]);
+			}
+			return result;
 		} catch (Exception e) {
 			throw new RepositoryException("Getting user roster error", e);
 		}

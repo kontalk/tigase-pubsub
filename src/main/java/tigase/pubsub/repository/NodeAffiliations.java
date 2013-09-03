@@ -5,7 +5,7 @@ import java.util.Map;
 
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-import tigase.util.JIDUtils;
+import tigase.xmpp.BareJID;
 
 public class NodeAffiliations implements IAffiliations {
 
@@ -21,7 +21,7 @@ public class NodeAffiliations implements IAffiliations {
 		}
 	}
 
-	protected final Map<String, UsersAffiliation> affs = new HashMap<String, UsersAffiliation>();
+	protected final Map<BareJID, UsersAffiliation> affs = new HashMap<BareJID, UsersAffiliation>();
 
 	private boolean changed = false;
 
@@ -29,8 +29,7 @@ public class NodeAffiliations implements IAffiliations {
 	}
 
 	@Override
-	public void addAffiliation(String jid, Affiliation affiliation) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public void addAffiliation(BareJID bareJid, Affiliation affiliation) {
 		UsersAffiliation a = new UsersAffiliation(bareJid, affiliation);
 		synchronized (this.affs) {
 			affs.put(bareJid, a);
@@ -39,8 +38,7 @@ public class NodeAffiliations implements IAffiliations {
 	}
 
 	@Override
-	public void changeAffiliation(String jid, Affiliation affiliation) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public void changeAffiliation(BareJID bareJid, Affiliation affiliation) {
 		UsersAffiliation a = this.get(bareJid);
 		if (a != null) {
 			a.setAffiliation(affiliation);
@@ -66,8 +64,7 @@ public class NodeAffiliations implements IAffiliations {
 		}
 	}
 
-	protected UsersAffiliation get(final String jid) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	protected UsersAffiliation get(final BareJID bareJid) {
 		synchronized (this.affs) {
 			UsersAffiliation s = this.affs.get(bareJid);
 			return s;
@@ -81,13 +78,12 @@ public class NodeAffiliations implements IAffiliations {
 		}
 	}
 
-	public Map<String, UsersAffiliation> getAffiliationsMap() {
+	public Map<BareJID, UsersAffiliation> getAffiliationsMap() {
 		return affs;
 	}
 
 	@Override
-	public UsersAffiliation getSubscriberAffiliation(String jid) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public UsersAffiliation getSubscriberAffiliation(BareJID bareJid) {
 		UsersAffiliation a = this.get(bareJid);
 		if (a == null) {
 			a = new UsersAffiliation(bareJid, Affiliation.none);
@@ -105,14 +101,14 @@ public class NodeAffiliations implements IAffiliations {
 			String[] tokens = data.split(DELIMITER);
 			affs.clear();
 			int c = 0;
-			String jid = null;
+			BareJID jid = null;
 			String state = null;
 			for (String t : tokens) {
 				if (c == 1) {
 					state = t;
 					++c;
 				} else if (c == 0) {
-					jid = t;
+					jid = BareJID.bareJIDInstanceNS(t);
 					++c;
 				}
 				if (c == 2) {

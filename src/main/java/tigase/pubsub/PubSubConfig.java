@@ -28,6 +28,7 @@ import java.util.Map;
 import tigase.component.AbstractComponent;
 import tigase.component.ComponentConfig;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -80,18 +81,22 @@ public class PubSubConfig extends ComponentConfig {
 	 * 
 	 * @return
 	 */
-	public boolean isAdmin(final String jid) {
+	public boolean isAdmin(final BareJID jid) {
 		if ((jid == null) || (this.admins == null)) {
 			return false;
 		}
 
 		for (String adj : this.admins) {
-			if (jid.equals(adj)) {
+			if (jid.toString().equals(adj)) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	public boolean isAdmin(final JID jid) {
+		return isAdmin(jid.getBareJID());
 	}
 
 	/**

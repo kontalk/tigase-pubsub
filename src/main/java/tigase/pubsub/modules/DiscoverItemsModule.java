@@ -38,7 +38,7 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -102,16 +102,15 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 			final Element element = packet.getElement();
 			final Element query = element.getChild("query", "http://jabber.org/protocol/disco#items");
 			final String nodeName = query.getAttributeStaticStr("node");
-			final String senderJid = element.getAttributeStaticStr("from");
-			final BareJID toJid = packet.getStanzaTo().getBareJID();
+			final JID senderJid = packet.getStanzaFrom();
+			final JID toJid = packet.getStanzaTo();
 			Element resultQuery = new Element("query", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/disco#items" });
 
 			Packet resultIq = packet.okResult(resultQuery, 0);
 
 			if ("http://jabber.org/protocol/commands".equals(nodeName)) {
-				List<Element> commandList = this.adHocCommandsModule.getCommandListItems(senderJid,
-						element.getAttributeStaticStr("to"));
+				List<Element> commandList = this.adHocCommandsModule.getCommandListItems(senderJid, toJid);
 
 				if (commandList != null) {
 					for (Element item : commandList) {
@@ -121,7 +120,8 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 			} else {
 				log.finest("Asking about Items of node " + nodeName);
 
-				AbstractNodeConfig nodeConfig = (nodeName == null) ? null : repository.getNodeConfig(toJid, nodeName);
+				AbstractNodeConfig nodeConfig = (nodeName == null) ? null : repository.getNodeConfig(toJid.getBareJID(),
+						nodeName);
 				String[] nodes;
 
 				if ((nodeName == null) || ((nodeConfig != null) && (nodeConfig.getNodeType() == NodeType.collection))) {
@@ -129,7 +129,7 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 
 					if (nodeName == null) {
 						parentName = "";
-						nodes = repository.getRootCollection(toJid);
+						nodes = repository.getRootCollection(toJid.getBareJID());
 					} else {
 						parentName = nodeName;
 						nodes = nodeConfig.getChildren();
@@ -138,11 +138,11 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 					// = this.repository.getNodesList();
 					if (nodes != null) {
 						for (String node : nodes) {
-							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(toJid, node);
+							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(toJid.getBareJID(), node);
 
 							if (childNodeConfig != null) {
 								boolean allowed = ((senderJid == null) || (childNodeConfig == null)) ? true
-										: Utils.isAllowedDomain(senderJid, childNodeConfig.getDomains());
+										: Utils.isAllowedDomain(senderJid.getBareJID(), childNodeConfig.getDomains());
 								String collection = childNodeConfig.getCollection();
 
 								if (allowed) {
@@ -163,15 +163,15 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 						}
 					}
 				} else {
-					boolean allowed = ((senderJid == null) || (nodeConfig == null)) ? true : Utils.isAllowedDomain(senderJid,
-							nodeConfig.getDomains());
+					boolean allowed = ((senderJid == null) || (nodeConfig == null)) ? true : Utils.isAllowedDomain(
+							senderJid.getBareJID(), nodeConfig.getDomains());
 
 					if (!allowed) {
 						throw new PubSubException(Authorization.FORBIDDEN);
 					}
 					resultQuery.addAttribute("node", nodeName);
 
-					IItems items = repository.getNodeItems(toJid, nodeName);
+					IItems items = repository.getNodeItems(toJid.getBareJID(), nodeName);
 					String[] itemsId = items.getItemsIds();
 
 					if (itemsId != null) {

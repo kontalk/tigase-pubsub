@@ -35,7 +35,6 @@ import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubComponent;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.modules.NodeConfigModule;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 
@@ -61,7 +60,7 @@ public class DefaultConfigCommand implements AdHocCommand {
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
-			if (!config.isAdmin(JIDUtils.getNodeID(request.getSender()))) {
+			if (!config.isAdmin(request.getSender())) {
 				throw new AdHocCommandException(Authorization.FORBIDDEN);
 			}
 

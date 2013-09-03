@@ -7,11 +7,11 @@ import java.util.Set;
 
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-import tigase.util.JIDUtils;
+import tigase.xmpp.BareJID;
 
 class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
 
-	protected final Map<String, UsersAffiliation> changedAffs = new HashMap<String, UsersAffiliation>();
+	protected final Map<BareJID, UsersAffiliation> changedAffs = new HashMap<BareJID, UsersAffiliation>();
 
 	private NodeAffiliations() {
 	}
@@ -21,15 +21,13 @@ class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
 	}
 
 	@Override
-	public void addAffiliation(String jid, Affiliation affiliation) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public void addAffiliation(BareJID bareJid, Affiliation affiliation) {
 		UsersAffiliation a = new UsersAffiliation(bareJid, affiliation);
 		changedAffs.put(bareJid, a);
 	}
 
 	@Override
-	public void changeAffiliation(String jid, Affiliation affiliation) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public void changeAffiliation(BareJID bareJid, Affiliation affiliation) {
 		UsersAffiliation a = this.get(bareJid);
 		if (a != null) {
 			a.setAffiliation(affiliation);
@@ -53,7 +51,7 @@ class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
 	}
 
 	@Override
-	protected UsersAffiliation get(String bareJid) {
+	protected UsersAffiliation get(BareJID bareJid) {
 		UsersAffiliation us = changedAffs.get(bareJid);
 		if (us == null) {
 			us = affs.get(bareJid);

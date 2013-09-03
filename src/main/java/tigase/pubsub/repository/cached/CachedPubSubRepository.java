@@ -76,7 +76,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 							}
 
 							if (node.subscriptionsNeedsWriting()) {
-								FragmentedMap<String, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
+								FragmentedMap<BareJID, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
 
 								fm.defragment();
 
@@ -85,7 +85,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 								}
 
 								for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
-									Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
+									Map<BareJID, UsersSubscription> ft = fm.getFragment(changedIndex);
 
 									dao.updateSubscriptions(node.getServiceJid(), node.getName(), changedIndex,
 											node.getNodeSubscriptions().serialize(ft));
@@ -375,7 +375,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 		long start = System.currentTimeMillis();
 
@@ -460,7 +460,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException {
+	public String[] getBuddyGroups(BareJID owner, BareJID bareJid) throws RepositoryException {
 		return this.dao.getBuddyGroups(owner, bareJid);
 	}
 
@@ -476,7 +476,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException {
+	public String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException {
 		return this.dao.getBuddySubscription(owner, buddy);
 	}
 
@@ -638,7 +638,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getUserRoster(BareJID owner) throws RepositoryException {
+	public BareJID[] getUserRoster(BareJID owner) throws RepositoryException {
 		return this.dao.getUserRoster(owner);
 	}
 

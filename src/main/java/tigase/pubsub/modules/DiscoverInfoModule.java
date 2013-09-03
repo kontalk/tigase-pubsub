@@ -37,6 +37,7 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -98,7 +99,7 @@ public class DiscoverInfoModule extends AbstractPubSubModule {
 	public void process(Packet packet) throws PubSubException {
 		try {
 			final Element element = packet.getElement();
-			final String senderJid = element.getAttributeStaticStr("from");
+			final JID senderJid = packet.getStanzaFrom();
 			final Element query = element.getChild("query", "http://jabber.org/protocol/disco#info");
 			final String nodeName = query.getAttributeStaticStr("node");
 			Element resultQuery = new Element("query", new String[] { "xmlns" },
@@ -119,8 +120,8 @@ public class DiscoverInfoModule extends AbstractPubSubModule {
 					throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 				}
 
-				boolean allowed = ((senderJid == null) || (nodeConfig == null)) ? true : Utils.isAllowedDomain(senderJid,
-						nodeConfig.getDomains());
+				boolean allowed = ((senderJid == null) || (nodeConfig == null)) ? true : Utils.isAllowedDomain(
+						senderJid.getBareJID(), nodeConfig.getDomains());
 
 				if (!allowed) {
 					throw new PubSubException(Authorization.FORBIDDEN);

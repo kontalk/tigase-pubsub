@@ -41,7 +41,6 @@ import tigase.db.UserRepository;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 
@@ -129,7 +128,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 
 		ResultSet rs = null;
@@ -145,7 +144,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				create_node_sp.setString(1, serviceJid.toString());
 				create_node_sp.setString(2, nodeName);
 				create_node_sp.setInt(3, nodeType.ordinal());
-				create_node_sp.setString(4, JIDUtils.getNodeID(ownerJid));
+				create_node_sp.setString(4, ownerJid.toString());
 				create_node_sp.setString(5, serializedNodeConfig);
 
 				if ( db_conn != null ){

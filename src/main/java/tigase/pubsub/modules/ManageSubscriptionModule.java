@@ -42,7 +42,6 @@ import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.server.Message;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -143,10 +142,10 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			String senderJid = element.getAttributeStaticStr("from");
+			JID senderJid = packet.getStanzaFrom();
 
-			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			if (!this.config.isAdmin(senderJid)) {
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
@@ -218,16 +217,16 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 			}
 
 			Subscription newSubscription = Subscription.valueOf(strSubscription);
-			Subscription oldSubscription = nodeSubscriptions.getSubscription(jidStr);
+			Subscription oldSubscription = nodeSubscriptions.getSubscription(jid.getBareJID());
 
 			oldSubscription = (oldSubscription == null) ? Subscription.none : oldSubscription;
 			if ((oldSubscription == Subscription.none) && (newSubscription != Subscription.none)) {
-				nodeSubscriptions.addSubscriberJid(jidStr, newSubscription);
+				nodeSubscriptions.addSubscriberJid(jid.getBareJID(), newSubscription);
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
 					packetWriter.write(createSubscriptionNotification(packet.getStanzaTo(), jid, nodeName, newSubscription));
 				}
 			} else {
-				nodeSubscriptions.changeSubscription(jidStr, newSubscription);
+				nodeSubscriptions.changeSubscription(jid.getBareJID(), newSubscription);
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
 					packetWriter.write(createSubscriptionNotification(packet.getStanzaTo(), jid, nodeName, newSubscription));
 				}

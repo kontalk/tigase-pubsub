@@ -30,6 +30,7 @@ import tigase.adhoc.AdHocResponse.State;
 import tigase.server.Packet;
 import tigase.util.SimpleCache;
 import tigase.xml.Element;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -73,7 +74,7 @@ public class AdHocCommandManager {
 	 */
 	public Packet process(Packet packet) throws AdHocCommandException {
 		final Element element = packet.getElement();
-		final String senderJid = element.getAttributeStaticStr("from");
+		final JID senderJid = packet.getStanzaFrom();
 		final Element command = element.getChild("command", "http://jabber.org/protocol/commands");
 		final String node = command.getAttributeStaticStr("node");
 		final String action = command.getAttributeStaticStr("action");

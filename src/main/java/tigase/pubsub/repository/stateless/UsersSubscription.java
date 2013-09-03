@@ -53,21 +53,6 @@ public class UsersSubscription implements Cloneable {
 	}
 
 	/**
-	 * Constructs ...
-	 * 
-	 * 
-	 * @param jid
-	 * @param subid
-	 * @param subscriptionType
-	 */
-	public UsersSubscription(String jid, String subid, Subscription subscriptionType) {
-		super();
-		this.jid = BareJID.bareJIDInstanceNS(jid);
-		this.subid = subid;
-		this.subscription = subscriptionType;
-	}
-
-	/**
 	 * Method description
 	 * 
 	 * 

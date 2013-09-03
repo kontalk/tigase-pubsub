@@ -123,7 +123,7 @@ public class PurgeItemsModule extends AbstractPubSubModule {
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().toString());
+			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().getBareJID());
 
 			if (!affiliation.getAffiliation().isPurgeNode()) {
 				throw new PubSubException(Authorization.FORBIDDEN);

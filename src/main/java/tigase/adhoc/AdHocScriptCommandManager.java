@@ -8,6 +8,7 @@ import java.util.List;
 
 import tigase.server.Packet;
 import tigase.xml.Element;
+import tigase.xmpp.JID;
 
 /**
  * 
@@ -15,7 +16,7 @@ import tigase.xml.Element;
  */
 public interface AdHocScriptCommandManager {
 
-	List<Element> getCommandListItems(final String senderJid, final String toJid);
+	List<Element> getCommandListItems(final JID senderJid, final JID toJid);
 
 	List<Packet> process(Packet packet);
 

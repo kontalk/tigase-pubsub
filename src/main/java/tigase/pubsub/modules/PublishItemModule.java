@@ -178,28 +178,27 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 * Method description
 	 * 
 	 * 
-	 * @param jid
+	 * @param id
 	 * 
 	 * @return
 	 * 
 	 * @throws RepositoryException
 	 */
-	protected String[] getValidBuddies(String jid) throws RepositoryException {
-		ArrayList<String> result = new ArrayList<String>();
-		BareJID id = BareJID.bareJIDInstanceNS(jid);
-		String[] rosterJids = this.repository.getUserRoster(id);
+	protected JID[] getValidBuddies(BareJID id) throws RepositoryException {
+		ArrayList<JID> result = new ArrayList<JID>();
+		BareJID[] rosterJids = this.repository.getUserRoster(id);
 
 		if (rosterJids != null) {
-			for (String j : rosterJids) {
+			for (BareJID j : rosterJids) {
 				String sub = this.repository.getBuddySubscription(id, j);
 
 				if ((sub != null) && (sub.equals("both") || sub.equals("from"))) {
-					result.add(j);
+					result.add(JID.jidInstance(j));
 				}
 			}
 		}
 
-		return result.toArray(new String[] {});
+		return result.toArray(new JID[] {});
 	}
 
 	/**
@@ -235,12 +234,12 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 		items.addChild(item);
 
-		String[] subscribers = getValidBuddies(senderJid.getBareJID().toString());
+		JID[] subscribers = getValidBuddies(senderJid.getBareJID());
 		List<Packet> result = prepareNotification(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"),
 				null);
 
 		result.add(packet.okResult((Element) null, 0));
-		result.addAll(prepareNotification(new String[] { senderJid.toString() }, items, senderJid, null,
+		result.addAll(prepareNotification(new JID[] { senderJid }, items, senderJid, null,
 				publish.getAttributeStaticStr("node"), null));
 
 		packetWriter.write(result);
@@ -289,20 +288,23 @@ public class PublishItemModule extends AbstractPubSubModule {
 			ISubscriptions nodesSubscriptions) throws RepositoryException {
 		beforePrepareNotification(nodeConfig, nodesSubscriptions);
 
-		List<String> tmp = getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions);
+		List<JID> tmp = new ArrayList<JID>();
+		for (BareJID j : getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions)) {
+			tmp.add(JID.jidInstance(j));
+		}
 		boolean updateSubscriptions = false;
 
 		if (nodeConfig.isPresenceExpired()) {
-			Iterator<String> it = tmp.iterator();
+			Iterator<JID> it = tmp.iterator();
 
 			while (it.hasNext()) {
-				final String jid = it.next();
-				boolean available = this.presenceCollector.isJidAvailable(jid);
-				final UsersAffiliation afi = nodeAffiliations.getSubscriberAffiliation(jid);
+				final JID jid = it.next();
+				boolean available = this.presenceCollector.isJidAvailable(jid.getBareJID());
+				final UsersAffiliation afi = nodeAffiliations.getSubscriberAffiliation(jid.getBareJID());
 
 				if ((afi == null) || (!available && (afi.getAffiliation() == Affiliation.member))) {
 					it.remove();
-					nodesSubscriptions.changeSubscription(jid, Subscription.none);
+					nodesSubscriptions.changeSubscription(jid.getBareJID(), Subscription.none);
 					updateSubscriptions = true;
 					if (log.isLoggable(Level.FINE)) {
 						log.fine("Subscriptione expired. Node: " + nodeConfig.getNodeName() + ", jid: " + jid);
@@ -314,17 +316,17 @@ public class PublishItemModule extends AbstractPubSubModule {
 			this.repository.update(jidFrom.getBareJID(), nodeConfig.getNodeName(), nodesSubscriptions);
 		}
 
-		String[] subscribers = tmp.toArray(new String[] {});
+		JID[] subscribers = tmp.toArray(new JID[] {});
 
 		if (nodeConfig.isDeliverPresenceBased()) {
-			List<String> s = new ArrayList<String>();
+			List<JID> s = new ArrayList<JID>();
 
-			for (String jid : subscribers) {
-				for (String subjid : this.presenceCollector.getAllAvailableResources(jid)) {
+			for (JID jid : subscribers) {
+				for (JID subjid : this.presenceCollector.getAllAvailableResources(jid.getBareJID())) {
 					s.add(subjid);
 				}
 			}
-			subscribers = s.toArray(new String[] {});
+			subscribers = s.toArray(new JID[] {});
 		}
 
 		return prepareNotification(subscribers, itemToSend, jidFrom, nodeConfig, publisherNodeName, headers);
@@ -343,7 +345,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public List<Packet> prepareNotification(final String[] subscribers, final Element itemToSend, final JID jidFrom,
+	public List<Packet> prepareNotification(final JID[] subscribers, final Element itemToSend, final JID jidFrom,
 			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
 		ArrayList<Packet> result = new ArrayList<Packet>();
 		List<Element> body = null;
@@ -356,8 +358,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 				log.log(Level.WARNING, "Problem with generating BODY", e);
 			}
 		}
-		for (String jidStr : subscribers) {
-			JID jid = JID.jidInstanceNS(jidStr);
+		for (JID jid : subscribers) {
 			Packet packet = Message.getMessage(jidFrom, jid, null, null, null, null, String.valueOf(++this.idCounter));
 			Element message = packet.getElement();
 
@@ -423,7 +424,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			final UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(element.getAttributeStaticStr("from"));
+			final UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().getBareJID());
 			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 
 			// XXX #125
@@ -431,7 +432,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			if (!senderAffiliation.getAffiliation().isPublishItem()) {
 				if ((publisherModel == PublisherModel.publishers)
-						|| ((publisherModel == PublisherModel.subscribers) && (nodeSubscriptions.getSubscription(element.getAttributeStaticStr("from")) != Subscription.subscribed))) {
+						|| ((publisherModel == PublisherModel.subscribers) && (nodeSubscriptions.getSubscription(packet.getStanzaFrom().getBareJID()) != Subscription.subscribed))) {
 					throw new PubSubException(Authorization.FORBIDDEN);
 				}
 			}

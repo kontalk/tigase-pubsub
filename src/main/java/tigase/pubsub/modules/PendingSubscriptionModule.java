@@ -45,7 +45,6 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Message;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -113,7 +112,7 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 			Form x = new Form(element.getChild("x", "jabber:x:data"));
 			final String subId = x.getAsString("pubsub#subid");
 			final String node = x.getAsString("pubsub#node");
-			final String subscriberJid = x.getAsString("pubsub#subscriber_jid");
+			final BareJID subscriberJid = BareJID.bareJIDInstanceNS(x.getAsString("pubsub#subscriber_jid"));
 			final Boolean allow = x.getAsBoolean("pubsub#allow");
 
 			if (allow == null) {
@@ -128,10 +127,10 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 
 			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, node);
 			final IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, node);
-			String jid = message.getAttributeStaticStr("from");
+			JID jid = message.getStanzaFrom();
 
-			if (!this.config.isAdmin(JIDUtils.getNodeID(jid))) {
-				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid);
+			if (!this.config.isAdmin(jid)) {
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(jid.getBareJID());
 
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
@@ -150,7 +149,7 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 				return;
 			}
 
-			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
+			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid.getBareJID()).getAffiliation();
 
 			if (allow) {
 				subscription = Subscription.subscribed;
@@ -198,14 +197,14 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 	 * @throws RepositoryException
 	 */
 	public List<Packet> sendAuthorizationRequest(final String nodeName, final JID fromJid, final String subID,
-			final String subscriberJid, IAffiliations nodeAffiliations) throws RepositoryException {
+			final BareJID subscriberJid, IAffiliations nodeAffiliations) throws RepositoryException {
 		Form x = new Form("form", "PubSub subscriber request",
 				"To approve this entity's subscription request, click the OK button. To deny the request, click the cancel button.");
 
 		x.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#subscribe_authorization"));
 		x.addField(Field.fieldHidden("pubsub#subid", subID));
 		x.addField(Field.fieldTextSingle("pubsub#node", nodeName, "Node ID"));
-		x.addField(Field.fieldJidSingle("pubsub#subscriber_jid", subscriberJid, "UsersSubscription Address"));
+		x.addField(Field.fieldJidSingle("pubsub#subscriber_jid", subscriberJid.toString(), "UsersSubscription Address"));
 		x.addField(Field.fieldBoolean("pubsub#allow", Boolean.FALSE, "Allow this JID to subscribe to this pubsub node?"));
 
 		List<Packet> result = new ArrayList<Packet>();
@@ -214,8 +213,8 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 		if (affiliations != null) {
 			for (UsersAffiliation affiliation : affiliations) {
 				if (affiliation.getAffiliation() == Affiliation.owner) {
-					Packet message = Message.getMessage(fromJid, JID.jidInstanceNS(affiliation.getJid()), null, null, null,
-							null, Utils.createUID(affiliation.getJid()));
+					Packet message = Message.getMessage(fromJid, JID.jidInstance(affiliation.getJid()), null, null, null, null,
+							Utils.createUID(affiliation.getJid()));
 
 					message.getElement().addChild(x.getElement());
 					result.add(message);

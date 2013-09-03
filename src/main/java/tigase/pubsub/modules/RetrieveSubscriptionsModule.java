@@ -119,7 +119,7 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 							for (UsersSubscription usersSubscription : subscribers.getSubscriptions()) {
 								if (senderBareJid.equals(usersSubscription.getJid())) {
 									ISubscriptions ns = directRepo.getNodeSubscriptions(serviceJid, nodeName);
-									Subscription subscription = ns.getSubscription(usersSubscription.getJid().toString());
+									Subscription subscription = ns.getSubscription(usersSubscription.getJid());
 									Element a = new Element("subscription", new String[] { "node", "jid", "subscription" },
 											new String[] { node, usersSubscription.getJid().toString(), subscription.name() });
 

@@ -63,7 +63,7 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 		PubSubDAO dao = takeDao();
 		if (dao != null) {
