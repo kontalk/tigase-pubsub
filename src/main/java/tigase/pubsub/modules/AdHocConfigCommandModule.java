@@ -27,8 +27,8 @@ import java.util.List;
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocCommandManager;
-import tigase.component.PacketWriter;
 import tigase.adhoc.AdHocScriptCommandManager;
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;
@@ -41,11 +41,11 @@ import tigase.xml.Element;
 
 public class AdHocConfigCommandModule extends AbstractPubSubModule {
 
+	private static final String[] COMMAND_PATH = { "iq", "command" };
+
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("command", "http://jabber.org/protocol/commands"));
 
-	private static final String[] COMMAND_PATH = { "iq", "command" };
-	
 	private final AdHocCommandManager commandsManager = new AdHocCommandManager();
 	private AdHocScriptCommandManager scriptCommandManager;
 
@@ -63,14 +63,14 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 						command.getNode(), command.getName() }));
 			}
 		}
-		
+
 		List<Element> scriptCommandsList = scriptCommandManager.getCommandListItems(senderJid, toJid);
 		if (scriptCommandsList != null) {
 			commandsList.addAll(scriptCommandsList);
 		}
 		return commandsList;
 	}
-	
+
 	@Override
 	public String[] getFeatures() {
 		return new String[] { "http://jabber.org/protocol/commands" };
@@ -90,8 +90,7 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 			} catch (AdHocCommandException e) {
 				throw new PubSubException(e.getErrorCondition(), e.getMessage());
 			}
-		}
-		else {
+		} else {
 			packetWriter.write(scriptCommandManager.process(packet));
 		}
 	}

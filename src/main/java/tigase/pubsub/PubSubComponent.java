@@ -22,16 +22,22 @@
 
 package tigase.pubsub;
 
-import java.util.Map;
-import java.util.logging.Level;
-
-import tigase.component.AbstractComponent;
-import tigase.component.PacketWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.logging.Level;
+
+import javax.script.Bindings;
+
+import tigase.adhoc.AdHocScriptCommandManager;
+import tigase.component.AbstractComponent;
+import tigase.component.PacketWriter;
 import tigase.conf.Configurable;
+import tigase.db.RepositoryFactory;
+import tigase.db.TigaseDBException;
+import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
 import tigase.pubsub.modules.AdHocConfigCommandModule;
 import tigase.pubsub.modules.DefaultConfigModule;
@@ -55,14 +61,6 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.repository.cached.CachedPubSubRepository;
-import tigase.server.DisableDisco;
-
-import javax.script.Bindings;
-import tigase.adhoc.AdHocScriptCommandManager;
-import tigase.db.RepositoryFactory;
-import tigase.db.TigaseDBException;
-import tigase.db.UserNotFoundException;
 import tigase.pubsub.modules.commands.DefaultConfigCommand;
 import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
@@ -72,7 +70,9 @@ import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.Command;
+import tigase.server.DisableDisco;
 import tigase.server.Packet;
 import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
@@ -88,15 +88,48 @@ import tigase.xmpp.JID;
 public class PubSubComponent extends AbstractComponent<PubSubConfig> implements Configurable, DisableDisco,
 		DefaultNodeConfigListener {
 
-	public static final String ADMINS_KEY = "admin";	
-	
+	private class AdHocScriptCommandManagerImpl implements AdHocScriptCommandManager {
+
+		private final PubSubComponent component;
+
+		public AdHocScriptCommandManagerImpl(PubSubComponent component) {
+			this.component = component;
+		}
+
+		@Override
+		public List<Element> getCommandListItems(String senderJid, String toJid) {
+			try {
+				return component.getScriptItems(Command.XMLNS, JID.jidInstance(toJid), JID.jidInstance(senderJid));
+			} catch (TigaseStringprepException ex) {
+				log.warning("could not process jid, should not happend...");
+				return null;
+			}
+		}
+
+		@Override
+		public List<Packet> process(Packet packet) {
+			Queue<Packet> results = new ArrayDeque<Packet>();
+
+			if (component.processScriptCommand(packet, results)) {
+				return new ArrayList<Packet>(results);
+			}
+
+			return null;
+		}
+
+	}
+
+	public static final String ADMINS_KEY = "admin";
+
 	private static final String COMPONENT = "component";
-	
+	/** Field description */
+	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 	/**
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
+
 	/**
 	 * Field description
 	 */
@@ -105,14 +138,13 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
-	
-	/** Field description */
-	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 	private AdHocConfigCommandModule adHocCommandsModule;
 	private DefaultConfigModule defaultConfigModule;
 	protected LeafNodeConfig defaultNodeConfig;
+	private PubSubDAO directPubSubRepository;
 	private ManageAffiliationsModule manageAffiliationsModule;
 	private ManageSubscriptionModule manageSubscriptionModule;
+	private Integer maxRepositoryCacheSize;
 	private NodeConfigModule nodeConfigModule;
 	private NodeCreateModule nodeCreateModule;
 	private NodeDeleteModule nodeDeleteModule;
@@ -122,22 +154,22 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	protected CachedPubSubRepository pubsubRepository;
 	private PurgeItemsModule purgeItemsModule;
 	private RetractItemModule retractItemModule;
-	private RetrieveItemsModule retrirveItemsModule;
-	private SubscribeNodeModule subscribeNodeModule;
-	private UnsubscribeNodeModule unsubscribeNodeModule;
 
-	protected UserRepository userRepository;
+	private RetrieveItemsModule retrirveItemsModule;
 	private AdHocScriptCommandManager scriptCommandManager;
 
-	private XsltTool xslTransformer;
-	private Integer maxRepositoryCacheSize;
-	private PubSubDAO directPubSubRepository;
+	private SubscribeNodeModule subscribeNodeModule;
+	private UnsubscribeNodeModule unsubscribeNodeModule;
+	protected UserRepository userRepository;
 
-	//~--- constructors ---------------------------------------------------------	
-	
+	// ~--- constructors
+	// ---------------------------------------------------------
+
+	private XsltTool xslTransformer;
+
 	/**
 	 * Constructs ...
-	 *
+	 * 
 	 */
 	public PubSubComponent() {
 		this.scriptCommandManager = new AdHocScriptCommandManagerImpl(this);
@@ -150,17 +182,17 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param directRepository
-	 *
+	 * 
 	 * @return
 	 */
 	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
 		// return new StatelessPubSubRepository(directRepository, this.config);
 		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
 	}
-	
+
 	/**
 	 * Method description
 	 * 
@@ -208,8 +240,11 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		props.put(ADMINS_KEY, admins);
 
 		return props;
-	}	
-	
+	}
+
+	// ~--- set methods
+	// ----------------------------------------------------------
+
 	/**
 	 * Method description
 	 * 
@@ -243,7 +278,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		this.purgeItemsModule = registerModule(new PurgeItemsModule(componentConfig, this.pubsubRepository, writer,
 				this.publishNodeModule));
 		registerModule(new JabberVersionModule(componentConfig, pubsubRepository, writer));
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, this.pubsubRepository, writer, scriptCommandManager));
+		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, this.pubsubRepository, writer,
+				scriptCommandManager));
 		registerModule(new DiscoverInfoModule(componentConfig, this.pubsubRepository, writer, modulesManager));
 		registerModule(new DiscoverItemsModule(componentConfig, this.pubsubRepository, writer, this.adHocCommandsModule));
 		registerModule(new RetrieveAffiliationsModule(componentConfig, this.pubsubRepository, writer));
@@ -252,14 +288,15 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		this.pubsubRepository.init();
 	}
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
 	@Override
 	public void initBindings(Bindings binds) {
-		super.initBindings(binds); //To change body of generated methods, choose Tools | Templates.
+		super.initBindings(binds); // To change body of generated methods,
+									// choose Tools | Templates.
 		binds.put(COMPONENT, this);
 	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -277,7 +314,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
 			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
 		this.componentConfig.setAdmins(admins);
-		//this.componentConfig.setServiceName("tigase-pubsub");
+		// this.componentConfig.setServiceName("tigase-pubsub");
 
 		// XXX remove ASAP
 		if (pubSubDAO != null) {
@@ -299,16 +336,15 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 				this.userRepository));
 		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.componentConfig, this.directPubSubRepository,
 				this.pubsubRepository));
-	}	
-	//~--- get methods ----------------------------------------------------------
+	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
+	// ~--- get methods
+	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -428,36 +464,5 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			log.severe("Can't initialize pubsub repository: " + e);
 			e.printStackTrace();
 		}
-	}
-	
-	private class AdHocScriptCommandManagerImpl implements AdHocScriptCommandManager {
-
-		private final PubSubComponent component;
-		
-		public AdHocScriptCommandManagerImpl(PubSubComponent component) {
-			this.component = component;
-		}
-		
-		@Override
-		public List<Element> getCommandListItems(String senderJid, String toJid) {
-			try {
-				return component.getScriptItems(Command.XMLNS, JID.jidInstance(toJid), JID.jidInstance(senderJid));
-			} catch (TigaseStringprepException ex) {
-				log.warning("could not process jid, should not happend...");
-				return null;
-			}
-		}
-
-		@Override
-		public List<Packet> process(Packet packet) {
-			Queue<Packet> results = new ArrayDeque<Packet>();
-			
-			if (component.processScriptCommand(packet, results)) {
-				return new ArrayList<Packet>(results);
-			}
-			
-			return null;
-		}
-		
 	}
 }
