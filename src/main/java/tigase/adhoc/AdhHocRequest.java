@@ -23,6 +23,7 @@ package tigase.adhoc;
 
 import tigase.server.Packet;
 import tigase.xml.Element;
+import tigase.xmpp.JID;
 
 public class AdhHocRequest {
 
@@ -34,11 +35,11 @@ public class AdhHocRequest {
 
 	private final String node;
 
-	private final String sender;
+	private final JID sender;
 
 	private final String sessionId;
 
-	AdhHocRequest(Packet iq, Element command, String node, String sender, String action, String sessionId) {
+	AdhHocRequest(Packet iq, Element command, String node, JID sender, String action, String sessionId) {
 		super();
 		this.iq = iq;
 		this.command = command;
@@ -64,7 +65,7 @@ public class AdhHocRequest {
 		return node;
 	}
 
-	public String getSender() {
+	public JID getSender() {
 		return sender;
 	}
 

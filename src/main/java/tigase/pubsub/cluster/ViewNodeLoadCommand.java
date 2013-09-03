@@ -9,7 +9,6 @@ import tigase.adhoc.AdhHocRequest;
 import tigase.form.Field;
 import tigase.form.Form;
 import tigase.pubsub.PubSubConfig;
-import tigase.util.JIDUtils;
 import tigase.xmpp.Authorization;
 
 public class ViewNodeLoadCommand implements AdHocCommand {
@@ -26,7 +25,7 @@ public class ViewNodeLoadCommand implements AdHocCommand {
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
-			if (!config.isAdmin(JIDUtils.getNodeID(request.getSender()))) {
+			if (!config.isAdmin(request.getSender())) {
 				throw new AdHocCommandException(Authorization.FORBIDDEN);
 			}
 

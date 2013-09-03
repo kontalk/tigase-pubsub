@@ -12,7 +12,6 @@ import tigase.form.Form;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -55,7 +54,7 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
-			if (!config.isAdmin(JIDUtils.getNodeID(request.getSender()))) {
+			if (!config.isAdmin(request.getSender())) {
 				throw new AdHocCommandException(Authorization.FORBIDDEN);
 			}
 

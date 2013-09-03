@@ -39,6 +39,7 @@ import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.server.Packet;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -98,6 +99,7 @@ public abstract class AbstractPubSubModule implements Module {
 	 * 
 	 * @return
 	 */
+	@Deprecated
 	protected static String findBestJid(final String[] allSubscribers, final String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
 		String best = null;
@@ -120,48 +122,19 @@ public abstract class AbstractPubSubModule implements Module {
 	 * 
 	 * 
 	 * @param nodeConfig
-	 * @param affiliations
-	 * @param subscriptions
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
-	public static List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final IAffiliations affiliations,
-			final ISubscriptions subscriptions) throws RepositoryException {
-		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
-
-		if (subscribers == null) {
-			return Collections.emptyList();
-		}
-
-		String[] jids = new String[subscribers.length];
-
-		for (int i = 0; i < subscribers.length; i++) {
-			jids[i] = subscribers[i].getJid().toString();
-		}
-
-		return getActiveSubscribers(nodeConfig, jids, affiliations, subscriptions);
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param nodeConfig
 	 * @param jids
 	 * @param affiliations
 	 * @param subscriptions
 	 * 
 	 * @return
 	 */
-	public static List<String> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final String[] jids,
+	public static List<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final BareJID[] jids,
 			final IAffiliations affiliations, final ISubscriptions subscriptions) {
-		List<String> result = new ArrayList<String>();
+		List<BareJID> result = new ArrayList<BareJID>();
 		final boolean presenceExpired = nodeConfig.isPresenceExpired();
 
 		if (jids != null) {
-			for (String jid : jids) {
+			for (BareJID jid : jids) {
 				if (presenceExpired) {
 				}
 
@@ -179,6 +152,35 @@ public abstract class AbstractPubSubModule implements Module {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeConfig
+	 * @param affiliations
+	 * @param subscriptions
+	 * 
+	 * @return
+	 * 
+	 * @throws RepositoryException
+	 */
+	public static List<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final IAffiliations affiliations,
+			final ISubscriptions subscriptions) throws RepositoryException {
+		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
+
+		if (subscribers == null) {
+			return Collections.emptyList();
+		}
+
+		BareJID[] jids = new BareJID[subscribers.length];
+
+		for (int i = 0; i < subscribers.length; i++) {
+			jids[i] = subscribers[i].getJid();
+		}
+
+		return getActiveSubscribers(nodeConfig, jids, affiliations, subscriptions);
 	}
 
 	/**
@@ -255,13 +257,12 @@ public abstract class AbstractPubSubModule implements Module {
 	 * 
 	 * @throws RepositoryException
 	 */
-	protected boolean hasSenderSubscription(final String jid, final IAffiliations affiliations,
+	protected boolean hasSenderSubscription(final BareJID bareJid, final IAffiliations affiliations,
 			final ISubscriptions subscriptions) throws RepositoryException {
 		final UsersSubscription[] subscribers = subscriptions.getSubscriptions();
-		final String bareJid = JIDUtils.getNodeID(jid);
 
 		for (UsersSubscription owner : subscribers) {
-			UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid().toString());
+			UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
 
 			if (affiliation.getAffiliation() != Affiliation.owner) {
 				continue;
@@ -270,9 +271,9 @@ public abstract class AbstractPubSubModule implements Module {
 				return true;
 			}
 
-			String[] buddies = this.repository.getUserRoster(owner.getJid());
+			BareJID[] buddies = this.repository.getUserRoster(owner.getJid());
 
-			for (String buddy : buddies) {
+			for (BareJID buddy : buddies) {
 				if (bareJid.equals(buddy)) {
 					String s = this.repository.getBuddySubscription(owner.getJid(), bareJid);
 
@@ -299,17 +300,16 @@ public abstract class AbstractPubSubModule implements Module {
 	 * 
 	 * @throws RepositoryException
 	 */
-	protected boolean isSenderInRosterGroup(String jid, AbstractNodeConfig nodeConfig, IAffiliations affiliations,
+	protected boolean isSenderInRosterGroup(BareJID bareJid, AbstractNodeConfig nodeConfig, IAffiliations affiliations,
 			final ISubscriptions subscriptions) throws RepositoryException {
 		final UsersSubscription[] subscribers = subscriptions.getSubscriptions();
-		final String bareJid = JIDUtils.getNodeID(jid);
 		final String[] groupsAllowed = nodeConfig.getRosterGroupsAllowed();
 
 		if ((groupsAllowed == null) || (groupsAllowed.length == 0)) {
 			return true;
 		}
 		for (UsersSubscription owner : subscribers) {
-			UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid().toString());
+			UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
 
 			if (affiliation.getAffiliation() != Affiliation.owner) {
 				continue;
@@ -318,9 +318,9 @@ public abstract class AbstractPubSubModule implements Module {
 				return true;
 			}
 
-			String[] buddies = this.repository.getUserRoster(owner.getJid());
+			BareJID[] buddies = this.repository.getUserRoster(owner.getJid());
 
-			for (String buddy : buddies) {
+			for (BareJID buddy : buddies) {
 				if (bareJid.equals(buddy)) {
 					String[] groups = this.repository.getBuddyGroups(owner.getJid(), bareJid);
 

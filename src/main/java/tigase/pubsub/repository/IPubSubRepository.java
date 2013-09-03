@@ -35,7 +35,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+	public abstract void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException;
 
 	/**
@@ -75,7 +75,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException;
+	public abstract String[] getBuddyGroups(BareJID owner, BareJID buddy) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -88,7 +88,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException;
+	public abstract String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -166,7 +166,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract String[] getUserRoster(BareJID owner) throws RepositoryException;
+	public abstract BareJID[] getUserRoster(BareJID owner) throws RepositoryException;
 
 	/**
 	 * Method description

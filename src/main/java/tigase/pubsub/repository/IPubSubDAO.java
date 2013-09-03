@@ -60,7 +60,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+	public abstract void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException;
 
 	/**
@@ -90,9 +90,9 @@ public interface IPubSubDAO {
 	 */
 	public void destroy();
 
-	String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException;
+	String[] getBuddyGroups(BareJID owner, BareJID bareJid) throws RepositoryException;
 
-	String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException;
+	String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException;
 
 	Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException;
 
@@ -172,7 +172,7 @@ public interface IPubSubDAO {
 	 */
 	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException;
 
-	String[] getUserRoster(BareJID owner) throws RepositoryException;
+	BareJID[] getUserRoster(BareJID owner) throws RepositoryException;
 
 	/**
 	 * Method description

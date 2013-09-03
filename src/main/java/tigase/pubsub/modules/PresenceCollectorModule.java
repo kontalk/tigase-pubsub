@@ -39,8 +39,8 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.server.Presence;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
+import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 import tigase.xmpp.StanzaType;
 
@@ -53,7 +53,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 	private static final Criteria CRIT = ElementCriteria.name("presence");
 
-	private final Map<String, Set<String>> resources = new HashMap<String, Set<String>>();
+	private final Map<BareJID, Set<String>> resources = new HashMap<BareJID, Set<String>>();
 
 	public PresenceCollectorModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
 		super(config, pubsubRepository, packetWriter);
@@ -67,14 +67,14 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public synchronized boolean addJid(final String jid) {
+	public synchronized boolean addJid(final JID jid) {
 		if (jid == null) {
 			return false;
 		}
 
 		boolean added = false;
-		final String bareJid = JIDUtils.getNodeID(jid);
-		final String resource = JIDUtils.getNodeResource(jid);
+		final BareJID bareJid = jid.getBareJID();
+		final String resource = jid.getResource();
 
 		if (resource != null) {
 			Set<String> resources = this.resources.get(bareJid);
@@ -97,12 +97,12 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public List<String> getAllAvailableJids() {
-		ArrayList<String> result = new ArrayList<String>();
+	public List<JID> getAllAvailableJids() {
+		ArrayList<JID> result = new ArrayList<JID>();
 
-		for (Entry<String, Set<String>> entry : this.resources.entrySet()) {
+		for (Entry<BareJID, Set<String>> entry : this.resources.entrySet()) {
 			for (String reource : entry.getValue()) {
-				result.add(entry.getKey() + "/" + reource);
+				result.add(JID.jidInstanceNS(entry.getKey(), reource));
 			}
 		}
 
@@ -117,14 +117,13 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public List<String> getAllAvailableResources(final String jid) {
-		final String bareJid = JIDUtils.getNodeID(jid);
-		final List<String> result = new ArrayList<String>();
+	public List<JID> getAllAvailableResources(final BareJID bareJid) {
+		final List<JID> result = new ArrayList<JID>();
 		final Set<String> resources = this.resources.get(bareJid);
 
 		if (resources != null) {
 			for (String reource : resources) {
-				result.add(bareJid + "/" + reource);
+				result.add(JID.jidInstanceNS(bareJid, reource));
 			}
 		}
 
@@ -161,8 +160,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public boolean isJidAvailable(final String jid) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public boolean isJidAvailable(final BareJID bareJid) {
 		final Set<String> resources = this.resources.get(bareJid);
 
 		return (resources != null) && (resources.size() > 0);
@@ -203,7 +201,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		final JID toJid = packet.getStanzaTo();
 
 		if (type == null) {
-			boolean added = addJid(jid.toString());
+			boolean added = addJid(jid);
 
 			if (added) {
 				Packet p = new Presence(new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(),
@@ -212,7 +210,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 				packetWriter.write(p);
 			}
 		} else if ("unavailable".equals(type)) {
-			removeJid(jid.toString());
+			removeJid(jid);
 
 			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" }, new String[] {
 					jid.toString(), toJid.toString(), "unavailable" }), toJid, jid);
@@ -254,13 +252,13 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	protected synchronized boolean removeJid(final String jid) {
+	protected synchronized boolean removeJid(final JID jid) {
 		if (jid == null) {
 			return false;
 		}
 
-		final String bareJid = JIDUtils.getNodeID(jid);
-		final String resource = JIDUtils.getNodeResource(jid);
+		final BareJID bareJid = jid.getBareJID();
+		final String resource = jid.getResource();
 		boolean removed = false;
 
 		// onlineUsers.remove(jid);

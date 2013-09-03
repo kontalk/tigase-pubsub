@@ -39,7 +39,6 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Message;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -136,10 +135,10 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 			}
 
 			final IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(toJid, nodeName);
-			String senderJid = element.getAttributeStaticStr("from");
+			JID senderJid = packet.getStanzaFrom();
 
-			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			if (!this.config.isAdmin(senderJid)) {
+				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 
 				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
 					throw new PubSubException(element, Authorization.FORBIDDEN);
@@ -182,7 +181,7 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 				}
 
 				Element affiliation = new Element("affiliation", new String[] { "jid", "affiliation" }, new String[] {
-						affi.getJid(), affi.getAffiliation().name() });
+						affi.getJid().toString(), affi.getAffiliation().name() });
 
 				afr.addChild(affiliation);
 			}
@@ -210,16 +209,16 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 			}
 
 			Affiliation newAffiliation = Affiliation.valueOf(strAfiliation);
-			Affiliation oldAffiliation = nodeAffiliations.getSubscriberAffiliation(jidStr).getAffiliation();
+			Affiliation oldAffiliation = nodeAffiliations.getSubscriberAffiliation(jid.getBareJID()).getAffiliation();
 
 			oldAffiliation = (oldAffiliation == null) ? Affiliation.none : oldAffiliation;
 			if ((oldAffiliation == Affiliation.none) && (newAffiliation != Affiliation.none)) {
-				nodeAffiliations.addAffiliation(jidStr, newAffiliation);
+				nodeAffiliations.addAffiliation(jid.getBareJID(), newAffiliation);
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
 					packetWriter.write(createAffiliationNotification(packet.getStanzaTo(), jid, nodeName, newAffiliation));
 				}
 			} else {
-				nodeAffiliations.changeAffiliation(jidStr, newAffiliation);
+				nodeAffiliations.changeAffiliation(jid.getBareJID(), newAffiliation);
 				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
 					packetWriter.write(createAffiliationNotification(packet.getStanzaTo(), jid, nodeName, newAffiliation));
 				}

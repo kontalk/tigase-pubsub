@@ -36,8 +36,8 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
+import tigase.xmpp.JID;
 
 public class AdHocConfigCommandModule extends AbstractPubSubModule {
 
@@ -55,11 +55,11 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 		this.scriptCommandManager = scriptCommandManager;
 	}
 
-	public List<Element> getCommandListItems(final String senderJid, final String toJid) {
+	public List<Element> getCommandListItems(final JID senderJid, final JID toJid) {
 		ArrayList<Element> commandsList = new ArrayList<Element>();
 		for (AdHocCommand command : this.commandsManager.getAllCommands()) {
-			if (config.isAdmin(JIDUtils.getNodeID(senderJid))) {
-				commandsList.add(new Element("item", new String[] { "jid", "node", "name" }, new String[] { toJid,
+			if (config.isAdmin(senderJid)) {
+				commandsList.add(new Element("item", new String[] { "jid", "node", "name" }, new String[] { toJid.toString(),
 						command.getNode(), command.getName() }));
 			}
 		}

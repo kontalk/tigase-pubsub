@@ -37,10 +37,10 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -99,9 +99,9 @@ public class UnsubscribeNodeModule extends AbstractPubSubModule {
 		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element unsubscribe = pubSub.getChild("unsubscribe");
-		final String senderJid = element.getAttributeStaticStr("from");
+		final JID senderJid = packet.getStanzaFrom();
 		final String nodeName = unsubscribe.getAttributeStaticStr("node");
-		final String jid = unsubscribe.getAttributeStaticStr("jid");
+		final BareJID jid = BareJID.bareJIDInstanceNS(unsubscribe.getAttributeStaticStr("jid"));
 		final String subid = unsubscribe.getAttributeStaticStr("subid");
 
 		try {
@@ -112,12 +112,11 @@ public class UnsubscribeNodeModule extends AbstractPubSubModule {
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 
-			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))
-					&& (senderAffiliation.getAffiliation() != Affiliation.owner)
-					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
+			if (!this.config.isAdmin(senderJid) && (senderAffiliation.getAffiliation() != Affiliation.owner)
+					&& !jid.equals(senderJid.getBareJID())) {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 			if (affiliation != null) {

@@ -8,13 +8,11 @@ import java.util.Set;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-import tigase.util.JIDUtils;
+import tigase.xmpp.BareJID;
 
 public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
-	protected final Map<String, UsersSubscription> changedSubs = new HashMap<String, UsersSubscription>();
 
-	private NodeSubscriptions() {
-	}
+	protected final Map<BareJID, UsersSubscription> changedSubs = new HashMap<BareJID, UsersSubscription>();
 
 	/**
 	 * Constructs ...
@@ -36,9 +34,8 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	 * @return
 	 */
 	@Override
-	public String addSubscriberJid(String jid, Subscription subscription) {
-		final String subid = Utils.createUID(jid);
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public String addSubscriberJid(BareJID bareJid, Subscription subscription) {
+		final String subid = Utils.createUID(bareJid);
 		UsersSubscription s = new UsersSubscription(bareJid, subid, subscription);
 
 		synchronized (changedSubs) {
@@ -56,21 +53,20 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	 * @param subscription
 	 */
 	@Override
-	public void changeSubscription(String jid, Subscription subscription) {
-		final String bareJid = JIDUtils.getNodeID(jid);
+	public void changeSubscription(BareJID bareJid, Subscription subscription) {
 		UsersSubscription s = subs.get(bareJid);
 
 		if (s != null) {
 			s.setSubscription(subscription);
 
 			synchronized (changedSubs) {
-				changedSubs.put(s.getJid().toString(), s);
+				changedSubs.put(s.getJid(), s);
 			}
 		}
 	}
 
 	@Override
-	protected UsersSubscription get(final String bareJid) {
+	protected UsersSubscription get(final BareJID bareJid) {
 		UsersSubscription us = null;
 
 		synchronized (changedSubs) {

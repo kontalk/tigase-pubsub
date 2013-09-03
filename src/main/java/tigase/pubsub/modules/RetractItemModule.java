@@ -134,7 +134,7 @@ public class RetractItemModule extends AbstractPubSubModule {
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().toString());
+			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().getBareJID());
 
 			if (!affiliation.getAffiliation().isDeleteItem()) {
 				throw new PubSubException(Authorization.FORBIDDEN);

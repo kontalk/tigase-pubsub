@@ -27,7 +27,7 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.logging.Logger;
 
-import tigase.util.JIDUtils;
+import tigase.xmpp.BareJID;
 
 public class Utils {
 
@@ -165,7 +165,7 @@ public class Utils {
 		return createUID(null);
 	}
 
-	public static String createUID(String jid) {
+	public static String createUID(Object jid) {
 		byte[] x = new byte[13];
 
 		Utils utils = instance();
@@ -183,11 +183,11 @@ public class Utils {
 		return instance;
 	}
 
-	public static boolean isAllowedDomain(final String jid, final String... domains) {
-		log.finer("Checking is " + jid + " allowed to see domains: " + asString(domains));
-		if (jid == null || domains == null || domains.length == 0)
+	public static boolean isAllowedDomain(final BareJID bareJID, final String... domains) {
+		log.finer("Checking is " + bareJID + " allowed to see domains: " + asString(domains));
+		if (bareJID == null || domains == null || domains.length == 0)
 			return true;
-		final String jidHost = JIDUtils.getNodeHost(jid);
+		final String jidHost = bareJID.getDomain();
 		for (String d : domains) {
 			if (jidHost.equals(d))
 				return true;

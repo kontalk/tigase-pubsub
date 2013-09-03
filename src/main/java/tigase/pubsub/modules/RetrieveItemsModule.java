@@ -49,6 +49,7 @@ import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -138,7 +139,7 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 			final Element items = pubsub.getChild("items");
 			final String nodeName = items.getAttributeStaticStr("node");
 			final Integer maxItems = asInteger(items.getAttributeStaticStr("max_items"));
-			final String senderJid = packet.getAttributeStaticStr("from");
+			final JID senderJid = packet.getStanzaFrom();
 
 			if (nodeName == null) {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
@@ -151,19 +152,19 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 			if ((nodeConfig.getNodeAccessModel() == AccessModel.open)
-					&& !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains())) {
+					&& !Utils.isAllowedDomain(senderJid.getBareJID(), nodeConfig.getDomains())) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
 			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 
 			if (senderAffiliation.getAffiliation() == Affiliation.outcast) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
-			Subscription senderSubscription = nodeSubscriptions.getSubscription(senderJid);
+			Subscription senderSubscription = nodeSubscriptions.getSubscription(senderJid.getBareJID());
 
 			if ((nodeConfig.getNodeAccessModel() == AccessModel.whitelist)
 					&& !senderAffiliation.getAffiliation().isRetrieveItem()) {
@@ -172,13 +173,13 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 					&& ((senderSubscription != Subscription.subscribed) || !senderAffiliation.getAffiliation().isRetrieveItem())) {
 				throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_SUBSCRIBED);
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.presence) {
-				boolean allowed = hasSenderSubscription(senderJid, nodeAffiliations, nodeSubscriptions);
+				boolean allowed = hasSenderSubscription(senderJid.getBareJID(), nodeAffiliations, nodeSubscriptions);
 
 				if (!allowed) {
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.PRESENCE_SUBSCRIPTION_REQUIRED);
 				}
 			} else if (nodeConfig.getNodeAccessModel() == AccessModel.roster) {
-				boolean allowed = isSenderInRosterGroup(senderJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
+				boolean allowed = isSenderInRosterGroup(senderJid.getBareJID(), nodeConfig, nodeAffiliations, nodeSubscriptions);
 
 				if (!allowed) {
 					throw new PubSubException(Authorization.NOT_AUTHORIZED, PubSubErrorCondition.NOT_IN_ROSTER_GROUP);

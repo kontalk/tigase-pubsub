@@ -74,7 +74,6 @@ import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
-import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
 import tigase.xmpp.JID;
 
@@ -97,13 +96,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		}
 
 		@Override
-		public List<Element> getCommandListItems(String senderJid, String toJid) {
-			try {
-				return component.getScriptItems(Command.XMLNS, JID.jidInstance(toJid), JID.jidInstance(senderJid));
-			} catch (TigaseStringprepException ex) {
-				log.warning("could not process jid, should not happend...");
-				return null;
-			}
+		public List<Element> getCommandListItems(JID senderJid, JID toJid) {
+			return component.getScriptItems(Command.XMLNS, toJid, senderJid);
 		}
 
 		@Override

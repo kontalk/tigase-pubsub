@@ -41,7 +41,6 @@ import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -202,14 +201,14 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if ((nodeType != NodeType.leaf) && (nodeType != NodeType.collection)) {
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 			}
-			repository.createNode(toJid, nodeName, JIDUtils.getNodeID(element.getAttributeStaticStr("from")), nodeConfig,
-					nodeType, (collection == null) ? "" : collection);
+			repository.createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, nodeType,
+					(collection == null) ? "" : collection);
 
 			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
 			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(toJid, nodeName);
 
-			nodeSubscriptions.addSubscriberJid(element.getAttributeStaticStr("from"), Subscription.subscribed);
-			nodeaAffiliations.addAffiliation(element.getAttributeStaticStr("from"), Affiliation.owner);
+			nodeSubscriptions.addSubscriberJid(packet.getStanzaFrom().getBareJID(), Subscription.subscribed);
+			nodeaAffiliations.addAffiliation(packet.getStanzaFrom().getBareJID(), Affiliation.owner);
 			repository.update(toJid, nodeName, nodeaAffiliations);
 			repository.update(toJid, nodeName, nodeSubscriptions);
 			if (colNodeConfig == null) {

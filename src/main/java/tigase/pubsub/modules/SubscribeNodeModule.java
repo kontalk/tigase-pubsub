@@ -42,10 +42,10 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -75,14 +75,14 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public static Element makeSubscription(String nodeName, String subscriberJid, Subscription newSubscription, String subid) {
+	public static Element makeSubscription(String nodeName, BareJID subscriberJid, Subscription newSubscription, String subid) {
 		Element resPubSub = new Element("pubsub", new String[] { "xmlns" },
 				new String[] { "http://jabber.org/protocol/pubsub" });
 		Element resSubscription = new Element("subscription");
 
 		resPubSub.addChild(resSubscription);
 		resSubscription.setAttribute("node", nodeName);
-		resSubscription.setAttribute("jid", subscriberJid);
+		resSubscription.setAttribute("jid", subscriberJid.toString());
 		resSubscription.setAttribute("subscription", newSubscription.name());
 		if (subid != null) {
 			resSubscription.setAttribute("subid", subid);
@@ -145,9 +145,9 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element pubSub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element subscribe = pubSub.getChild("subscribe");
-		final String senderJid = packet.getAttributeStaticStr("from");
+		final JID senderJid = packet.getStanzaFrom();
 		final String nodeName = subscribe.getAttributeStaticStr("node");
-		final String jid = subscribe.getAttributeStaticStr("jid");
+		final BareJID jid = BareJID.bareJIDInstanceNS(subscribe.getAttributeStaticStr("jid"));
 
 		try {
 			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
@@ -156,16 +156,15 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
 			}
 			if ((nodeConfig.getNodeAccessModel() == AccessModel.open)
-					&& !Utils.isAllowedDomain(senderJid, nodeConfig.getDomains())) {
+					&& !Utils.isAllowedDomain(senderJid.getBareJID(), nodeConfig.getDomains())) {
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 			}
 
 			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
-			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid);
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 
-			if (!this.config.isAdmin(JIDUtils.getNodeID(senderJid))
-					&& (senderAffiliation.getAffiliation() != Affiliation.owner)
-					&& !JIDUtils.getNodeID(jid).equals(JIDUtils.getNodeID(senderJid))) {
+			if (!this.config.isAdmin(senderJid) && (senderAffiliation.getAffiliation() != Affiliation.owner)
+					&& !jid.equals((senderJid.getBareJID()))) {
 				throw new PubSubException(packet.getElement(), Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 
@@ -190,7 +189,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 
 			if (subscription != null) {
 				if ((subscription == Subscription.pending)
-						&& !(this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || (senderAffiliation.getAffiliation() == Affiliation.owner))) {
+						&& !(this.config.isAdmin(senderJid) || (senderAffiliation.getAffiliation() == Affiliation.owner))) {
 					throw new PubSubException(Authorization.FORBIDDEN, PubSubErrorCondition.PENDING_SUBSCRIPTION,
 							"Subscription is pending");
 				}
@@ -204,7 +203,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 			Subscription newSubscription;
 			Affiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
 
-			if (this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || (senderAffiliation.getAffiliation() == Affiliation.owner)) {
+			if (this.config.isAdmin(senderJid) || (senderAffiliation.getAffiliation() == Affiliation.owner)) {
 				newSubscription = Subscription.subscribed;
 				affiliation = calculateNewOwnerAffiliation(affiliation, Affiliation.member);
 			} else if (accessModel == AccessModel.open) {
@@ -243,7 +242,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 				subid = nodeSubscriptions.addSubscriberJid(jid, newSubscription);
 				nodeAffiliations.addAffiliation(jid, affiliation);
 				if ((accessModel == AccessModel.authorize)
-						&& !(this.config.isAdmin(JIDUtils.getNodeID(senderJid)) || (senderAffiliation.getAffiliation() == Affiliation.owner))) {
+						&& !(this.config.isAdmin(senderJid) || (senderAffiliation.getAffiliation() == Affiliation.owner))) {
 					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, packet.getStanzaTo(),
 							subid, jid, nodeAffiliations));
 				}
