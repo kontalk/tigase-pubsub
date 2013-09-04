@@ -135,6 +135,12 @@
 					<include>**/*.sql</include>
 				</includes>
 			</resource>
+			<resource>
+				<directory>src/main/groovy/tigase/</directory>
+				<includes>
+					<include>**/*.groovy</include>
+				</includes>
+			</resource>
 		</resources>
 		
 		<extensions>
