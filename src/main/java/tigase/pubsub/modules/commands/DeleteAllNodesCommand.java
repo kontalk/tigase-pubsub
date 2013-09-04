@@ -1,7 +1,5 @@
 package tigase.pubsub.modules.commands;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocResponse;
@@ -17,8 +15,7 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
-
-//~--- classes ----------------------------------------------------------------
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
@@ -31,9 +28,6 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 	private final PubSubConfig config;
 	private final PubSubDAO dao;
 	private final UserRepository userRepo;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
@@ -48,9 +42,6 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 		this.config = config;
 		this.userRepo = userRepo;
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -87,7 +78,7 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 						final Boolean rebuild = form.getAsBoolean("tigase-pubsub#delete-all");
 
 						if ((rebuild != null) && (rebuild.booleanValue() == true)) {
-							startRemoving();
+							startRemoving(request.getIq().getStanzaTo().getBareJID());
 
 							Form f = new Form(null, "Info", "Nodes has been deleted");
 
@@ -111,9 +102,6 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 		}
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -136,15 +124,8 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 		return "delete-all-nodes";
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
-	private void startRemoving() throws RepositoryException, UserNotFoundException, TigaseDBException {
-		dao.removeAllFromRootCollection();
+	private void startRemoving(BareJID serviceJid) throws RepositoryException, UserNotFoundException, TigaseDBException {
+		dao.removeAllFromRootCollection(serviceJid);
 		userRepo.removeSubnode(config.getServiceBareJID(), "nodes");
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

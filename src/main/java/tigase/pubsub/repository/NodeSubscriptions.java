@@ -1,7 +1,5 @@
 package tigase.pubsub.repository;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,8 +8,6 @@ import tigase.pubsub.Utils;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
 import tigase.util.JIDUtils;
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
@@ -25,9 +21,6 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	/** Field description */
 	public final static int MAX_FRAGMENT_SIZE = 10000;
-
-	// ~--- fields
-	// ---------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -43,14 +36,8 @@ public class NodeSubscriptions implements ISubscriptions {
 
 	private boolean changed = false;
 
-	// ~--- constructors
-	// ---------------------------------------------------------
-
 	protected final FragmentedMap<String, UsersSubscription> subs = new FragmentedMap<String, UsersSubscription>(
 			MAX_FRAGMENT_SIZE);
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	protected NodeSubscriptions() {
 	}
@@ -96,9 +83,6 @@ public class NodeSubscriptions implements ISubscriptions {
 			changed = true;
 		}
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	protected UsersSubscription get(final String jid) {
 		final String bareJid = JIDUtils.getNodeID(jid);
@@ -182,9 +166,6 @@ public class NodeSubscriptions implements ISubscriptions {
 	public Map<String, UsersSubscription> getSubscriptionsMap() {
 		return subs.getMap();
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -274,9 +255,6 @@ public class NodeSubscriptions implements ISubscriptions {
 		this.changed = false;
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -303,7 +281,3 @@ public class NodeSubscriptions implements ISubscriptions {
 		return sb.toString();
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

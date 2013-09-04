@@ -20,77 +20,53 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
-
+import tigase.component.PacketWriter;
+import tigase.component.modules.ModulesManager;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
 import tigase.form.Field;
 import tigase.form.Form;
-
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.Module;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.Utils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayList;
-import java.util.List;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
  */
-public class DiscoverInfoModule
-				extends AbstractModule {
-	private static final Criteria CRIT = ElementCriteria.nameType("iq",
-																				 "get").add(ElementCriteria.name("query",
-																					 "http://jabber.org/protocol/disco#info"));
+public class DiscoverInfoModule extends AbstractPubSubModule {
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
+			ElementCriteria.name("query", "http://jabber.org/protocol/disco#info"));
 
-	//~--- fields ---------------------------------------------------------------
-
-	private ArrayList<Module> modules;
-
-	//~--- constructors ---------------------------------------------------------
+	private final ModulesManager modulesManager;
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 * @param modules
 	 */
-	public DiscoverInfoModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-														ArrayList<Module> modules) {
-		super(config, pubsubRepository);
-		this.modules = modules;
+	public DiscoverInfoModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			ModulesManager modulesManager) {
+		super(config, pubsubRepository, packetWriter);
+		this.modulesManager = modulesManager;
 	}
-
-	//~--- get methods ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -100,8 +76,8 @@ public class DiscoverInfoModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -109,45 +85,32 @@ public class DiscoverInfoModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
-	 * @param packetWriter
-	 *
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			final Element element = packet.getElement();
 			final String senderJid = element.getAttributeStaticStr("from");
-			final Element query    = element.getChild("query",
-																 "http://jabber.org/protocol/disco#info");
+			final Element query = element.getChild("query", "http://jabber.org/protocol/disco#info");
 			final String nodeName = query.getAttributeStaticStr("node");
-			Element resultQuery   = new Element("query", new String[] { "xmlns" },
-																new String[] { "http://jabber.org/protocol/disco#info" });
+			Element resultQuery = new Element("query", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/disco#info" });
 
 			Packet resultIq = packet.okResult(resultQuery, 0);
 
 			if (nodeName == null) {
-				resultQuery.addChild(new Element("identity", new String[] { "category", "type",
-								"name" }, new String[] { "pubsub", "service", "Publish-Subscribe" }));
-				for (Module module : this.modules) {
-					String[] features = module.getFeatures();
-
-					if (features != null) {
-						for (String f : features) {
-							resultQuery.addChild(new Element("feature", new String[] { "var" },
-																							 new String[] { f }));
-						}
-					}
+				resultQuery.addChild(new Element("identity", new String[] { "category", "type", "name" }, new String[] {
+						"pubsub", "service", "Publish-Subscribe" }));
+				for (String f : modulesManager.getFeatures()) {
+					resultQuery.addChild(new Element("feature", new String[] { "var" }, new String[] { f }));
 				}
 			} else {
 				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(packet.getStanzaTo().getBareJID(), nodeName);
@@ -156,30 +119,25 @@ public class DiscoverInfoModule
 					throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 				}
 
-				boolean allowed = ((senderJid == null) || (nodeConfig == null))
-													? true
-													: Utils.isAllowedDomain(senderJid, nodeConfig.getDomains());
+				boolean allowed = ((senderJid == null) || (nodeConfig == null)) ? true : Utils.isAllowedDomain(senderJid,
+						nodeConfig.getDomains());
 
 				if (!allowed) {
 					throw new PubSubException(Authorization.FORBIDDEN);
 				}
-				resultQuery.addChild(new Element("identity", new String[] { "category", "type" },
-																				 new String[] { "pubsub",
-								nodeConfig.getNodeType().name() }));
+				resultQuery.addChild(new Element("identity", new String[] { "category", "type" }, new String[] { "pubsub",
+						nodeConfig.getNodeType().name() }));
 				resultQuery.addChild(new Element("feature", new String[] { "var" },
-																				 new String[] {
-																					 "http://jabber.org/protocol/pubsub" }));
+						new String[] { "http://jabber.org/protocol/pubsub" }));
 
 				Form form = new Form("result", null, null);
 
-				form.addField(Field.fieldHidden("FORM_TYPE",
-																				"http://jabber.org/protocol/pubsub#meta-data"));
-				form.addField(Field.fieldTextSingle("pubsub#title", nodeConfig.getTitle(),
-								"A short name for the node"));
+				form.addField(Field.fieldHidden("FORM_TYPE", "http://jabber.org/protocol/pubsub#meta-data"));
+				form.addField(Field.fieldTextSingle("pubsub#title", nodeConfig.getTitle(), "A short name for the node"));
 				resultQuery.addChild(form.getElement());
 			}
 
-			return makeArray(resultIq);
+			packetWriter.write(resultIq);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -189,6 +147,3 @@ public class DiscoverInfoModule
 		}
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

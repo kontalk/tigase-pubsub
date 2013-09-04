@@ -22,11 +22,12 @@
 
 package tigase.pubsub;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.HashMap;
+import java.util.Map;
 
+import tigase.component.AbstractComponent;
+import tigase.component.ComponentConfig;
 import tigase.xmpp.BareJID;
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
@@ -35,13 +36,15 @@ import tigase.xmpp.BareJID;
  * @version 5.0.0, 2010.03.27 at 05:10:54 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PubSubConfig {
-	private String[] admins;
-	private BareJID serviceBareJID;
-	private String serviceName;
+public class PubSubConfig extends ComponentConfig {
 
-	// ~--- get methods
-	// ----------------------------------------------------------
+	private String[] admins;
+
+	private BareJID serviceBareJID = BareJID.bareJIDInstanceNS("tigase-pubsub");
+
+	protected PubSubConfig(AbstractComponent<?> component) {
+		super(component);
+	}
 
 	/**
 	 * Method description
@@ -53,14 +56,10 @@ public class PubSubConfig {
 		return admins;
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @return
-	 */
-	public BareJID getServiceBareJID() {
-		return serviceBareJID;
+	@Override
+	public Map<String, Object> getDefaults(Map<String, Object> params) {
+		final HashMap<String, Object> props = new HashMap<String, Object>();
+		return props;
 	}
 
 	/**
@@ -69,8 +68,8 @@ public class PubSubConfig {
 	 * 
 	 * @return
 	 */
-	public String getServiceName() {
-		return serviceName;
+	public BareJID getServiceBareJID() {
+		return serviceBareJID;
 	}
 
 	/**
@@ -95,9 +94,6 @@ public class PubSubConfig {
 		return false;
 	}
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -108,12 +104,9 @@ public class PubSubConfig {
 		this.admins = strings;
 	}
 
-	void setServiceName(String serviceName) {
-		this.serviceName = serviceName;
-		serviceBareJID = BareJID.bareJIDInstanceNS(serviceName);
+	@Override
+	public void setProperties(Map<String, Object> props) {
+		// TODO Auto-generated method stub
+
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

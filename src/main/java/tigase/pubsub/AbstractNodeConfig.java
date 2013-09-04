@@ -22,8 +22,6 @@
 
 package tigase.pubsub;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
@@ -31,8 +29,6 @@ import tigase.form.Field;
 import tigase.form.Field.FieldType;
 import tigase.form.Form;
 import tigase.xml.Element;
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
@@ -49,17 +45,11 @@ public abstract class AbstractNodeConfig {
 	/** Field description */
 	public static final String TIGASE = "tigase#";
 
-	// ~--- fields
-	// ---------------------------------------------------------------
-
 	/**
 	 * List with do-not-write elements
 	 */
 	protected final Form form = new Form("form", null, null);
 	private final String nodeName;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
@@ -85,9 +75,6 @@ public abstract class AbstractNodeConfig {
 		copyFrom(config);
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -97,9 +84,6 @@ public abstract class AbstractNodeConfig {
 	public void add(Field f) {
 		form.addField(f);
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	protected String[] asStrinTable(Enum<?>[] values) {
 		String[] result = new String[values.length];
@@ -148,9 +132,6 @@ public abstract class AbstractNodeConfig {
 	public void copyFromForm(Form f) {
 		form.copyValuesFrom(f);
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -319,21 +300,27 @@ public abstract class AbstractNodeConfig {
 		form.addField(Field.fieldTextSingle(PUBSUB + "title", "", "A friendly name for the node"));
 		form.addField(Field.fieldBoolean(PUBSUB + "deliver_payloads", true,
 				"Whether to deliver payloads with event notifications"));
+
 		form.addField(Field.fieldBoolean(PUBSUB + "notify_config", false,
 				"Notify subscribers when the node configuration changes"));
-		form.addField(Field.fieldBoolean(PUBSUB + "notify_delete", false, "Notify subscribers when the node is deleted"));
-		form.addField(Field.fieldBoolean(PUBSUB + "notify_retract", false,
-				"Notify subscribers when items are removed from the node"));
+		// form.addField(Field.fieldBoolean(PUBSUB + "notify_delete", false,
+		// "Notify subscribers when the node is deleted"));
+
+		// form.addField(Field.fieldBoolean(PUBSUB + "notify_retract", false,
+		// "Notify subscribers when items are removed from the node"));
 		form.addField(Field.fieldBoolean(PUBSUB + "persist_items", true, "Persist items to storage"));
 		form.addField(Field.fieldTextSingle(PUBSUB + "max_items", "10", "Max # of items to persist"));
-		form.addField(Field.fieldBoolean(PUBSUB + "subscribe", true, "Whether to allow subscriptions"));
+		// form.addField(Field.fieldBoolean(PUBSUB + "subscribe", true,
+		// "Whether to allow subscriptions"));
 		form.addField(Field.fieldTextSingle(PUBSUB + "collection", "", "The collection with which a node is affiliated"));
 		form.addField(Field.fieldListSingle(PUBSUB + "access_model", AccessModel.open.name(), "Specify the subscriber model",
 				null, asStrinTable(AccessModel.values())));
 		form.addField(Field.fieldListSingle(PUBSUB + "publish_model", PublisherModel.publishers.name(),
 				"Specify the publisher model", null, asStrinTable(PublisherModel.values())));
-		form.addField(Field.fieldListSingle(PUBSUB + "send_last_published_item", SendLastPublishedItem.on_sub.name(),
-				"When to send the last published item", null, asStrinTable(PublisherModel.values())));
+		// form.addField(Field.fieldListSingle(PUBSUB +
+		// "send_last_published_item", SendLastPublishedItem.on_sub.name(),
+		// "When to send the last published item", null,
+		// asStrinTable(PublisherModel.values())));
 		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
 				"The domains allowed to access this node (blank for any)"));
 		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
@@ -382,9 +369,6 @@ public abstract class AbstractNodeConfig {
 		return form.getAsBoolean("pubsub#presence_based_delivery");
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -406,9 +390,6 @@ public abstract class AbstractNodeConfig {
 
 		return (x == null) ? false : x.booleanValue();
 	}
-
-	// ~--- set methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -486,9 +467,6 @@ public abstract class AbstractNodeConfig {
 	public void setDomains(String... domains) {
 		setValues(PUBSUB + "domains", domains);
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -569,9 +547,6 @@ public abstract class AbstractNodeConfig {
 		}
 	}
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -592,7 +567,3 @@ public abstract class AbstractNodeConfig {
 		repo.setData(config.getServiceBareJID(), subnode, "configuration", form.getElement().toString());
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

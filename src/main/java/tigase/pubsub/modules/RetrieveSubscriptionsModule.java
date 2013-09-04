@@ -20,76 +20,49 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
-import tigase.pubsub.AbstractModule;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-import tigase.pubsub.Subscription;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.BareJID;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.xml.Element;
+import tigase.xmpp.BareJID;
 
 /**
  * Class description
- *
- *
+ * 
+ * 
  * @version 5.0.0, 2010.03.27 at 05:27:10 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class RetrieveSubscriptionsModule
-				extends AbstractModule {
+public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
-																				 ElementCriteria.name(
-																					 "pubsub",
-																					 "http://jabber.org/protocol/pubsub")).add(
-																						 ElementCriteria.name("subscriptions"));
-
-	//~--- constructors ---------------------------------------------------------
-
-	// ~--- constructors
-	// ---------------------------------------------------------
+			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("subscriptions"));
 
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveSubscriptionsModule(PubSubConfig config,
-																		 IPubSubRepository pubsubRepository) {
-		super(config, pubsubRepository);
+	public RetrieveSubscriptionsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
 	}
-
-	//~--- get methods ----------------------------------------------------------
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -99,8 +72,8 @@ public class RetrieveSubscriptionsModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -108,36 +81,26 @@ public class RetrieveSubscriptionsModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
-	 * @param packetWriter
-	 *
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
-			final BareJID toJid  = packet.getStanzaTo().getBareJID();
-			final Element pubsub = packet.getElement().getChild("pubsub",
-															 "http://jabber.org/protocol/pubsub");
+			final BareJID serviceJid = packet.getStanzaTo().getBareJID();
+			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element subscriptions = pubsub.getChild("subscriptions");
-			final String nodeName       = subscriptions.getAttributeStaticStr("node");
-			final String senderJid      = packet.getStanzaFrom().toString();
+			final String nodeName = subscriptions.getAttributeStaticStr("node");
+			final String senderJid = packet.getStanzaFrom().toString();
 			final BareJID senderBareJid = packet.getStanzaFrom().getBareJID();
-			final Element pubsubResult  = new Element("pubsub", new String[] { "xmlns" },
-																			new String[] {
-																				"http://jabber.org/protocol/pubsub" });
+			final Element pubsubResult = new Element("pubsub", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub" });
 
 			Packet result = packet.okResult(pubsubResult, 0);
 
@@ -146,21 +109,19 @@ public class RetrieveSubscriptionsModule
 			pubsubResult.addChild(subscriptionsResult);
 			if (nodeName == null) {
 				IPubSubDAO directRepo = this.repository.getPubSubDAO();
-				String[] nodes        = directRepo.getNodesList();
+				String[] nodes = directRepo.getNodesList(serviceJid);
 
 				if (nodes != null) {
 					for (String node : nodes) {
-						final ISubscriptions subscribers = directRepo.getNodeSubscriptions(node);
+						final ISubscriptions subscribers = directRepo.getNodeSubscriptions(serviceJid, node);
 
 						if (subscribers != null) {
 							for (UsersSubscription usersSubscription : subscribers.getSubscriptions()) {
 								if (senderBareJid.equals(usersSubscription.getJid())) {
-									ISubscriptions ns         = directRepo.getNodeSubscriptions(nodeName);
-									Subscription subscription =
-										ns.getSubscription(usersSubscription.getJid().toString());
-									Element a = new Element("subscription", new String[] { "node", "jid",
-													"subscription" }, new String[] { node,
-													usersSubscription.getJid().toString(), subscription.name() });
+									ISubscriptions ns = directRepo.getNodeSubscriptions(serviceJid, nodeName);
+									Subscription subscription = ns.getSubscription(usersSubscription.getJid().toString());
+									Element a = new Element("subscription", new String[] { "node", "jid", "subscription" },
+											new String[] { node, usersSubscription.getJid().toString(), subscription.name() });
 
 									subscriptionsResult.addChild(a);
 								}
@@ -169,23 +130,22 @@ public class RetrieveSubscriptionsModule
 					}
 				}
 			} else {
-				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(serviceJid, nodeName);
 
 				subscriptionsResult.addAttribute("node", nodeName);
 
 				UsersSubscription[] subscribers = nodeSubscriptions.getSubscriptions();
 
 				for (final UsersSubscription usersSubscription : subscribers) {
-					Element s = new Element("subscription", new String[] { "jid", "subscription",
-									"subid" }, new String[] { usersSubscription.getJid().toString(),
-																						usersSubscription.getSubscription().name(),
-																						usersSubscription.getSubid() });
+					Element s = new Element("subscription", new String[] { "jid", "subscription", "subid" }, new String[] {
+							usersSubscription.getJid().toString(), usersSubscription.getSubscription().name(),
+							usersSubscription.getSubid() });
 
 					subscriptionsResult.addChild(s);
 				}
 			}
 
-			return makeArray(result);
+			packetWriter.write(result);
 		} catch (Exception e) {
 			e.printStackTrace();
 
@@ -193,12 +153,3 @@ public class RetrieveSubscriptionsModule
 		}
 	}
 }
-
-
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

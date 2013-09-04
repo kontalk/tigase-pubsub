@@ -22,8 +22,6 @@
 
 package tigase.pubsub.repository;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.lang.reflect.Constructor;
 import java.util.Date;
 import java.util.Queue;
@@ -45,8 +43,6 @@ import tigase.xml.SimpleParser;
 import tigase.xml.SingletonFactory;
 import tigase.xmpp.BareJID;
 
-//~--- classes ----------------------------------------------------------------
-
 /**
  * Class description
  * 
@@ -64,16 +60,10 @@ public class PubSubDAO implements IPubSubDAO {
 	public static final String NODES_KEY = "nodes/";
 	private static final String ROOT_COLLECTION_KEY = "root-collection";
 
-	// ~--- fields
-	// ---------------------------------------------------------------
-
 	final PubSubConfig config;
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final SimpleParser parser = SingletonFactory.getParserInstance();
 	final UserRepository repository;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
@@ -87,9 +77,6 @@ public class PubSubDAO implements IPubSubDAO {
 		this.config = pubSubConfig;
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -99,11 +86,19 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void addToRootCollection(String nodeName) throws RepositoryException {
+	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
-			repository.setData(config.getServiceBareJID(), ROOT_COLLECTION_KEY, nodeName, "root");
-		} catch (Exception e) {
-			throw new RepositoryException("Adding to root collection error", e);
+			repository.setData(serviceJid, ROOT_COLLECTION_KEY, nodeName, "root");
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}, creating new user...", serviceJid);
+			try {
+				repository.addUser(serviceJid);
+				this.addToRootCollection(serviceJid, nodeName);
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "could not create user for service jid = {0}", serviceJid);
+			}
+		} catch (Exception e2) {
+			throw new RepositoryException("Adding to root collection error", e2);
 		}
 	}
 
@@ -129,15 +124,22 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException {
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException {
 		try {
 			nodeConfig.setNodeType(nodeType);
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName, CREATION_DATE_KEY,
-					String.valueOf(System.currentTimeMillis()));
+			repository.setData(serviceJid, NODES_KEY + nodeName, CREATION_DATE_KEY, String.valueOf(System.currentTimeMillis()));
 
 			if (nodeConfig != null) {
-				update(nodeName, nodeConfig);
+				update(serviceJid, nodeName, nodeConfig);
+			}
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}, creating new user...", serviceJid);
+			try {
+				repository.addUser(serviceJid);
+				this.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "could not create user for service jid = {0}", serviceJid);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -164,9 +166,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void deleteItem(String nodeName, String id) throws RepositoryException {
+	public void deleteItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
-			repository.removeSubnode(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id);
+			repository.removeSubnode(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id);
 		} catch (Exception e) {
 			throw new RepositoryException("Item removing error", e);
 		}
@@ -188,9 +190,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void deleteNode(String nodeName) throws RepositoryException {
+	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
-			repository.removeSubnode(config.getServiceBareJID(), NODES_KEY + nodeName);
+			repository.removeSubnode(serviceJid, NODES_KEY + nodeName);
 		} catch (Exception e) {
 			throw new RepositoryException("Node deleting error", e);
 		}
@@ -205,9 +207,6 @@ public class PubSubDAO implements IPubSubDAO {
 
 		// Do nothing here, no extra resources have been allocated by the init.
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -261,13 +260,15 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public Element getItem(String nodeName, String id) throws RepositoryException {
+	public Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
-			String itemData = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
-					"data");
+			String itemData = repository.getData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "data");
 			char[] data = itemData.toCharArray();
 
 			return itemDataToElement(data);
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			throw new RepositoryException("Item reading error", e);
 		}
@@ -293,10 +294,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
+	public Date getItemCreationDate(BareJID serviceJid, final String nodeName, final String id) throws RepositoryException {
 		try {
-			String tmp = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
-					"creation-date");
+			String tmp = repository.getData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date");
 
 			if (tmp == null) {
 				return null;
@@ -305,6 +305,9 @@ public class PubSubDAO implements IPubSubDAO {
 			Date d = new Date(Long.parseLong(tmp));
 
 			return d;
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			throw new RepositoryException("Items creation-date reading error", e);
 		}
@@ -321,10 +324,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public String getItemPublisher(String nodeName, String id) throws RepositoryException {
+	public String getItemPublisher(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
-			return repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
-					"publisher");
+			return repository.getData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher");
 		} catch (Exception e) {
 			throw new RepositoryException("Items publisher reading error", e);
 		}
@@ -341,13 +343,16 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getItemsIds(String nodeName) throws RepositoryException {
+	public String[] getItemsIds(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
-			String[] ids = repository.getSubnodes(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY);
+			String[] ids = repository.getSubnodes(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY);
 
 			// repository.getKeys(config.getServiceName(), NODES_KEY + nodeName
 			// + "/" + ITEMS_KEY + "/");
 			return ids;
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			throw new RepositoryException("Items list reading error", e);
 		}
@@ -365,10 +370,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
+	public Date getItemUpdateDate(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
-			String tmp = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id,
-					"update-date");
+			String tmp = repository.getData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date");
 
 			if (tmp == null) {
 				return null;
@@ -377,6 +381,9 @@ public class PubSubDAO implements IPubSubDAO {
 			Date d = new Date(Long.parseLong(tmp));
 
 			return d;
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			throw new RepositoryException("Items update-date reading error", e);
 		}
@@ -393,13 +400,66 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public NodeAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
+	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
-			String cnfData = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName, "affiliations");
+			String cnfData = repository.getData(serviceJid, NODES_KEY + nodeName, "affiliations");
 
 			return NodeAffiliations.create(cnfData);
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers reading error", e);
+		}
+	}
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param nodeName
+	 * 
+	 * @return
+	 * 
+	 * @throws RepositoryException
+	 */
+	@Override
+	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, final String nodeName) throws RepositoryException {
+		try {
+			Form cnfForm = readNodeConfigForm(serviceJid, nodeName);
+
+			if (cnfForm == null) {
+				return null;
+			}
+
+			NodeType type = NodeType.valueOf(cnfForm.getAsString("pubsub#node_type"));
+			Class<? extends AbstractNodeConfig> cl = null;
+
+			switch (type) {
+			case collection:
+				cl = CollectionNodeConfig.class;
+
+				break;
+
+			case leaf:
+				cl = LeafNodeConfig.class;
+
+				break;
+
+			default:
+				throw new RepositoryException("Unknown node type " + type);
+			}
+
+			AbstractNodeConfig nc = getNodeConfig(cl, nodeName, cnfForm);
+
+			return nc;
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
+		} catch (RepositoryException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RepositoryException("Node configuration reading error", e);
 		}
 	}
 
@@ -440,59 +500,15 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	@Override
-	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException {
+	public Date getNodeCreationDate(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
-			Form cnfForm = readNodeConfigForm(nodeName);
-
-			if (cnfForm == null) {
-				return null;
-			}
-
-			NodeType type = NodeType.valueOf(cnfForm.getAsString("pubsub#node_type"));
-			Class<? extends AbstractNodeConfig> cl = null;
-
-			switch (type) {
-			case collection:
-				cl = CollectionNodeConfig.class;
-
-				break;
-
-			case leaf:
-				cl = LeafNodeConfig.class;
-
-				break;
-
-			default:
-				throw new RepositoryException("Unknown node type " + type);
-			}
-
-			AbstractNodeConfig nc = getNodeConfig(cl, nodeName, cnfForm);
-
-			return nc;
-		} catch (RepositoryException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RepositoryException("Node configuration reading error", e);
-		}
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param nodeName
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
-	public Date getNodeCreationDate(String nodeName) throws RepositoryException {
-		try {
-			String tmp = this.repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName, CREATION_DATE_KEY);
+			String tmp = this.repository.getData(serviceJid, NODES_KEY + nodeName, CREATION_DATE_KEY);
 			long l = Long.parseLong(tmp);
 
 			return new Date(l);
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			throw new RepositoryException("Node creation date getting error", e);
 		}
@@ -507,14 +523,17 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getNodesList() throws RepositoryException {
+	public String[] getNodesList(BareJID serviceJid) throws RepositoryException {
 		try {
 			String[] nodes;
 
 			log.finer("Getting nodes list directly from DB");
-			nodes = repository.getSubnodes(config.getServiceBareJID(), NODES_KEY);
+			nodes = repository.getSubnodes(serviceJid, NODES_KEY);
 
 			return nodes;
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			log.log(Level.WARNING, "Nodes list getting error", e);
 
@@ -539,14 +558,14 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
+	public NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			final NodeSubscriptions ns = NodeSubscriptions.create();
 			int index = 0;
 
 			while (true) {
 				final String key = "subscriptions" + ((index == 0) ? "" : ("." + index));
-				String cnfData = repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName, key);
+				String cnfData = repository.getData(serviceJid, NODES_KEY + nodeName, key);
 
 				if ((cnfData == null) || (cnfData.length() == 0)) {
 					break;
@@ -571,11 +590,14 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public String[] getRootNodes() throws RepositoryException {
+	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException {
 		try {
-			String[] ids = repository.getKeys(config.getServiceBareJID(), ROOT_COLLECTION_KEY);
+			String[] ids = repository.getKeys(serviceJid, ROOT_COLLECTION_KEY);
 
 			return ids;
+		} catch (UserNotFoundException e1) {
+			log.log(Level.WARNING, "missing user for service jid = {0}", serviceJid);
+			return null;
 		} catch (Exception e) {
 			throw new RepositoryException("Getting root collection error", e);
 		}
@@ -599,9 +621,6 @@ public class PubSubDAO implements IPubSubDAO {
 			throw new RepositoryException("Getting user roster error", e);
 		}
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -640,8 +659,9 @@ public class PubSubDAO implements IPubSubDAO {
 		return q.element();
 	}
 
-	private Form readNodeConfigForm(final String nodeName) throws UserNotFoundException, TigaseDBException {
-		String cnfData = readNodeConfigFormData(nodeName);
+	private Form readNodeConfigForm(final BareJID serviceJid, final String nodeName) throws UserNotFoundException,
+			TigaseDBException {
+		String cnfData = readNodeConfigFormData(serviceJid, nodeName);
 
 		if (cnfData == null) {
 			return null;
@@ -663,8 +683,8 @@ public class PubSubDAO implements IPubSubDAO {
 		return null;
 	}
 
-	protected String readNodeConfigFormData(final String nodeName) throws TigaseDBException {
-		return repository.getData(config.getServiceBareJID(), NODES_KEY + nodeName, "configuration");
+	protected String readNodeConfigFormData(final BareJID serviceJid, final String nodeName) throws TigaseDBException {
+		return repository.getData(serviceJid, NODES_KEY + nodeName, "configuration");
 	}
 
 	/*
@@ -680,9 +700,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void removeAllFromRootCollection() throws RepositoryException {
+	public void removeAllFromRootCollection(BareJID serviceJid) throws RepositoryException {
 		try {
-			repository.removeSubnode(config.getServiceBareJID(), ROOT_COLLECTION_KEY);
+			repository.removeSubnode(serviceJid, ROOT_COLLECTION_KEY);
 		} catch (Exception e) {
 			throw new RepositoryException("Removing root collection error", e);
 		}
@@ -697,9 +717,9 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void removeFromRootCollection(String nodeName) throws RepositoryException {
+	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
-			repository.removeData(config.getServiceBareJID(), ROOT_COLLECTION_KEY, nodeName);
+			repository.removeData(serviceJid, ROOT_COLLECTION_KEY, nodeName);
 		} catch (Exception e) {
 			throw new RepositoryException("Removing from root collection error", e);
 		}
@@ -714,12 +734,12 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
+	public void removeSubscriptions(BareJID serviceJid, String nodeName, int changedIndex) throws RepositoryException {
 		try {
 			final String key = "subscriptions" + ((changedIndex == 0) ? "" : ("." + changedIndex));
 
 			log.fine("Removing node '" + nodeName + "' subscriptions fragment...");
-			repository.removeData(config.getServiceBareJID(), NODES_KEY + nodeName, key);
+			repository.removeData(serviceJid, NODES_KEY + nodeName, key);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers fragment removing error", e);
 		}
@@ -735,10 +755,11 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException {
+	public void update(BareJID serviceJid, final String nodeName, final AbstractNodeConfig nodeConfig)
+			throws RepositoryException {
 		String cnf = nodeConfig.getFormElement().toString();
 
-		updateNodeConfig(nodeName, cnf);
+		updateNodeConfig(serviceJid, nodeName, cnf);
 	}
 
 	/**
@@ -751,10 +772,10 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException {
+	public void update(BareJID serviceJid, String nodeName, IAffiliations affiliations) throws RepositoryException {
 		String data = affiliations.serialize();
 
-		updateAffiliations(nodeName, data);
+		updateAffiliations(serviceJid, nodeName, data);
 	}
 
 	/*
@@ -774,10 +795,10 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
+	public void updateAffiliations(BareJID serviceJid, String nodeName, String serializedData) throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' affiliations...");
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName, "affiliations", serializedData);
+			repository.setData(serviceJid, NODES_KEY + nodeName, "affiliations", serializedData);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers writing error", e);
 		}
@@ -792,10 +813,11 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void updateNodeConfig(final String nodeName, final String serializedData) throws RepositoryException {
+	public void updateNodeConfig(BareJID serviceJid, final String nodeName, final String serializedData)
+			throws RepositoryException {
 		try {
 			log.fine("Writing node '" + nodeName + "' configuration...");
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName, "configuration", serializedData);
+			repository.setData(serviceJid, NODES_KEY + nodeName, "configuration", serializedData);
 		} catch (Exception e) {
 			throw new RepositoryException("Node configuration writing error", e);
 		}
@@ -811,12 +833,13 @@ public class PubSubDAO implements IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void updateSubscriptions(String nodeName, int changedIndex, String serializedData) throws RepositoryException {
+	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData)
+			throws RepositoryException {
 		try {
 			final String key = "subscriptions" + ((changedIndex == 0) ? "" : ("." + changedIndex));
 
 			log.fine("Writing node '" + nodeName + "' subscriptions...");
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName, key, serializedData);
+			repository.setData(serviceJid, NODES_KEY + nodeName, key, serializedData);
 		} catch (Exception e) {
 			throw new RepositoryException("Node subscribers writing error", e);
 		}
@@ -835,23 +858,17 @@ public class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
-			throws RepositoryException {
+	public void writeItem(BareJID serviceJid, final String nodeName, long timeInMilis, final String id, final String publisher,
+			final Element item) throws RepositoryException {
 		try {
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "data",
-					item.toString());
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date",
+			repository.setData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "data", item.toString());
+			repository.setData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "creation-date",
 					String.valueOf(timeInMilis));
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date",
+			repository.setData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "update-date",
 					String.valueOf(timeInMilis));
-			repository.setData(config.getServiceBareJID(), NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher",
-					publisher);
+			repository.setData(serviceJid, NODES_KEY + nodeName + "/" + ITEMS_KEY + "/" + id, "publisher", publisher);
 		} catch (Exception e) {
 			throw new RepositoryException("Item writing error", e);
 		}
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

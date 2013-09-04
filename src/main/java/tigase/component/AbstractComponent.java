@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.component.exceptions.ComponentException;
+import tigase.component.modules.Module;
 import tigase.component.modules.ModulesManager;
 import tigase.disco.XMPPService;
 import tigase.server.AbstractMessageReceiver;
@@ -46,13 +47,11 @@ import tigase.xmpp.StanzaType;
  * 
  * @param <T>
  * 
- * @version Enter version here..., 13/02/20
- * @author Enter your name here...
  */
 public abstract class AbstractComponent<T extends ComponentConfig> extends AbstractMessageReceiver implements XMPPService {
 	/** Field description */
 	protected final T componentConfig;
-	private final ElementWriter DEFAULT_WRITER = new ElementWriter() {
+	private final PacketWriter DEFAULT_WRITER = new PacketWriter() {
 		@Override
 		public void write(Collection<Packet> elements) {
 			if (elements != null) {
@@ -72,29 +71,6 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 			addOutPacket(packet);
 		}
 
-		@Override
-		public void writeElement(Collection<Element> elements) {
-			if (elements != null) {
-				for (Element element : elements) {
-					if (element != null) {
-						writeElement(element);
-					}
-				}
-			}
-		}
-
-		@Override
-		public void writeElement(final Element element) {
-			if (element != null) {
-				try {
-					if (log.isLoggable(Level.FINER)) {
-						log.finer("Sent: " + element);
-					}
-					addOutPacket(Packet.packetInstance(element));
-				} catch (TigaseStringprepException e) {
-				}
-			}
-		}
 	};
 
 	/** Field description */
@@ -102,7 +78,7 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/** Field description */
 	protected final ModulesManager modulesManager = new ModulesManager();
-	private final ElementWriter writer;
+	private final PacketWriter writer;
 
 	/**
 	 * Constructs ...
@@ -118,7 +94,7 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 	 * 
 	 * @param writer
 	 */
-	public AbstractComponent(ElementWriter writer) {
+	public AbstractComponent(PacketWriter writer) {
 		this.writer = (writer != null) ? writer : DEFAULT_WRITER;
 		this.componentConfig = createComponentConfigInstance(this);
 	}
@@ -161,7 +137,7 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 	 * 
 	 * @return
 	 */
-	protected ElementWriter getWriter() {
+	protected PacketWriter getWriter() {
 		return writer;
 	}
 
@@ -231,6 +207,10 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 			}
 			sendException(packet, e);
 		}
+	}
+
+	public <M extends Module> M registerModule(final M module) {
+		return this.modulesManager.register(module);
 	}
 
 	/**

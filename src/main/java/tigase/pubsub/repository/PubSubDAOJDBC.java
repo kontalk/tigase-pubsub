@@ -43,6 +43,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
+import tigase.xmpp.BareJID;
 
 public class PubSubDAOJDBC extends PubSubDAO {
 
@@ -91,7 +92,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void addToRootCollection(String nodeName) throws RepositoryException {
+	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		// We do not support collections yet, so all nodes are in root
 		// collection.
 		return;
@@ -128,8 +129,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException {
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException {
 
 		ResultSet rs = null;
 		try {
@@ -141,10 +142,11 @@ public class PubSubDAOJDBC extends PubSubDAO {
 
 			checkConnection();
 			synchronized (create_node_sp) {
-				create_node_sp.setString(1, nodeName);
-				create_node_sp.setInt(2, nodeType.ordinal());
-				create_node_sp.setString(3, JIDUtils.getNodeID(ownerJid));
-				create_node_sp.setString(4, serializedNodeConfig);
+				create_node_sp.setString(1, serviceJid.toString());
+				create_node_sp.setString(2, nodeName);
+				create_node_sp.setInt(3, nodeType.ordinal());
+				create_node_sp.setString(4, JIDUtils.getNodeID(ownerJid));
+				create_node_sp.setString(5, serializedNodeConfig);
 				rs = create_node_sp.executeQuery();
 			}
 		} catch (SQLIntegrityConstraintViolationException e) {
@@ -159,12 +161,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void deleteItem(String nodeName, String id) throws RepositoryException {
+	public void deleteItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized (delete_item_sp) {
-				delete_item_sp.setString(1, nodeName);
-				delete_item_sp.setString(2, id);
+				delete_item_sp.setString(1, serviceJid.toString());
+				delete_item_sp.setString(2, nodeName);
+				delete_item_sp.setString(3, id);
 				delete_item_sp.execute();
 			}
 		} catch (SQLException e) {
@@ -173,11 +176,12 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void deleteNode(String nodeName) throws RepositoryException {
+	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized (remove_node_sp) {
-				remove_node_sp.setString(1, nodeName);
+				remove_node_sp.setString(1, serviceJid.toString());
+				remove_node_sp.setString(2, nodeName);
 				remove_node_sp.execute();
 			}
 		} catch (SQLException e) {
@@ -196,13 +200,14 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		super.destroy();
 	}
 
-	protected Date getDateFromItem(String nodeName, String id, int field) throws RepositoryException {
+	protected Date getDateFromItem(BareJID serviceJid, String nodeName, String id, int field) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (get_item_sp) {
-				get_item_sp.setString(1, nodeName);
-				get_item_sp.setString(2, id);
+				get_item_sp.setString(1, serviceJid.toString());
+				get_item_sp.setString(2, nodeName);
+				get_item_sp.setString(3, id);
 				rs = get_item_sp.executeQuery();
 				if (rs.next()) {
 					String date = rs.getString(field);
@@ -222,27 +227,29 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public Element getItem(String nodeName, String id) throws RepositoryException {
-		return itemDataToElement(getStringFromItem(nodeName, id, 1).toCharArray());
+	public Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
+		return itemDataToElement(getStringFromItem(serviceJid, nodeName, id, 1).toCharArray());
 	}
 
 	@Override
-	public Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException {
-		return getDateFromItem(nodeName, id, 3);
+	public Date getItemCreationDate(final BareJID serviceJid, final String nodeName, final String id)
+			throws RepositoryException {
+		return getDateFromItem(serviceJid, nodeName, id, 3);
 	}
 
 	@Override
-	public String getItemPublisher(String nodeName, String id) throws RepositoryException {
-		return getStringFromItem(nodeName, id, 2);
+	public String getItemPublisher(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
+		return getStringFromItem(serviceJid, nodeName, id, 2);
 	}
 
 	@Override
-	public String[] getItemsIds(String nodeName) throws RepositoryException {
+	public String[] getItemsIds(BareJID serviceJid, String nodeName) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (get_node_items_ids_sp) {
-				get_node_items_ids_sp.setString(1, nodeName);
+				get_node_items_ids_sp.setString(1, serviceJid.toString());
+				get_node_items_ids_sp.setString(2, nodeName);
 				rs = get_node_items_ids_sp.executeQuery();
 				List<String> ids = new ArrayList<String>();
 				while (rs.next()) {
@@ -258,17 +265,18 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public Date getItemUpdateDate(String nodeName, String id) throws RepositoryException {
-		return getDateFromItem(nodeName, id, 4);
+	public Date getItemUpdateDate(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
+		return getDateFromItem(serviceJid, nodeName, id, 4);
 	}
 
 	@Override
-	public NodeAffiliations getNodeAffiliations(String nodeName) throws RepositoryException {
+	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (get_node_affiliations_sp) {
-				get_node_affiliations_sp.setString(1, nodeName);
+				get_node_affiliations_sp.setString(1, serviceJid.toString());
+				get_node_affiliations_sp.setString(2, nodeName);
 				rs = get_node_affiliations_sp.executeQuery();
 				if (rs.next()) {
 					return NodeAffiliations.create(rs.getString(1));
@@ -283,11 +291,12 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public String[] getNodesList() throws RepositoryException {
+	public String[] getNodesList(BareJID serviceJid) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (get_all_nodes_sp) {
+				get_all_nodes_sp.setString(1, serviceJid.toString());
 				rs = get_all_nodes_sp.executeQuery();
 				List<String> names = new ArrayList<String>();
 				while (rs.next()) {
@@ -303,13 +312,14 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException {
+	public NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			final NodeSubscriptions ns = NodeSubscriptions.create();
 			checkConnection();
 			synchronized (get_node_subscriptions_sp) {
-				get_node_subscriptions_sp.setString(1, nodeName);
+				get_node_subscriptions_sp.setString(1, serviceJid.toString());
+				get_node_subscriptions_sp.setString(2, nodeName);
 				rs = get_node_subscriptions_sp.executeQuery();
 				while (rs.next()) {
 					ns.parse(rs.getString(1));
@@ -328,17 +338,18 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public String[] getRootNodes() throws RepositoryException {
-		return getNodesList();
+	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException {
+		return getNodesList(serviceJid);
 	}
 
-	protected String getStringFromItem(String nodeName, String id, int field) throws RepositoryException {
+	protected String getStringFromItem(BareJID serviceJid, String nodeName, String id, int field) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (get_item_sp) {
-				get_item_sp.setString(1, nodeName);
-				get_item_sp.setString(2, id);
+				get_item_sp.setString(1, serviceJid.toString());
+				get_item_sp.setString(2, nodeName);
+				get_item_sp.setString(3, id);
 				rs = get_item_sp.executeQuery();
 				if (rs.next()) {
 					return rs.getString(field);
@@ -374,49 +385,49 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		String query = "select 1";
 		conn_valid_st = conn.prepareStatement(query);
 
-		query = "{ call TigPubSubCreateNode(?, ?, ?, ?) }";
+		query = "{ call TigPubSubCreateNode(?, ?, ?, ?, ?) }";
 		create_node_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubRemoveNode(?) }";
+		query = "{ call TigPubSubRemoveNode(?, ?) }";
 		remove_node_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubGetItem(?, ?) }";
+		query = "{ call TigPubSubGetItem(?, ?, ?) }";
 		get_item_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubWriteItem(?, ?, ?, ?) }";
+		query = "{ call TigPubSubWriteItem(?, ?, ?, ?, ?) }";
 		write_item_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubDeleteItem(?, ?) }";
+		query = "{ call TigPubSubDeleteItem(?, ?, ?) }";
 		delete_item_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubGetNodeItemsIds(?) }";
+		query = "{ call TigPubSubGetNodeItemsIds(?, ?) }";
 		get_node_items_ids_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubGetAllNodes() }";
+		query = "{ call TigPubSubGetAllNodes(?) }";
 		get_all_nodes_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubDeleteAllNodes() }";
+		query = "{ call TigPubSubDeleteAllNodes(?) }";
 		delete_all_nodes_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubSetNodeConfiguration(?, ?) }";
+		query = "{ call TigPubSubSetNodeConfiguration(?, ?, ?) }";
 		set_node_configuration_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubSetNodeAffiliations(?, ?) }";
+		query = "{ call TigPubSubSetNodeAffiliations(?, ?, ?) }";
 		set_node_affiliations_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubGetNodeConfiguration(?) }";
+		query = "{ call TigPubSubGetNodeConfiguration(?, ?) }";
 		get_node_configuration_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubGetNodeAffiliations(?) }";
+		query = "{ call TigPubSubGetNodeAffiliations(?, ?) }";
 		get_node_affiliations_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubGetNodeSubscriptions(?) }";
+		query = "{ call TigPubSubGetNodeSubscriptions(?, ?) }";
 		get_node_subscriptions_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubSetNodeSubscriptions(?, ?, ?) }";
+		query = "{ call TigPubSubSetNodeSubscriptions(?, ?, ?, ?) }";
 		set_node_subscriptions_sp = conn.prepareCall(query);
 
-		query = "{ call TigPubSubDeleteNodeSubscriptions(?, ?) }";
+		query = "{ call TigPubSubDeleteNodeSubscriptions(?, ?, ?) }";
 		delete_node_subscriptions_sp = conn.prepareCall(query);
 	}
 
@@ -435,12 +446,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	protected String readNodeConfigFormData(final String nodeName) throws TigaseDBException {
+	protected String readNodeConfigFormData(final BareJID serviceJid, final String nodeName) throws TigaseDBException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (get_node_configuration_sp) {
-				get_node_configuration_sp.setString(1, nodeName);
+				get_node_configuration_sp.setString(1, serviceJid.toString());
+				get_node_configuration_sp.setString(2, nodeName);
 				rs = get_node_configuration_sp.executeQuery();
 				if (rs.next()) {
 					return rs.getString(1);
@@ -470,10 +482,11 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void removeAllFromRootCollection() throws RepositoryException {
+	public void removeAllFromRootCollection(BareJID serviceJid) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized (delete_all_nodes_sp) {
+				delete_all_nodes_sp.setString(1, serviceJid.toString());
 				delete_all_nodes_sp.execute();
 			}
 		} catch (SQLException e) {
@@ -482,17 +495,18 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void removeFromRootCollection(String nodeName) throws RepositoryException {
-		deleteNode(nodeName);
+	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
+		deleteNode(serviceJid, nodeName);
 	}
 
 	@Override
-	public void removeSubscriptions(String nodeName, int changedIndex) throws RepositoryException {
+	public void removeSubscriptions(BareJID serviceJid, String nodeName, int changedIndex) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized (delete_node_subscriptions_sp) {
-				delete_node_subscriptions_sp.setString(1, nodeName);
-				delete_node_subscriptions_sp.setInt(2, changedIndex);
+				delete_node_subscriptions_sp.setString(1, serviceJid.toString());
+				delete_node_subscriptions_sp.setString(2, nodeName);
+				delete_node_subscriptions_sp.setInt(3, changedIndex);
 				delete_node_subscriptions_sp.execute();
 			}
 		} catch (SQLException e) {
@@ -501,13 +515,14 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateAffiliations(String nodeName, String serializedData) throws RepositoryException {
+	public void updateAffiliations(BareJID serviceJid, String nodeName, String serializedData) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (set_node_affiliations_sp) {
-				set_node_affiliations_sp.setString(1, nodeName);
-				set_node_affiliations_sp.setString(2, serializedData);
+				set_node_affiliations_sp.setString(1, serviceJid.toString());
+				set_node_affiliations_sp.setString(2, nodeName);
+				set_node_affiliations_sp.setString(3, serializedData);
 				rs = set_node_affiliations_sp.executeQuery();
 			}
 		} catch (SQLException e) {
@@ -518,11 +533,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeConfig(final String nodeName, final String serializedData) throws RepositoryException {
+	public void updateNodeConfig(final BareJID serviceJid, final String nodeName, final String serializedData)
+			throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (set_node_configuration_sp) {
+				set_node_configuration_sp.setString(1, serviceJid.toString());
 				set_node_configuration_sp.setString(1, nodeName);
 				set_node_configuration_sp.setString(2, serializedData);
 				rs = set_node_configuration_sp.executeQuery();
@@ -535,14 +552,16 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateSubscriptions(String nodeName, int changedIndex, String serializedData) throws RepositoryException {
+	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData)
+			throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (set_node_subscriptions_sp) {
-				set_node_subscriptions_sp.setString(1, nodeName);
-				set_node_subscriptions_sp.setInt(2, changedIndex);
-				set_node_subscriptions_sp.setString(3, serializedData);
+				set_node_subscriptions_sp.setString(1, serviceJid.toString());
+				set_node_subscriptions_sp.setString(2, nodeName);
+				set_node_subscriptions_sp.setInt(3, changedIndex);
+				set_node_subscriptions_sp.setString(4, serializedData);
 				rs = set_node_subscriptions_sp.executeQuery();
 			}
 		} catch (SQLException e) {
@@ -553,16 +572,17 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher, final Element item)
-			throws RepositoryException {
+	public void writeItem(final BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
+			final String publisher, final Element item) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized (write_item_sp) {
-				write_item_sp.setString(1, nodeName);
-				write_item_sp.setString(2, id);
-				write_item_sp.setString(3, publisher);
-				write_item_sp.setString(4, item.toString());
+				write_item_sp.setString(1, serviceJid.toString());
+				write_item_sp.setString(2, nodeName);
+				write_item_sp.setString(3, id);
+				write_item_sp.setString(4, publisher);
+				write_item_sp.setString(5, item.toString());
 				rs = write_item_sp.executeQuery();
 			}
 		} catch (SQLException e) {

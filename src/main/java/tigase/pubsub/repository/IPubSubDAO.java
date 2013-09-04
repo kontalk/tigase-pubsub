@@ -22,16 +22,12 @@
 
 package tigase.pubsub.repository;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.util.Date;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
-
-//~--- interfaces -------------------------------------------------------------
 
 /**
  * Interface description
@@ -50,7 +46,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void addToRootCollection(String nodeName) throws RepositoryException;
+	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -64,8 +60,8 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void createNode(String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType,
-			String collection) throws RepositoryException;
+	public abstract void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -76,10 +72,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void deleteItem(String nodeName, String id) throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
+	public abstract void deleteItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -89,7 +82,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void deleteNode(String nodeName) throws RepositoryException;
+	public abstract void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -99,12 +92,9 @@ public interface IPubSubDAO {
 
 	String[] getBuddyGroups(BareJID owner, String bareJid) throws RepositoryException;
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	String getBuddySubscription(BareJID owner, String buddy) throws RepositoryException;
 
-	Element getItem(String nodeName, String id) throws RepositoryException;
+	Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -117,12 +107,10 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract Date getItemCreationDate(final String nodeName, final String id) throws RepositoryException;
+	public abstract Date getItemCreationDate(BareJID serviceJid, final String nodeName, final String id)
+			throws RepositoryException;
 
-	String[] getItemsIds(String nodeName) throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
+	String[] getItemsIds(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -135,7 +123,8 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract Date getItemUpdateDate(final String nodeName, final String id) throws RepositoryException;
+	public abstract Date getItemUpdateDate(BareJID serviceJid, final String nodeName, final String id)
+			throws RepositoryException;
 
 	/**
 	 * Method description
@@ -147,7 +136,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public NodeAffiliations getNodeAffiliations(String nodeName) throws RepositoryException;
+	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -159,10 +148,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public AbstractNodeConfig getNodeConfig(final String nodeName) throws RepositoryException;
-
-	// ~--- methods
-	// --------------------------------------------------------------
+	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, final String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -172,9 +158,9 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract String[] getNodesList() throws RepositoryException;
+	public abstract String[] getNodesList(BareJID serviceJid) throws RepositoryException;
 
-	NodeSubscriptions getNodeSubscriptions(String nodeName) throws RepositoryException;
+	NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -184,10 +170,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public String[] getRootNodes() throws RepositoryException;
-
-	// ~--- get methods
-	// ----------------------------------------------------------
+	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException;
 
 	String[] getUserRoster(BareJID owner) throws RepositoryException;
 
@@ -207,7 +190,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void removeFromRootCollection(String nodeName) throws RepositoryException;
+	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -218,7 +201,8 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void update(final String nodeName, final AbstractNodeConfig nodeConfig) throws RepositoryException;
+	public abstract void update(BareJID serviceJid, final String nodeName, final AbstractNodeConfig nodeConfig)
+			throws RepositoryException;
 
 	/**
 	 * Method description
@@ -229,7 +213,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void update(String nodeName, IAffiliations affiliations) throws RepositoryException;
+	public void update(BareJID serviceJid, String nodeName, IAffiliations affiliations) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -243,10 +227,6 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void writeItem(final String nodeName, long timeInMilis, final String id, final String publisher,
-			final Element item) throws RepositoryException;
+	public abstract void writeItem(BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
+			final String publisher, final Element item) throws RepositoryException;
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

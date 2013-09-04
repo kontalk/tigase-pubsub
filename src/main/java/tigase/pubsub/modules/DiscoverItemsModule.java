@@ -20,75 +20,55 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
+import java.util.List;
 
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-
-import tigase.pubsub.AbstractModule;
 import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.ElementWriter;
-import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Utils;
+import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.Utils;
-
-import tigase.xml.Element;
-
-import tigase.xmpp.Authorization;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.List;
-import tigase.pubsub.PacketWriter;
 import tigase.server.Packet;
+import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
  */
-public class DiscoverItemsModule
-				extends AbstractModule {
-	private static final Criteria CRIT = ElementCriteria.nameType("iq",
-																				 "get").add(ElementCriteria.name("query",
-																					 "http://jabber.org/protocol/disco#items"));
-
-	//~--- fields ---------------------------------------------------------------
+public class DiscoverItemsModule extends AbstractPubSubModule {
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
+			ElementCriteria.name("query", "http://jabber.org/protocol/disco#items"));
 
 	private final AdHocConfigCommandModule adHocCommandsModule;
 
-	//~--- constructors ---------------------------------------------------------
-
 	/**
 	 * Constructs ...
-	 *
-	 *
+	 * 
+	 * 
 	 * @param config
 	 * @param pubsubRepository
 	 * @param adCommandModule
 	 */
-	public DiscoverItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository,
-														 AdHocConfigCommandModule adCommandModule) {
-		super(config, pubsubRepository);
+	public DiscoverItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+			AdHocConfigCommandModule adCommandModule) {
+		super(config, pubsubRepository, packetWriter);
 		this.adHocCommandsModule = adCommandModule;
 	}
 
-	//~--- get methods ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -98,8 +78,8 @@ public class DiscoverItemsModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -107,38 +87,30 @@ public class DiscoverItemsModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param packet
-	 * @param packetWriter
-	 *
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet packet, PacketWriter packetWriter)
-					throws PubSubException {
+	public void process(Packet packet) throws PubSubException {
 		try {
 			final Element element = packet.getElement();
-			final Element query = element.getChild("query",
-															"http://jabber.org/protocol/disco#items");
-			final String nodeName  = query.getAttributeStaticStr("node");
+			final Element query = element.getChild("query", "http://jabber.org/protocol/disco#items");
+			final String nodeName = query.getAttributeStaticStr("node");
 			final String senderJid = element.getAttributeStaticStr("from");
-			final BareJID toJid = packet.getStanzaTo().getBareJID();			
-			Element resultQuery    = new Element("query", new String[] { "xmlns" },
-																 new String[] {
-																	 "http://jabber.org/protocol/disco#items" });
+			final BareJID toJid = packet.getStanzaTo().getBareJID();
+			Element resultQuery = new Element("query", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/disco#items" });
 
 			Packet resultIq = packet.okResult(resultQuery, 0);
-			
+
 			if ("http://jabber.org/protocol/commands".equals(nodeName)) {
-				List<Element> commandList =
-					this.adHocCommandsModule.getCommandListItems(senderJid,
+				List<Element> commandList = this.adHocCommandsModule.getCommandListItems(senderJid,
 						element.getAttributeStaticStr("to"));
 
 				if (commandList != null) {
@@ -149,21 +121,18 @@ public class DiscoverItemsModule
 			} else {
 				log.finest("Asking about Items of node " + nodeName);
 
-				AbstractNodeConfig nodeConfig = (nodeName == null)
-																				? null
-																				: repository.getNodeConfig(toJid, nodeName);
+				AbstractNodeConfig nodeConfig = (nodeName == null) ? null : repository.getNodeConfig(toJid, nodeName);
 				String[] nodes;
 
-				if ((nodeName == null) ||
-						((nodeConfig != null) && (nodeConfig.getNodeType() == NodeType.collection))) {
+				if ((nodeName == null) || ((nodeConfig != null) && (nodeConfig.getNodeType() == NodeType.collection))) {
 					String parentName;
 
 					if (nodeName == null) {
 						parentName = "";
-						nodes      = repository.getRootCollection(toJid);
+						nodes = repository.getRootCollection(toJid);
 					} else {
 						parentName = nodeName;
-						nodes      = nodeConfig.getChildren();
+						nodes = nodeConfig.getChildren();
 					}
 
 					// = this.repository.getNodesList();
@@ -172,58 +141,48 @@ public class DiscoverItemsModule
 							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(toJid, node);
 
 							if (childNodeConfig != null) {
-								boolean allowed = ((senderJid == null) || (childNodeConfig == null))
-																	? true
-																	: Utils.isAllowedDomain(senderJid,
-																		childNodeConfig.getDomains());
+								boolean allowed = ((senderJid == null) || (childNodeConfig == null)) ? true
+										: Utils.isAllowedDomain(senderJid, childNodeConfig.getDomains());
 								String collection = childNodeConfig.getCollection();
 
 								if (allowed) {
 									String name = childNodeConfig.getTitle();
 
-									name = ((name == null) || (name.length() == 0))
-												 ? node
-												 : name;
+									name = ((name == null) || (name.length() == 0)) ? node : name;
 
-									Element item = new Element("item", new String[] { "jid", "node",
-													"name" }, new String[] { element.getAttributeStaticStr("to"),
-																									 node, name });
+									Element item = new Element("item", new String[] { "jid", "node", "name" }, new String[] {
+											element.getAttributeStaticStr("to"), node, name });
 
 									if (parentName.equals(collection)) {
 										resultQuery.addChild(item);
 									}
 								} else {
-									log.fine("User " + senderJid + " not allowed to see node '" + node +
-													 "'");
+									log.fine("User " + senderJid + " not allowed to see node '" + node + "'");
 								}
 							}
 						}
 					}
 				} else {
-					boolean allowed = ((senderJid == null) || (nodeConfig == null))
-														? true
-														: Utils.isAllowedDomain(senderJid, nodeConfig.getDomains());
+					boolean allowed = ((senderJid == null) || (nodeConfig == null)) ? true : Utils.isAllowedDomain(senderJid,
+							nodeConfig.getDomains());
 
 					if (!allowed) {
 						throw new PubSubException(Authorization.FORBIDDEN);
 					}
 					resultQuery.addAttribute("node", nodeName);
 
-					IItems items     = repository.getNodeItems(toJid, nodeName);
+					IItems items = repository.getNodeItems(toJid, nodeName);
 					String[] itemsId = items.getItemsIds();
 
 					if (itemsId != null) {
 						for (String itemId : itemsId) {
-							resultQuery.addChild(new Element("item", new String[] { "jid", "name" },
-																							 new String[] {
-																								 element.getAttributeStaticStr("to"),
-																								 itemId }));
+							resultQuery.addChild(new Element("item", new String[] { "jid", "name" }, new String[] {
+									element.getAttributeStaticStr("to"), itemId }));
 						}
 					}
 				}
 			}
-
-			return makeArray(resultIq);
+			packetWriter.write(resultIq);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -233,6 +192,3 @@ public class DiscoverItemsModule
 		}
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

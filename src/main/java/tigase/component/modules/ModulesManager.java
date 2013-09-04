@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tigase.component.ElementWriter;
+import tigase.component.PacketWriter;
 import tigase.component.exceptions.ComponentException;
 import tigase.criteria.Criteria;
 import tigase.server.Packet;
@@ -17,13 +17,13 @@ public class ModulesManager {
 
 	private final ArrayList<Module> modules = new ArrayList<Module>();
 
-	private final ElementWriter writer;
+	private final PacketWriter writer;
 
 	public ModulesManager() {
 		this.writer = null;
 	}
 
-	public ModulesManager(ElementWriter writer) {
+	public ModulesManager(PacketWriter writer) {
 		this.writer = writer;
 	}
 
@@ -44,8 +44,7 @@ public class ModulesManager {
 		return process(packet, this.writer);
 	}
 
-	public boolean process(final Packet packet, final ElementWriter writer) throws ComponentException,
-			TigaseStringprepException {
+	public boolean process(final Packet packet, final PacketWriter writer) throws ComponentException, TigaseStringprepException {
 		if (writer == null)
 			throw new Error("ElementWriter is null");
 		boolean handled = false;

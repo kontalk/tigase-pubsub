@@ -20,51 +20,38 @@
  *
  */
 
-
-
 package tigase.pubsub.modules;
 
-//~--- non-JDK imports --------------------------------------------------------
-
+import tigase.component.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.criteria.Or;
-
-import tigase.pubsub.ElementWriter;
+import tigase.pubsub.AbstractPubSubModule;
+import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.Module;
-
-import tigase.xml.Element;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayList;
-import java.util.List;
-import tigase.pubsub.PacketWriter;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
+import tigase.xml.Element;
 
 /**
  * Class description
- *
- *
- * @version        Enter version here..., 13/02/20
- * @author         Enter your name here...
+ * 
+ * 
  */
-public class XmppPingModule
-				implements Module {
-	private static final Criteria CRIT =
-		ElementCriteria.nameType("iq", "get").add(
-				new Or(ElementCriteria.name(
-					"ping",
-					"http://www.xmpp.org/extensions/xep-0199.html#ns"), ElementCriteria.name(
-						"ping", "urn:xmpp:ping")));
+public class XmppPingModule extends AbstractPubSubModule {
 
-	//~--- get methods ----------------------------------------------------------
+	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
+			new Or(ElementCriteria.name("ping", "http://www.xmpp.org/extensions/xep-0199.html#ns"), ElementCriteria.name(
+					"ping", "urn:xmpp:ping")));
+
+	public XmppPingModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+		super(config, pubsubRepository, packetWriter);
+	}
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -74,8 +61,8 @@ public class XmppPingModule
 
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @return
 	 */
 	@Override
@@ -83,30 +70,20 @@ public class XmppPingModule
 		return CRIT;
 	}
 
-	//~--- methods --------------------------------------------------------------
-
 	/**
 	 * Method description
-	 *
-	 *
+	 * 
+	 * 
 	 * @param iq
 	 * @param packetWriter
-	 *
+	 * 
 	 * @return
-	 *
+	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public List<Packet> process(Packet iq, PacketWriter elementWriter)
-					throws PubSubException {
+	public void process(Packet iq) throws PubSubException {
 		Packet reposnse = iq.okResult((Element) null, 0);
-		List<Packet> x = new ArrayList<Packet>();
-
-		x.add(reposnse);
-
-		return x;
+		packetWriter.write(reposnse);
 	}
 }
-
-
-//~ Formatted in Tigase Code Convention on 13/02/20

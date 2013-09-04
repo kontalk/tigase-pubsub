@@ -1,7 +1,5 @@
 package tigase.pubsub.repository.cached;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,8 +26,6 @@ import tigase.pubsub.utils.FragmentedMap;
 import tigase.stats.StatisticsList;
 import tigase.xmpp.BareJID;
 
-//~--- classes ----------------------------------------------------------------
-
 /**
  * Class description
  * 
@@ -42,18 +38,12 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private class LazyWriteThread implements Runnable {
 		private boolean stop = false;
 
-		// ~--- constructors
-		// -------------------------------------------------------
-
 		/**
 		 * Constructs ...
 		 * 
 		 */
 		public LazyWriteThread() {
 		}
-
-		// ~--- methods
-		// ------------------------------------------------------------
 
 		/**
 		 * Method description
@@ -80,7 +70,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 							}
 
 							if (node.affiliationsNeedsWriting()) {
-								dao.updateAffiliations(node.getName(), node.getNodeAffiliations().serialize());
+								dao.updateAffiliations(node.getServiceJid(), node.getName(),
+										node.getNodeAffiliations().serialize());
 								node.affiliationsSaved();
 							}
 
@@ -90,13 +81,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 								fm.defragment();
 
 								for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
-									dao.removeSubscriptions(node.getName(), deletedIndex);
+									dao.removeSubscriptions(node.getServiceJid(), node.getName(), deletedIndex);
 								}
 
 								for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
 									Map<String, UsersSubscription> ft = fm.getFragment(changedIndex);
 
-									dao.updateSubscriptions(node.getName(), changedIndex,
+									dao.updateSubscriptions(node.getServiceJid(), node.getName(), changedIndex,
 											node.getNodeSubscriptions().serialize(ft));
 								}
 
@@ -105,7 +96,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 							}
 
 							if (node.configNeedsWriting()) {
-								dao.updateNodeConfig(node.getName(), node.getNodeConfig().getFormElement().toString());
+								dao.updateNodeConfig(node.getServiceJid(), node.getName(),
+										node.getNodeConfig().getFormElement().toString());
 								node.configSaved();
 							}
 						} catch (Exception e) {
@@ -164,9 +156,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		}
 	}
 
-	// ~--- fields
-	// ---------------------------------------------------------------
-
 	private class NodeComparator implements Comparator<Node> {
 
 		/**
@@ -195,13 +184,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private class SizedCache extends LinkedHashMap<String, Node> {
 		private static final long serialVersionUID = 1L;
 
-		// ~--- fields
-		// -------------------------------------------------------------
-
 		private int maxCacheSize = 1000;
-
-		// ~--- constructors
-		// -------------------------------------------------------
 
 		/**
 		 * Constructs ...
@@ -213,9 +196,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			super(maxSize, 0.1f, true);
 			maxCacheSize = maxSize;
 		}
-
-		// ~--- methods
-		// ------------------------------------------------------------
 
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<String, Node> eldest) {
@@ -238,15 +218,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private final Set<String> rootCollection = new HashSet<String>();
 	private LazyWriteThread tlazyWriteThread;
 
-	// ~--- constructors
-	// ---------------------------------------------------------
-
 	// private final Object writeThreadMutex = new Object();
 
 	private long updateSubscriptionsCalled = 0;
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	private long writingTime = 0;
 
@@ -368,40 +342,12 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
-		this.dao.addToRootCollection(nodeName);
+		this.dao.addToRootCollection(serviceJid, nodeName);
 		this.rootCollection.add(nodeName);
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * @param ownerJid
-	 * @param nodeConfig
-	 * @param nodeType
-	 * @param collection
-	 * 
-	 * @throws RepositoryException
-	 */
-	@Override
-	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig, NodeType nodeType, String collection)
-			throws RepositoryException {
-		long start = System.currentTimeMillis();
-
-		this.dao.createNode(nodeName, ownerJid, nodeConfig, nodeType, collection);
-
-		NodeAffiliations nodeAffiliations = new NodeAffiliations(tigase.pubsub.repository.NodeAffiliations.create(null));
-		NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions.create());
-		Node node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
-
-		this.nodes.put(nodeName, node);
-
-		long end = System.currentTimeMillis();
-
-		++nodes_added;
-		writingTime += (end - start);
+	private String createKey(BareJID serviceJid, String nodeName) {
+		return serviceJid.toString() + "/" + nodeName;
 	}
 
 	// public void doLazyWrite() {
@@ -421,24 +367,55 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * 
 	 * @param serviceJid
 	 * @param nodeName
+	 * @param ownerJid
+	 * @param nodeConfig
+	 * @param nodeType
+	 * @param collection
+	 * 
+	 * @throws RepositoryException
+	 */
+	@Override
+	public void createNode(BareJID serviceJid, String nodeName, String ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, String collection) throws RepositoryException {
+		long start = System.currentTimeMillis();
+
+		this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
+
+		NodeAffiliations nodeAffiliations = new NodeAffiliations(tigase.pubsub.repository.NodeAffiliations.create(null));
+		NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions.create());
+		Node node = new Node(serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
+
+		String key = createKey(serviceJid, nodeName);
+		this.nodes.put(key, node);
+
+		long end = System.currentTimeMillis();
+
+		++nodes_added;
+		writingTime += (end - start);
+	}
+
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param serviceJid
+	 * @param nodeName
 	 * 
 	 * @throws RepositoryException
 	 */
 	@Override
 	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
-		Node node = this.nodes.get(nodeName);
+		String key = createKey(serviceJid, nodeName);
+		Node node = this.nodes.get(key);
 
-		this.dao.deleteNode(nodeName);
+		this.dao.deleteNode(serviceJid, nodeName);
 
 		if (node != null) {
 			node.setDeleted(true);
 		}
 
-		this.nodes.remove(nodeName);
+		this.nodes.remove(key);
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -463,7 +440,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public void forgetConfiguration(BareJID serviceJid, String nodeName) throws RepositoryException {
-		this.nodes.remove(nodeName);
+		String key = createKey(serviceJid, nodeName);
+		this.nodes.remove(key);
 	}
 
 	public Collection<Node> getAllNodes() {
@@ -502,20 +480,21 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		return this.dao.getBuddySubscription(owner, buddy);
 	}
 
-	private Node getNode(String nodeName) throws RepositoryException {
-		Node node = this.nodes.get(nodeName);
+	private Node getNode(BareJID serviceJid, String nodeName) throws RepositoryException {
+		String key = createKey(serviceJid, nodeName);
+		Node node = this.nodes.get(key);
 
 		if (node == null) {
-			AbstractNodeConfig nodeConfig = this.dao.getNodeConfig(nodeName);
+			AbstractNodeConfig nodeConfig = this.dao.getNodeConfig(serviceJid, nodeName);
 
 			if (nodeConfig == null) {
 				return null;
 			}
 
-			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(nodeName));
-			NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(this.dao.getNodeSubscriptions(nodeName));
+			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(serviceJid, nodeName));
+			NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(this.dao.getNodeSubscriptions(serviceJid, nodeName));
 
-			node = new Node(nodeConfig, nodeAffiliations, nodeSubscriptions);
+			node = new Node(serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
 			// if (maxCacheSize != null && this.nodes.size() > maxCacheSize) {
 			// Iterator<Entry<String, Node>> it =
@@ -550,7 +529,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public IAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
-		Node node = getNode(nodeName);
+		Node node = getNode(serviceJid, nodeName);
 
 		return (node == null) ? null : node.getNodeAffiliations();
 	}
@@ -568,7 +547,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, String nodeName) throws RepositoryException {
-		Node node = getNode(nodeName);
+		Node node = getNode(serviceJid, nodeName);
 
 		try {
 			return (node == null) ? null : node.getNodeConfig().clone();
@@ -592,11 +571,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException {
-		return new Items(nodeName, this.dao);
+		return new Items(serviceJid, nodeName, this.dao);
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -611,7 +587,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public ISubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
-		Node node = getNode(nodeName);
+		Node node = getNode(serviceJid, nodeName);
 
 		return (node == null) ? null : node.getNodeSubscriptions();
 	}
@@ -639,7 +615,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public String[] getRootCollection(BareJID serviceJid) throws RepositoryException {
 		if (rootCollection.size() == 0) {
-			String[] x = dao.getRootNodes();
+			String[] x = dao.getRootNodes(serviceJid);
 
 			if (x != null) {
 				for (String string : x) {
@@ -675,17 +651,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		log.config("Cached PubSubRepository initialising...");
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	private LazyWriteThread makeLazyWriteThread(final boolean immediatelly) {
 
 		// Thread.dumpStack();
 		return new LazyWriteThread();
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -698,12 +668,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
-		dao.removeFromRootCollection(nodeName);
+		dao.removeFromRootCollection(serviceJid, nodeName);
 		rootCollection.remove(nodeName);
 	}
-
-	// ~--- inner classes
-	// --------------------------------------------------------
 
 	/**
 	 * Method description
@@ -717,7 +684,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public void update(BareJID serviceJid, String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
-		Node node = getNode(nodeName);
+		Node node = getNode(serviceJid, nodeName);
 
 		if (node != null) {
 			node.configCopyFrom(nodeConfig);
@@ -745,7 +712,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void update(BareJID serviceJid, String nodeName, IAffiliations nodeAffiliations) throws RepositoryException {
 		if (nodeAffiliations instanceof NodeAffiliations) {
-			Node node = getNode(nodeName);
+			Node node = getNode(serviceJid, nodeName);
 
 			if (node != null) {
 				if (node.getNodeAffiliations() != nodeAffiliations) {
@@ -782,7 +749,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		++updateSubscriptionsCalled;
 
 		if (nodeSubscriptions instanceof NodeSubscriptions) {
-			Node node = getNode(nodeName);
+			Node node = getNode(serviceJid, nodeName);
 
 			if (node != null) {
 				if (node.getNodeSubscriptions() != nodeSubscriptions) {
@@ -804,7 +771,3 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		}
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com

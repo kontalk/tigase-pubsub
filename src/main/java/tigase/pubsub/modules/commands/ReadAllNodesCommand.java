@@ -71,7 +71,7 @@ public class ReadAllNodesCommand implements AdHocCommand {
 	}
 
 	private void startReading(BareJID serviceJid) throws RepositoryException {
-		final String[] allNodesId = dao.getNodesList();
+		final String[] allNodesId = dao.getNodesList(serviceJid);
 		for (String n : allNodesId) {
 			repository.getNodeConfig(serviceJid, n);
 		}

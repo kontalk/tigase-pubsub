@@ -1,7 +1,5 @@
 package tigase.pubsub.repository.cached;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -12,13 +10,8 @@ import tigase.pubsub.Utils;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.util.JIDUtils;
 
-//~--- classes ----------------------------------------------------------------
-
 public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 	protected final Map<String, UsersSubscription> changedSubs = new HashMap<String, UsersSubscription>();
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	private NodeSubscriptions() {
 	}
@@ -32,9 +25,6 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	public NodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions nodeSubscriptions) {
 		subs.putAll(nodeSubscriptions.getSubscriptionsMap());
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -78,9 +68,6 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 			}
 		}
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	@Override
 	protected UsersSubscription get(final String bareJid) {
@@ -126,9 +113,6 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 		return result.toArray(new UsersSubscription[] {});
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -153,9 +137,6 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 		}
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
 	 * 
@@ -167,7 +148,3 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 		}
 	}
 }
-
-// ~ Formatted in Sun Code Convention
-
-// ~ Formatted by Jindent --- http://www.jindent.com
