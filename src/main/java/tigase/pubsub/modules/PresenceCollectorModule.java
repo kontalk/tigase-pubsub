@@ -31,11 +31,17 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import tigase.component.PacketWriter;
+import tigase.component.eventbus.Event;
+import tigase.component.eventbus.EventBus;
+import tigase.component.eventbus.EventHandler;
+import tigase.component.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.PresenceCollectorModule.BuddyVisibilityHandler.BuddyVisibilityEvent;
+import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler.PresenceChangeEvent;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.server.Presence;
@@ -51,12 +57,68 @@ import tigase.xmpp.StanzaType;
  */
 public class PresenceCollectorModule extends AbstractPubSubModule {
 
+	public interface BuddyVisibilityHandler extends EventHandler {
+
+		public static class BuddyVisibilityEvent extends Event<BuddyVisibilityHandler> {
+
+			public static final EventType<BuddyVisibilityHandler> TYPE = new EventType<BuddyVisibilityHandler>();
+
+			private final boolean becomeOnline;
+			private final BareJID buddyJID;
+
+			public BuddyVisibilityEvent(BareJID buddyJID, boolean becomeOnline) {
+				super(TYPE);
+				this.buddyJID = buddyJID;
+				this.becomeOnline = becomeOnline;
+			}
+
+			@Override
+			protected void dispatch(BuddyVisibilityHandler handler) {
+				handler.onBuddyVisibilityChange(buddyJID, becomeOnline);
+			}
+
+		}
+
+		void onBuddyVisibilityChange(BareJID buddyJID, boolean becomeOnline);
+	}
+
+	public interface PresenceChangeHandler extends EventHandler {
+
+		public static class PresenceChangeEvent extends Event<PresenceChangeHandler> {
+
+			public static final EventType<PresenceChangeHandler> TYPE = new EventType<PresenceChangeHandler>();
+
+			private Packet packet;
+
+			public PresenceChangeEvent(Packet packet) {
+				super(TYPE);
+				this.packet = packet;
+			}
+
+			@Override
+			protected void dispatch(PresenceChangeHandler handler) {
+				handler.onPresenceChange(packet);
+			}
+
+		}
+
+		void onPresenceChange(Packet packet);
+	}
+
 	private static final Criteria CRIT = ElementCriteria.name("presence");
+
+	private final EventBus eventBus;
 
 	private final Map<BareJID, Set<String>> resources = new HashMap<BareJID, Set<String>>();
 
-	public PresenceCollectorModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+	public PresenceCollectorModule(PubSubConfig config, EventBus eventBus, IPubSubRepository pubsubRepository,
+			PacketWriter packetWriter) {
 		super(config, pubsubRepository, packetWriter);
+		this.eventBus = eventBus;
+	}
+
+	public void addBuddyVisibilityHandler(BuddyVisibilityHandler handler) {
+		eventBus.addHandler(BuddyVisibilityHandler.BuddyVisibilityEvent.TYPE, handler);
 	}
 
 	/**
@@ -89,6 +151,15 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 		// onlineUsers.add(jid);
 		return added;
+	}
+
+	public void addPresenceChangeHandler(PresenceChangeHandler handler) {
+		eventBus.addHandler(PresenceChangeEvent.TYPE, handler);
+	}
+
+	private void firePresenceChangeEvent(Packet packet) {
+		PresenceChangeEvent event = new PresenceChangeEvent(packet);
+		eventBus.fire(event);
 	}
 
 	/**
@@ -166,7 +237,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		return (resources != null) && (resources.size() > 0);
 	}
 
-	private Packet preparePresence(final Packet presence, String type) {
+	private Packet preparePresence(final Packet presence, StanzaType type) {
 		JID to = presence.getTo();
 
 		if (to != null) {
@@ -174,7 +245,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 			Element p = new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(), to.toString() });
 
 			if (type != null) {
-				p.setAttribute("type", type);
+				p.setAttribute("type", type.toString());
 			}
 
 			return new Presence(p, jid, presence.getStanzaTo());
@@ -200,48 +271,55 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		final JID jid = packet.getStanzaFrom();
 		final JID toJid = packet.getStanzaTo();
 
-		if (type == null) {
-			boolean added = addJid(jid);
+		PresenceChangeEvent event = new PresenceChangeEvent(packet);
+		eventBus.fire(event, this);
 
+		if (type == null || type == StanzaType.available) {
+			boolean added = addJid(jid);
+			firePresenceChangeEvent(packet);
 			if (added) {
 				Packet p = new Presence(new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(),
 						toJid.toString() }), toJid, jid);
 
 				packetWriter.write(p);
 			}
-		} else if ("unavailable".equals(type)) {
+		} else if (StanzaType.unavailable == type) {
 			removeJid(jid);
-
+			firePresenceChangeEvent(packet);
 			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" }, new String[] {
-					jid.toString(), toJid.toString(), "unavailable" }), toJid, jid);
+					jid.toString(), toJid.toString(), StanzaType.unavailable.toString() }), toJid, jid);
 
 			packetWriter.write(p);
-		} else if ("subscribe".equals(type)) {
+		} else if (StanzaType.subscribe == type) {
 			log.finest("Contact " + jid + " wants to subscribe PubSub");
 
-			Packet presence = preparePresence(packet, "subscribed");
+			Packet presence = preparePresence(packet, StanzaType.subscribed);
 
 			if (presence != null) {
 				packetWriter.write(presence);
 			}
-			presence = preparePresence(packet, "subscribe");
+			presence = preparePresence(packet, StanzaType.subscribe);
 			if (presence != null) {
 				packetWriter.write(presence);
 			}
-		} else if ("unsubscribe".equals(type) || "unsubscribed".equals(type)) {
+		} else if (StanzaType.unsubscribe == type || StanzaType.unsubscribed == type) {
 			log.finest("Contact " + jid + " wants to unsubscribe PubSub");
 
-			Packet presence = preparePresence(packet, "unsubscribed");
+			Packet presence = preparePresence(packet, StanzaType.unsubscribed);
 
 			if (presence != null) {
 				packetWriter.write(presence);
 			}
-			presence = preparePresence(packet, "unsubscribe");
+			presence = preparePresence(packet, StanzaType.unsubscribe);
 			if (presence != null) {
 				packetWriter.write(presence);
 			}
 		}
 
+	}
+
+	public void removeBuddyVisibilityHandler(BuddyVisibilityHandler handler) {
+		eventBus.remove(BuddyVisibilityHandler.BuddyVisibilityEvent.TYPE, handler);
 	}
 
 	/**
@@ -264,6 +342,8 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		// onlineUsers.remove(jid);
 		if (resource == null) {
 			resources.remove(bareJid);
+			BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);
+			eventBus.fire(event);
 		} else {
 			Set<String> resources = this.resources.get(bareJid);
 
@@ -272,10 +352,16 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 				log.finest("Contact " + jid + " is removed from collection.");
 				if (resources.size() == 0) {
 					this.resources.remove(bareJid);
+					BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);
+					eventBus.fire(event);
 				}
 			}
 		}
 
 		return removed;
+	}
+
+	public void removePresenceChangeHandler(PresenceChangeHandler handler) {
+		eventBus.remove(PresenceChangeEvent.TYPE, handler);
 	}
 }

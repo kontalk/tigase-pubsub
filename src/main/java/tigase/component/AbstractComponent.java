@@ -29,6 +29,8 @@ import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import tigase.component.eventbus.DefaultEventBus;
+import tigase.component.eventbus.EventBus;
 import tigase.component.exceptions.ComponentException;
 import tigase.component.modules.Module;
 import tigase.component.modules.ModulesManager;
@@ -49,8 +51,10 @@ import tigase.xmpp.StanzaType;
  * 
  */
 public abstract class AbstractComponent<T extends ComponentConfig> extends AbstractMessageReceiver implements XMPPService {
+
 	/** Field description */
 	protected final T componentConfig;
+
 	private final PacketWriter DEFAULT_WRITER = new PacketWriter() {
 		@Override
 		public void write(Collection<Packet> elements) {
@@ -73,11 +77,14 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	};
 
+	protected final EventBus eventBus = new DefaultEventBus();
+
 	/** Field description */
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
 
 	/** Field description */
 	protected final ModulesManager modulesManager = new ModulesManager();
+
 	private final PacketWriter writer;
 
 	/**
