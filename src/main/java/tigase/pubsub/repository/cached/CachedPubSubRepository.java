@@ -510,7 +510,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			// }
 			//
 			// }
-			this.nodes.put(nodeName, node);
+			this.nodes.put(key, node);
 		}
 
 		return node;
