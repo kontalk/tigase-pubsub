@@ -269,7 +269,12 @@ public abstract class AbstractNodeConfig {
 		if (tmp == null) {
 			return null;
 		} else {
-			return PublisherModel.valueOf(tmp);
+			try {
+				return PublisherModel.valueOf(tmp);
+			}
+			catch(Throwable ex) {
+				return null;
+			}
 		}
 	}
 
