@@ -22,10 +22,12 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import tigase.component.PacketWriter;
+import tigase.component.eventbus.Event;
+import tigase.component.eventbus.EventHandler;
+import tigase.component.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractNodeConfig;
@@ -33,6 +35,7 @@ import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.NodeDeleteModule.NodeDeleteHandler.NodeDeleteEvent;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -48,10 +51,35 @@ import tigase.xmpp.JID;
  * 
  */
 public class NodeDeleteModule extends AbstractPubSubModule {
+	public interface NodeDeleteHandler extends EventHandler {
+
+		public static class NodeDeleteEvent extends Event<NodeDeleteHandler> {
+
+			public static final EventType<NodeDeleteHandler> TYPE = new EventType<NodeDeleteHandler>();
+
+			private final String nodeName;
+
+			private final Packet packet;
+
+			public NodeDeleteEvent(Packet packet, String nodeName) {
+				super(TYPE);
+				this.packet = packet;
+				this.nodeName = nodeName;
+			}
+
+			@Override
+			protected void dispatch(NodeDeleteHandler handler) {
+				handler.onNodeDeleted(packet, nodeName);
+			}
+
+		}
+
+		void onNodeDeleted(Packet packet, final String nodeName);
+	}
+
 	private static final Criteria CRIT_DELETE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("delete"));
 
-	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
 	private final PublishItemModule publishModule;
 
 	/**
@@ -73,20 +101,8 @@ public class NodeDeleteModule extends AbstractPubSubModule {
 	 * 
 	 * @param listener
 	 */
-	public void addNodeConfigListener(NodeConfigListener listener) {
-		this.nodeConfigListeners.add(listener);
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param nodeName
-	 */
-	protected void fireOnNodeDeleted(final String nodeName) {
-		for (NodeConfigListener listener : this.nodeConfigListeners) {
-			listener.onNodeDeleted(nodeName);
-		}
+	public void addNodeDeleteHandler(NodeDeleteHandler handler) {
+		config.getEventBus().addHandler(NodeDeleteEvent.TYPE, handler);
 	}
 
 	/**
@@ -196,7 +212,9 @@ public class NodeDeleteModule extends AbstractPubSubModule {
 			}
 			log.fine("Delete node [" + nodeName + "]");
 			getRepository().deleteNode(toJid, nodeName);
-			fireOnNodeDeleted(nodeName);
+
+			NodeDeleteEvent event = new NodeDeleteEvent(packet, nodeName);
+			getEventBus().fire(event);
 
 			packetWriter.write(resultArray);
 		} catch (PubSubException e1) {
@@ -216,7 +234,7 @@ public class NodeDeleteModule extends AbstractPubSubModule {
 	 * 
 	 * @param listener
 	 */
-	public void removeNodeConfigListener(NodeConfigListener listener) {
-		this.nodeConfigListeners.remove(listener);
+	public void removeNodeDeleteHandler(NodeDeleteHandler handler) {
+		config.getEventBus().remove(handler);
 	}
 }

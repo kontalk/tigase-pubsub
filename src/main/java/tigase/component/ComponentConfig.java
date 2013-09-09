@@ -2,6 +2,7 @@ package tigase.component;
 
 import java.util.Map;
 
+import tigase.component.eventbus.EventBus;
 import tigase.xmpp.BareJID;
 
 public abstract class ComponentConfig {
@@ -16,6 +17,10 @@ public abstract class ComponentConfig {
 
 	public abstract Map<String, Object> getDefaults(Map<String, Object> params);
 
+	public EventBus getEventBus() {
+		return component.getEventBus();
+	}
+
 	public BareJID getServiceName() {
 		if (serviceName == null) {
 			serviceName = BareJID.bareJIDInstanceNS(component.getName());
@@ -24,5 +29,4 @@ public abstract class ComponentConfig {
 	}
 
 	public abstract void setProperties(Map<String, Object> props);
-
 }

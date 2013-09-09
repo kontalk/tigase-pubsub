@@ -138,6 +138,10 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	;
 
+	public EventBus getEventBus() {
+		return eventBus;
+	}
+
 	/**
 	 * Method description
 	 * 

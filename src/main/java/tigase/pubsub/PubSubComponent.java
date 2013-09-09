@@ -62,6 +62,7 @@ import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
 import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurationChangedHandler;
 import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
@@ -84,8 +85,7 @@ import tigase.xmpp.JID;
  * @version 5.1.0, 2010.11.02 at 01:05:02 MDT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PubSubComponent extends AbstractComponent<PubSubConfig> implements Configurable, DisableDisco,
-		DefaultNodeConfigListener {
+public class PubSubComponent extends AbstractComponent<PubSubConfig> implements Configurable, DisableDisco {
 
 	private class AdHocScriptCommandManagerImpl implements AdHocScriptCommandManager {
 
@@ -160,7 +160,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	@Override
 	protected PubSubConfig createComponentConfigInstance(AbstractComponent<?> abstractComponent) {
-		return new PubSubConfig(abstractComponent);
+		PubSubConfig result = new PubSubConfig(abstractComponent);
+		return result;
 	}
 
 	/**
@@ -235,7 +236,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	protected void init() {
 		final PacketWriter writer = getWriter();
 		this.xslTransformer = new XsltTool();
-		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, eventBus, writer));
+		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer));
 		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
 				this.presenceCollectorModule));
 		registerModule(new RetractItemModule(componentConfig, writer, this.publishNodeModule));
@@ -302,7 +303,13 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.componentConfig, this.userRepository);
 
-		configCommand.addListener(this);
+		configCommand.addDefaultNodeConfigurationChangedHandler(new DefaultNodeConfigurationChangedHandler() {
+
+			@Override
+			public void onDefaultConfigurationChanged(Packet packet, PubSubConfig config) {
+				onChangeDefaultNodeConfig();
+			}
+		});
 		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.componentConfig, this.directPubSubRepository));
 		this.adHocCommandsModule.register(configCommand);
 		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.componentConfig, this.directPubSubRepository,
@@ -325,7 +332,6 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		return true;
 	}
 
-	@Override
 	public void onChangeDefaultNodeConfig() {
 		try {
 			this.defaultNodeConfig.read(userRepository, componentConfig, DEFAULT_LEAF_NODE_CONFIG_KEY);
