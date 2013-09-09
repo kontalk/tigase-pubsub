@@ -40,7 +40,6 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
@@ -122,9 +121,9 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	 * @param defaultNodeConfig
 	 * @param publishItemModule
 	 */
-	public NodeConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
-			LeafNodeConfig defaultNodeConfig, PublishItemModule publishItemModule) {
-		super(config, pubsubRepository, defaultNodeConfig, packetWriter);
+	public NodeConfigModule(PubSubConfig config, PacketWriter packetWriter, LeafNodeConfig defaultNodeConfig,
+			PublishItemModule publishItemModule) {
+		super(config, defaultNodeConfig, packetWriter);
 		this.publishModule = publishItemModule;
 	}
 
@@ -234,13 +233,13 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				throw new PubSubException(element, Authorization.BAD_REQUEST, PubSubErrorCondition.NODEID_REQUIRED);
 			}
 
-			final AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
+			final AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			final IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(toJid, nodeName);
+			final IAffiliations nodeAffiliations = this.getRepository().getNodeAffiliations(toJid, nodeName);
 			JID jid = packet.getStanzaFrom();
 
 			if (!this.config.isAdmin(jid)) {
@@ -256,7 +255,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			// final Element result = createResultIQ(element);
 			final Packet result = packet.okResult((Element) null, 0);
 			final List<Packet> resultArray = makeArray(result);
-			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, nodeName);
 
 			if (type == StanzaType.get) {
 				Element rPubSub = new Element("pubsub", new String[] { "xmlns" },
@@ -275,7 +274,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				parseConf(nodeConfig, configure);
 				if (!collectionOld.equals(nodeConfig.getCollection())) {
 					if (collectionOld.equals("")) {
-						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(toJid, nodeConfig.getCollection());
+						AbstractNodeConfig colNodeConfig = getRepository().getNodeConfig(toJid, nodeConfig.getCollection());
 
 						if (colNodeConfig == null) {
 							throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#1) Node '" + nodeConfig.getCollection()
@@ -286,11 +285,12 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 									+ "' is not collection node");
 						}
 						((CollectionNodeConfig) colNodeConfig).addChildren(nodeName);
-						repository.update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
-						repository.removeFromRootCollection(toJid, nodeName);
+						getRepository().update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
+						getRepository().removeFromRootCollection(toJid, nodeName);
 
-						IAffiliations colNodeAffiliations = repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
-						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(toJid,
+						IAffiliations colNodeAffiliations = getRepository().getNodeAffiliations(toJid,
+								colNodeConfig.getNodeName());
+						ISubscriptions colNodeSubscriptions = getRepository().getNodeSubscriptions(toJid,
 								colNodeConfig.getNodeName());
 						Element associateNotification = createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
 
@@ -298,16 +298,17 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
 					}
 					if (nodeConfig.getCollection().equals("")) {
-						AbstractNodeConfig colNodeConfig = repository.getNodeConfig(toJid, collectionOld);
+						AbstractNodeConfig colNodeConfig = getRepository().getNodeConfig(toJid, collectionOld);
 
 						if ((colNodeConfig != null) && (colNodeConfig instanceof CollectionNodeConfig)) {
 							((CollectionNodeConfig) colNodeConfig).removeChildren(nodeName);
-							repository.update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
+							getRepository().update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
 						}
-						repository.addToRootCollection(toJid, nodeName);
+						getRepository().addToRootCollection(toJid, nodeName);
 
-						IAffiliations colNodeAffiliations = repository.getNodeAffiliations(toJid, colNodeConfig.getNodeName());
-						ISubscriptions colNodeSubscriptions = repository.getNodeSubscriptions(toJid,
+						IAffiliations colNodeAffiliations = getRepository().getNodeAffiliations(toJid,
+								colNodeConfig.getNodeName());
+						ISubscriptions colNodeSubscriptions = getRepository().getNodeSubscriptions(toJid,
 								colNodeConfig.getNodeName());
 						Element disassociateNotification = createDisassociateNotification(collectionOld, nodeName);
 
@@ -323,15 +324,15 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							(children == null) ? new String[] {} : children);
 
 					for (String ann : addedChildNodes) {
-						AbstractNodeConfig nc = repository.getNodeConfig(toJid, ann);
+						AbstractNodeConfig nc = getRepository().getNodeConfig(toJid, ann);
 
 						if (nc == null) {
 							throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#2) Node '" + ann + "' doesn't exists");
 						}
 						if (nc.getCollection().equals("")) {
-							repository.removeFromRootCollection(toJid, nc.getNodeName());
+							getRepository().removeFromRootCollection(toJid, nc.getNodeName());
 						} else {
-							AbstractNodeConfig cnc = repository.getNodeConfig(toJid, nc.getCollection());
+							AbstractNodeConfig cnc = getRepository().getNodeConfig(toJid, nc.getCollection());
 
 							if (cnc == null) {
 								throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#3) Node '" + nc.getCollection()
@@ -342,10 +343,10 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 										+ "' is not collection node");
 							}
 							((CollectionNodeConfig) cnc).removeChildren(nc.getNodeName());
-							repository.update(toJid, cnc.getNodeName(), cnc);
+							getRepository().update(toJid, cnc.getNodeName(), cnc);
 						}
 						nc.setCollection(nodeName);
-						repository.update(toJid, nc.getNodeName(), nc);
+						getRepository().update(toJid, nc.getNodeName(), nc);
 
 						Element associateNotification = createAssociateNotification(nodeName, ann);
 
@@ -353,11 +354,11 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
 					}
 					for (String rnn : removedChildNodes) {
-						AbstractNodeConfig nc = repository.getNodeConfig(toJid, rnn);
+						AbstractNodeConfig nc = getRepository().getNodeConfig(toJid, rnn);
 
 						if (nc != null) {
 							nc.setCollection("");
-							repository.update(toJid, nc.getNodeName(), nc);
+							getRepository().update(toJid, nc.getNodeName(), nc);
 						}
 						if ((rnn != null) && (rnn.length() != 0)) {
 							Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
@@ -367,7 +368,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						}
 					}
 				}
-				repository.update(toJid, nodeName, nodeConfig);
+				getRepository().update(toJid, nodeName, nodeConfig);
 				if (nodeConfig.isNotify_config()) {
 					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
 

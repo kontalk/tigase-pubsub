@@ -92,6 +92,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 
 	@Override
 	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
+		// TODO
 		// We do not support collections yet, so all nodes are in root
 		// collection.
 		return;
@@ -491,6 +492,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 
 	@Override
 	public void removeAllFromRootCollection(BareJID serviceJid) throws RepositoryException {
+		// TODO check it
 		try {
 			checkConnection();
 			synchronized (delete_all_nodes_sp) {
@@ -504,6 +506,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
+		// TODO check it
 		deleteNode(serviceJid, nodeName);
 	}
 

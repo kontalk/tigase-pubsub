@@ -33,7 +33,6 @@ import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -58,9 +57,8 @@ public class DiscoverInfoModule extends AbstractPubSubModule {
 	 * @param pubsubRepository
 	 * @param modules
 	 */
-	public DiscoverInfoModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
-			ModulesManager modulesManager) {
-		super(config, pubsubRepository, packetWriter);
+	public DiscoverInfoModule(PubSubConfig config, PacketWriter packetWriter, ModulesManager modulesManager) {
+		super(config, packetWriter);
 		this.modulesManager = modulesManager;
 	}
 
@@ -114,7 +112,7 @@ public class DiscoverInfoModule extends AbstractPubSubModule {
 					resultQuery.addChild(new Element("feature", new String[] { "var" }, new String[] { f }));
 				}
 			} else {
-				AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(packet.getStanzaTo().getBareJID(), nodeName);
+				AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(packet.getStanzaTo().getBareJID(), nodeName);
 
 				if (nodeConfig == null) {
 					throw new PubSubException(Authorization.ITEM_NOT_FOUND);

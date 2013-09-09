@@ -42,7 +42,6 @@ import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
@@ -67,8 +66,8 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public RetrieveItemsModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	private Integer asInteger(String attribute) {
@@ -146,7 +145,7 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 			}
 
 			// XXX CHECK RIGHTS AUTH ETC
-			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = this.getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
@@ -156,14 +155,14 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeAffiliations = this.getRepository().getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 
 			if (senderAffiliation.getAffiliation() == Affiliation.outcast) {
 				throw new PubSubException(Authorization.FORBIDDEN);
 			}
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
 			Subscription senderSubscription = nodeSubscriptions.getSubscription(senderJid.getBareJID());
 
 			if ((nodeConfig.getNodeAccessModel() == AccessModel.whitelist)
@@ -201,7 +200,7 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 
 			rpubsub.addChild(ritems);
 
-			IItems nodeItems = this.repository.getNodeItems(toJid, nodeName);
+			IItems nodeItems = this.getRepository().getNodeItems(toJid, nodeName);
 
 			if (requestedId == null) {
 				String[] ids = nodeItems.getItemsIds();

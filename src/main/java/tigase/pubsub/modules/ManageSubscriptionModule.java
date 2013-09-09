@@ -35,7 +35,6 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -82,8 +81,8 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public ManageSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public ManageSubscriptionModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**
@@ -134,14 +133,14 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
-			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
+			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			JID senderJid = packet.getStanzaFrom();
 
 			if (!this.config.isAdmin(senderJid)) {
@@ -159,7 +158,7 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 				}
 			}
 			if (nodeSubscriptions.isChanged()) {
-				repository.update(toJid, nodeName, nodeSubscriptions);
+				getRepository().update(toJid, nodeName, nodeSubscriptions);
 			}
 
 		} catch (PubSubException e1) {

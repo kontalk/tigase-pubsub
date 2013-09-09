@@ -38,7 +38,6 @@ import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
@@ -101,9 +100,9 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 	 * @param pubsubRepository
 	 * @param manageSubscriptionModule
 	 */
-	public SubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+	public SubscribeNodeModule(PubSubConfig config, PacketWriter packetWriter,
 			PendingSubscriptionModule manageSubscriptionModule) {
-		super(config, pubsubRepository, packetWriter);
+		super(config, packetWriter);
 		this.pendingSubscriptionModule = manageSubscriptionModule;
 	}
 
@@ -150,7 +149,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 		final BareJID jid = BareJID.bareJIDInstanceNS(subscribe.getAttributeStaticStr("jid"));
 
 		try {
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
@@ -160,7 +159,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 			}
 
-			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 
 			if (!this.config.isAdmin(senderJid) && (senderAffiliation.getAffiliation() != Affiliation.owner)
@@ -168,7 +167,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 				throw new PubSubException(packet.getElement(), Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
 
 			// TODO 6.1.3.2 Presence Subscription Required
 			// TODO 6.1.3.3 Not in Roster Group
@@ -251,13 +250,14 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 				nodeAffiliations.changeAffiliation(jid, affiliation);
 			}
 
-			// repository.setData(config.getServiceName(), nodeName, "owner",
+			// getRepository().setData(config.getServiceName(), nodeName,
+			// "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));
 			if (nodeSubscriptions.isChanged()) {
-				this.repository.update(toJid, nodeName, nodeSubscriptions);
+				this.getRepository().update(toJid, nodeName, nodeSubscriptions);
 			}
 			if (nodeAffiliations.isChanged()) {
-				this.repository.update(toJid, nodeName, nodeAffiliations);
+				this.getRepository().update(toJid, nodeName, nodeAffiliations);
 			}
 			Packet result = packet.okResult(makeSubscription(nodeName, jid, newSubscription, subid), 0);
 

@@ -134,27 +134,16 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	 */
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
 	private AdHocConfigCommandModule adHocCommandsModule;
-	private DefaultConfigModule defaultConfigModule;
 	protected LeafNodeConfig defaultNodeConfig;
 	private PubSubDAO directPubSubRepository;
-	private ManageAffiliationsModule manageAffiliationsModule;
-	private ManageSubscriptionModule manageSubscriptionModule;
 	private Integer maxRepositoryCacheSize;
-	private NodeConfigModule nodeConfigModule;
-	private NodeCreateModule nodeCreateModule;
-	private NodeDeleteModule nodeDeleteModule;
 	private PendingSubscriptionModule pendingSubscriptionModule;
 	private PresenceCollectorModule presenceCollectorModule;
 	private PublishItemModule publishNodeModule;
 	protected CachedPubSubRepository pubsubRepository;
-	private PurgeItemsModule purgeItemsModule;
-	private RetractItemModule retractItemModule;
 
-	private RetrieveItemsModule retrirveItemsModule;
 	private AdHocScriptCommandManager scriptCommandManager;
 
-	private SubscribeNodeModule subscribeNodeModule;
-	private UnsubscribeNodeModule unsubscribeNodeModule;
 	protected UserRepository userRepository;
 
 	// ~--- constructors
@@ -251,40 +240,28 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	protected void init() {
 		final PacketWriter writer = getWriter();
 		this.xslTransformer = new XsltTool();
-		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, eventBus, pubsubRepository,
-				writer));
-		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, this.pubsubRepository, writer,
-				this.xslTransformer, this.presenceCollectorModule));
-		this.retractItemModule = registerModule(new RetractItemModule(componentConfig, this.pubsubRepository, writer,
-				this.publishNodeModule));
-		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(componentConfig, this.pubsubRepository,
-				writer));
-		this.manageSubscriptionModule = registerModule(new ManageSubscriptionModule(componentConfig, this.pubsubRepository,
-				writer));
-		this.subscribeNodeModule = registerModule(new SubscribeNodeModule(componentConfig, this.pubsubRepository, writer,
-				this.pendingSubscriptionModule));
-		this.nodeCreateModule = registerModule(new NodeCreateModule(componentConfig, this.pubsubRepository, writer,
-				this.defaultNodeConfig, this.publishNodeModule));
-		this.nodeDeleteModule = registerModule(new NodeDeleteModule(componentConfig, this.pubsubRepository, writer,
-				this.publishNodeModule));
-		this.defaultConfigModule = registerModule(new DefaultConfigModule(componentConfig, this.pubsubRepository,
-				this.defaultNodeConfig, writer));
-		this.nodeConfigModule = registerModule(new NodeConfigModule(componentConfig, this.pubsubRepository, writer,
-				this.defaultNodeConfig, this.publishNodeModule));
-		this.unsubscribeNodeModule = registerModule(new UnsubscribeNodeModule(componentConfig, this.pubsubRepository, writer));
-		this.manageAffiliationsModule = registerModule(new ManageAffiliationsModule(componentConfig, this.pubsubRepository,
-				writer));
-		this.retrirveItemsModule = registerModule(new RetrieveItemsModule(componentConfig, this.pubsubRepository, writer));
-		this.purgeItemsModule = registerModule(new PurgeItemsModule(componentConfig, this.pubsubRepository, writer,
-				this.publishNodeModule));
-		registerModule(new JabberVersionModule(componentConfig, pubsubRepository, writer));
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, this.pubsubRepository, writer,
-				scriptCommandManager));
-		registerModule(new DiscoverInfoModule(componentConfig, this.pubsubRepository, writer, modulesManager));
-		registerModule(new DiscoverItemsModule(componentConfig, this.pubsubRepository, writer, this.adHocCommandsModule));
-		registerModule(new RetrieveAffiliationsModule(componentConfig, this.pubsubRepository, writer));
-		registerModule(new RetrieveSubscriptionsModule(componentConfig, this.pubsubRepository, writer));
-		registerModule(new XmppPingModule(componentConfig, pubsubRepository, writer));
+		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, eventBus, writer));
+		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
+				this.presenceCollectorModule));
+		registerModule(new RetractItemModule(componentConfig, writer, this.publishNodeModule));
+		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(componentConfig, writer));
+		registerModule(new ManageSubscriptionModule(componentConfig, writer));
+		registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule));
+		registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
+		registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
+		registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig, writer));
+		registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
+		registerModule(new UnsubscribeNodeModule(componentConfig, writer));
+		registerModule(new ManageAffiliationsModule(componentConfig, writer));
+		registerModule(new RetrieveItemsModule(componentConfig, writer));
+		registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
+		registerModule(new JabberVersionModule(componentConfig, writer));
+		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, writer, scriptCommandManager));
+		registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
+		registerModule(new DiscoverItemsModule(componentConfig, writer, this.adHocCommandsModule));
+		registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
+		registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
+		registerModule(new XmppPingModule(componentConfig, writer));
 		this.pubsubRepository.init();
 	}
 
@@ -325,6 +302,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		this.defaultNodeConfig = defaultNodeConfig;
 		this.defaultNodeConfig.read(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 		this.defaultNodeConfig.write(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.componentConfig.setPubSubRepository(pubsubRepository);
 		init();
 
 		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.componentConfig, this.userRepository);

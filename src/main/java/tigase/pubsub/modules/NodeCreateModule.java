@@ -38,7 +38,6 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.server.Packet;
 import tigase.xml.Element;
@@ -67,9 +66,9 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	 * @param defaultNodeConfig
 	 * @param publishItemModule
 	 */
-	public NodeCreateModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
-			LeafNodeConfig defaultNodeConfig, PublishItemModule publishItemModule) {
-		super(config, pubsubRepository, defaultNodeConfig, packetWriter);
+	public NodeCreateModule(PubSubConfig config, PacketWriter packetWriter, LeafNodeConfig defaultNodeConfig,
+			PublishItemModule publishItemModule) {
+		super(config, defaultNodeConfig, packetWriter);
 		this.publishModule = publishItemModule;
 	}
 
@@ -147,7 +146,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if (instantNode) {
 				nodeName = UUID.randomUUID().toString().replaceAll("-", "");
 			}
-			if (repository.getNodeConfig(toJid, nodeName) != null) {
+			if (getRepository().getNodeConfig(toJid, nodeName) != null) {
 				throw new PubSubException(element, Authorization.CONFLICT);
 			}
 
@@ -189,7 +188,7 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			CollectionNodeConfig colNodeConfig = null;
 
 			if (collection != null) {
-				AbstractNodeConfig absNodeConfig = repository.getNodeConfig(toJid, collection);
+				AbstractNodeConfig absNodeConfig = getRepository().getNodeConfig(toJid, collection);
 
 				if (absNodeConfig == null) {
 					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
@@ -201,29 +200,29 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			if ((nodeType != NodeType.leaf) && (nodeType != NodeType.collection)) {
 				throw new PubSubException(Authorization.NOT_ALLOWED);
 			}
-			repository.createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, nodeType,
+			getRepository().createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, nodeType,
 					(collection == null) ? "" : collection);
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
-			IAffiliations nodeaAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
+			IAffiliations nodeaAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 
 			nodeSubscriptions.addSubscriberJid(packet.getStanzaFrom().getBareJID(), Subscription.subscribed);
 			nodeaAffiliations.addAffiliation(packet.getStanzaFrom().getBareJID(), Affiliation.owner);
-			repository.update(toJid, nodeName, nodeaAffiliations);
-			repository.update(toJid, nodeName, nodeSubscriptions);
+			getRepository().update(toJid, nodeName, nodeaAffiliations);
+			getRepository().update(toJid, nodeName, nodeSubscriptions);
 			if (colNodeConfig == null) {
-				repository.addToRootCollection(toJid, nodeName);
+				getRepository().addToRootCollection(toJid, nodeName);
 			} else {
 				colNodeConfig.addChildren(nodeName);
-				repository.update(toJid, collection, colNodeConfig);
+				getRepository().update(toJid, collection, colNodeConfig);
 			}
 			fireOnNodeCreatedConfigChange(nodeName);
 
 			Packet result = packet.okResult((Element) null, 0);
 
 			if (collection != null) {
-				ISubscriptions colNodeSubscriptions = this.repository.getNodeSubscriptions(toJid, collection);
-				IAffiliations colNodeAffiliations = this.repository.getNodeAffiliations(toJid, collection);
+				ISubscriptions colNodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, collection);
+				IAffiliations colNodeAffiliations = this.getRepository().getNodeAffiliations(toJid, collection);
 				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
 
 				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
