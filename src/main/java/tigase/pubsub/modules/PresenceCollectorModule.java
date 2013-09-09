@@ -32,7 +32,6 @@ import java.util.Set;
 
 import tigase.component.PacketWriter;
 import tigase.component.eventbus.Event;
-import tigase.component.eventbus.EventBus;
 import tigase.component.eventbus.EventHandler;
 import tigase.component.eventbus.EventType;
 import tigase.criteria.Criteria;
@@ -106,17 +105,14 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 	private static final Criteria CRIT = ElementCriteria.name("presence");
 
-	private final EventBus eventBus;
-
 	private final Map<BareJID, Set<String>> resources = new HashMap<BareJID, Set<String>>();
 
-	public PresenceCollectorModule(PubSubConfig config, EventBus eventBus, PacketWriter packetWriter) {
+	public PresenceCollectorModule(PubSubConfig config, PacketWriter packetWriter) {
 		super(config, packetWriter);
-		this.eventBus = eventBus;
 	}
 
 	public void addBuddyVisibilityHandler(BuddyVisibilityHandler handler) {
-		eventBus.addHandler(BuddyVisibilityHandler.BuddyVisibilityEvent.TYPE, handler);
+		config.getEventBus().addHandler(BuddyVisibilityHandler.BuddyVisibilityEvent.TYPE, handler);
 	}
 
 	/**
@@ -152,12 +148,12 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	}
 
 	public void addPresenceChangeHandler(PresenceChangeHandler handler) {
-		eventBus.addHandler(PresenceChangeEvent.TYPE, handler);
+		config.getEventBus().addHandler(PresenceChangeEvent.TYPE, handler);
 	}
 
 	private void firePresenceChangeEvent(Packet packet) {
 		PresenceChangeEvent event = new PresenceChangeEvent(packet);
-		eventBus.fire(event);
+		config.getEventBus().fire(event);
 	}
 
 	/**
@@ -270,7 +266,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		final JID toJid = packet.getStanzaTo();
 
 		PresenceChangeEvent event = new PresenceChangeEvent(packet);
-		eventBus.fire(event, this);
+		config.getEventBus().fire(event, this);
 
 		if (type == null || type == StanzaType.available) {
 			boolean added = addJid(jid);
@@ -317,7 +313,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	}
 
 	public void removeBuddyVisibilityHandler(BuddyVisibilityHandler handler) {
-		eventBus.remove(BuddyVisibilityHandler.BuddyVisibilityEvent.TYPE, handler);
+		config.getEventBus().remove(BuddyVisibilityHandler.BuddyVisibilityEvent.TYPE, handler);
 	}
 
 	/**
@@ -341,7 +337,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		if (resource == null) {
 			resources.remove(bareJid);
 			BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);
-			eventBus.fire(event);
+			config.getEventBus().fire(event);
 		} else {
 			Set<String> resources = this.resources.get(bareJid);
 
@@ -351,7 +347,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 				if (resources.size() == 0) {
 					this.resources.remove(bareJid);
 					BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);
-					eventBus.fire(event);
+					config.getEventBus().fire(event);
 				}
 			}
 		}
@@ -360,6 +356,6 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	}
 
 	public void removePresenceChangeHandler(PresenceChangeHandler handler) {
-		eventBus.remove(PresenceChangeEvent.TYPE, handler);
+		config.getEventBus().remove(PresenceChangeEvent.TYPE, handler);
 	}
 }

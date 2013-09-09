@@ -22,10 +22,12 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
 import java.util.UUID;
 
 import tigase.component.PacketWriter;
+import tigase.component.eventbus.Event;
+import tigase.component.eventbus.EventHandler;
+import tigase.component.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Form;
@@ -37,6 +39,7 @@ import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.NodeCreateModule.NodeCreateHandler.NodeCreateEvent;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.server.Packet;
@@ -51,10 +54,35 @@ import tigase.xmpp.BareJID;
  * 
  */
 public class NodeCreateModule extends AbstractConfigCreateNode {
+	public interface NodeCreateHandler extends EventHandler {
+
+		public static class NodeCreateEvent extends Event<NodeCreateHandler> {
+
+			public static final EventType<NodeCreateHandler> TYPE = new EventType<NodeCreateHandler>();
+
+			private final String nodeName;
+
+			private final Packet packet;
+
+			public NodeCreateEvent(Packet packet, String nodeName) {
+				super(TYPE);
+				this.packet = packet;
+				this.nodeName = nodeName;
+			}
+
+			@Override
+			protected void dispatch(NodeCreateHandler handler) {
+				handler.onNodeCreated(packet, nodeName);
+			}
+
+		}
+
+		void onNodeCreated(Packet packet, final String nodeName);
+	}
+
 	private static final Criteria CRIT_CREATE = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("create"));
 
-	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
 	private final PublishItemModule publishModule;
 
 	/**
@@ -78,20 +106,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	 * 
 	 * @param listener
 	 */
-	public void addNodeConfigListener(NodeConfigListener listener) {
-		this.nodeConfigListeners.add(listener);
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param nodeName
-	 */
-	protected void fireOnNodeCreatedConfigChange(final String nodeName) {
-		for (NodeConfigListener listener : this.nodeConfigListeners) {
-			listener.onNodeCreated(nodeName);
-		}
+	public void addNodeCreateHandler(NodeCreateHandler handler) {
+		getEventBus().addHandler(NodeCreateEvent.TYPE, handler);
 	}
 
 	/**
@@ -216,7 +232,9 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				colNodeConfig.addChildren(nodeName);
 				getRepository().update(toJid, collection, colNodeConfig);
 			}
-			fireOnNodeCreatedConfigChange(nodeName);
+
+			NodeCreateEvent event = new NodeCreateEvent(packet, nodeName);
+			getEventBus().fire(event);
 
 			Packet result = packet.okResult((Element) null, 0);
 
@@ -256,9 +274,9 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	 * Method description
 	 * 
 	 * 
-	 * @param listener
+	 * @param handler
 	 */
-	public void removeNodeConfigListener(NodeConfigListener listener) {
-		this.nodeConfigListeners.remove(listener);
+	public void removeNodeCreateHandler(NodeCreateHandler handler) {
+		getEventBus().remove(handler);
 	}
 }

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import tigase.component.PacketWriter;
+import tigase.component.eventbus.EventBus;
 import tigase.component.modules.Module;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -239,6 +240,10 @@ public abstract class AbstractPubSubModule implements Module {
 	public AbstractPubSubModule(final PubSubConfig config, PacketWriter packetWriter) {
 		this.config = config;
 		this.packetWriter = packetWriter;
+	}
+
+	protected EventBus getEventBus() {
+		return config.getEventBus();
 	}
 
 	protected IPubSubRepository getRepository() {

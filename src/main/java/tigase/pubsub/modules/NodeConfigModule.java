@@ -22,12 +22,14 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 import tigase.component.PacketWriter;
+import tigase.component.eventbus.Event;
+import tigase.component.eventbus.EventHandler;
+import tigase.component.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Field;
@@ -39,6 +41,7 @@ import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.NodeConfigModule.NodeConfigurationChangedHandler.NodeConfigurationChangedEvent;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -55,6 +58,32 @@ import tigase.xmpp.StanzaType;
  * 
  */
 public class NodeConfigModule extends AbstractConfigCreateNode {
+	public interface NodeConfigurationChangedHandler extends EventHandler {
+
+		public static class NodeConfigurationChangedEvent extends Event<NodeConfigurationChangedHandler> {
+
+			public static final EventType<NodeConfigurationChangedHandler> TYPE = new EventType<NodeConfigurationChangedHandler>();
+
+			private final String nodeName;
+
+			private final Packet packet;
+
+			public NodeConfigurationChangedEvent(Packet packet, String nodeName) {
+				super(TYPE);
+				this.packet = packet;
+				this.nodeName = nodeName;
+			}
+
+			@Override
+			protected void dispatch(NodeConfigurationChangedHandler handler) {
+				handler.onConfigurationChanged(packet, nodeName);
+			}
+
+		}
+
+		void onConfigurationChanged(Packet packet, final String nodeName);
+	}
+
 	private static final Criteria CRIT_CONFIG = ElementCriteria.name("iq").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(ElementCriteria.name("configure"));
 
@@ -108,8 +137,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		}
 	}
 
-	private final ArrayList<NodeConfigListener> nodeConfigListeners = new ArrayList<NodeConfigListener>();
-
 	private final PublishItemModule publishModule;
 
 	/**
@@ -133,8 +160,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	 * 
 	 * @param listener
 	 */
-	public void addNodeConfigListener(NodeConfigListener listener) {
-		this.nodeConfigListeners.add(listener);
+	public void addNodeConfigurationChangedHandler(NodeConfigurationChangedHandler handler) {
+		getEventBus().addHandler(NodeConfigurationChangedEvent.TYPE, handler);
 	}
 
 	private Element createAssociateNotification(final String collectionNodeName, String associatedNodeName) {
@@ -151,18 +178,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 		colE.addChild(new Element("disassociate", new String[] { "node" }, new String[] { disassociatedNodeName }));
 
 		return colE;
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param nodeName
-	 */
-	protected void fireOnNodeConfigChange(final String nodeName) {
-		for (NodeConfigListener listener : this.nodeConfigListeners) {
-			listener.onNodeConfigChanged(nodeName);
-		}
 	}
 
 	/**
@@ -369,6 +384,10 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 					}
 				}
 				getRepository().update(toJid, nodeName, nodeConfig);
+
+				NodeConfigurationChangedEvent event = new NodeConfigurationChangedEvent(packet, nodeName);
+				getEventBus().fire(event);
+
 				if (nodeConfig.isNotify_config()) {
 					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
 
@@ -395,7 +414,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	 * 
 	 * @param listener
 	 */
-	public void removeNodeConfigListener(NodeConfigListener listener) {
-		this.nodeConfigListeners.remove(listener);
+	public void removeNodeConfigurationChangedHandler(NodeConfigurationChangedHandler handler) {
+		getEventBus().remove(handler);
 	}
 }
