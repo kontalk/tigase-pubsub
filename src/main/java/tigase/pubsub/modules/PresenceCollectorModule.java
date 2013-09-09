@@ -42,7 +42,6 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.PresenceCollectorModule.BuddyVisibilityHandler.BuddyVisibilityEvent;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler.PresenceChangeEvent;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.server.Presence;
 import tigase.xml.Element;
@@ -111,9 +110,8 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 	private final Map<BareJID, Set<String>> resources = new HashMap<BareJID, Set<String>>();
 
-	public PresenceCollectorModule(PubSubConfig config, EventBus eventBus, IPubSubRepository pubsubRepository,
-			PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public PresenceCollectorModule(PubSubConfig config, EventBus eventBus, PacketWriter packetWriter) {
+		super(config, packetWriter);
 		this.eventBus = eventBus;
 	}
 

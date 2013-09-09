@@ -29,7 +29,6 @@ import tigase.criteria.Or;
 import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 
@@ -44,8 +43,8 @@ public class XmppPingModule extends AbstractPubSubModule {
 			new Or(ElementCriteria.name("ping", "http://www.xmpp.org/extensions/xep-0199.html#ns"), ElementCriteria.name(
 					"ping", "urn:xmpp:ping")));
 
-	public XmppPingModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public XmppPingModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**

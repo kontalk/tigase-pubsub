@@ -51,7 +51,6 @@ import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -103,9 +102,9 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 * @param xsltTool
 	 * @param presenceCollector
 	 */
-	public PublishItemModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
-			XsltTool xsltTool, PresenceCollectorModule presenceCollector) {
-		super(config, pubsubRepository, packetWriter);
+	public PublishItemModule(PubSubConfig config, PacketWriter packetWriter, XsltTool xsltTool,
+			PresenceCollectorModule presenceCollector) {
+		super(config, packetWriter);
 		this.xslTransformer = xsltTool;
 		this.presenceCollector = presenceCollector;
 		for (String xmlns : SUPPORTED_PEP_XMLNS) {
@@ -159,13 +158,13 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 */
 	protected List<String> getParents(final BareJID serviceJid, final String nodeName) throws RepositoryException {
 		ArrayList<String> result = new ArrayList<String>();
-		AbstractNodeConfig nodeConfig = repository.getNodeConfig(serviceJid, nodeName);
+		AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(serviceJid, nodeName);
 		String cn = nodeConfig.getCollection();
 
 		while ((cn != null) && !"".equals(cn)) {
 			result.add(cn);
 
-			AbstractNodeConfig nc = repository.getNodeConfig(serviceJid, cn);
+			AbstractNodeConfig nc = getRepository().getNodeConfig(serviceJid, cn);
 
 			cn = nc.getCollection();
 		}
@@ -186,11 +185,11 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 */
 	protected JID[] getValidBuddies(BareJID id) throws RepositoryException {
 		ArrayList<JID> result = new ArrayList<JID>();
-		BareJID[] rosterJids = this.repository.getUserRoster(id);
+		BareJID[] rosterJids = this.getRepository().getUserRoster(id);
 
 		if (rosterJids != null) {
 			for (BareJID j : rosterJids) {
-				String sub = this.repository.getBuddySubscription(id, j);
+				String sub = this.getRepository().getBuddySubscription(id, j);
 
 				if ((sub != null) && (sub.equals("both") || sub.equals("from"))) {
 					result.add(JID.jidInstance(j));
@@ -313,7 +312,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 			}
 		}
 		if (updateSubscriptions) {
-			this.repository.update(jidFrom.getBareJID(), nodeConfig.getNodeName(), nodesSubscriptions);
+			this.getRepository().update(jidFrom.getBareJID(), nodeConfig.getNodeName(), nodesSubscriptions);
 		}
 
 		JID[] subscribers = tmp.toArray(new JID[] {});
@@ -412,7 +411,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 				return;
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
@@ -423,9 +422,9 @@ public class PublishItemModule extends AbstractPubSubModule {
 				}
 			}
 
-			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			final UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().getBareJID());
-			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+			final ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
 
 			// XXX #125
 			final PublisherModel publisherModel = nodeConfig.getPublisherModel();
@@ -472,7 +471,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			items.addChildren(itemsToSend);
 			result.addAll(prepareNotification(items, packet.getStanzaTo(), nodeName,
-					this.repository.getNodeConfig(toJid, nodeName), nodeAffiliations, nodeSubscriptions));
+					this.getRepository().getNodeConfig(toJid, nodeName), nodeAffiliations, nodeSubscriptions));
 
 			List<String> parents = getParents(toJid, nodeName);
 
@@ -482,16 +481,16 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 					headers.put("Collection", collection);
 
-					AbstractNodeConfig colNodeConfig = this.repository.getNodeConfig(toJid, collection);
-					ISubscriptions colNodeSubscriptions = this.repository.getNodeSubscriptions(toJid, collection);
-					IAffiliations colNodeAffiliations = this.repository.getNodeAffiliations(toJid, collection);
+					AbstractNodeConfig colNodeConfig = this.getRepository().getNodeConfig(toJid, collection);
+					ISubscriptions colNodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, collection);
+					IAffiliations colNodeAffiliations = this.getRepository().getNodeAffiliations(toJid, collection);
 
 					result.addAll(prepareNotification(items, packet.getStanzaTo(), nodeName, headers, colNodeConfig,
 							colNodeAffiliations, colNodeSubscriptions));
 				}
 			}
 			if (leafNodeConfig.isPersistItem()) {
-				IItems nodeItems = repository.getNodeItems(toJid, nodeName);
+				IItems nodeItems = getRepository().getNodeItems(toJid, nodeName);
 
 				for (Element item : itemsToSend) {
 					final String id = item.getAttributeStaticStr("id");

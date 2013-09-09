@@ -30,7 +30,6 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
 import tigase.xml.Element;
@@ -52,8 +51,8 @@ public class RetrieveAffiliationsModule extends AbstractPubSubModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public RetrieveAffiliationsModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**
@@ -106,7 +105,7 @@ public class RetrieveAffiliationsModule extends AbstractPubSubModule {
 
 			pubsubResult.addChild(affiliationsResult);
 
-			IPubSubDAO directRepo = this.repository.getPubSubDAO();
+			IPubSubDAO directRepo = this.getRepository().getPubSubDAO();
 			String[] nodes = directRepo.getNodesList(serviceJid);
 
 			if (nodes != null) {

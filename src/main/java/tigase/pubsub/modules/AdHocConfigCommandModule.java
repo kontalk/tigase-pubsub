@@ -34,7 +34,6 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.JID;
@@ -49,9 +48,9 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 	private final AdHocCommandManager commandsManager = new AdHocCommandManager();
 	private AdHocScriptCommandManager scriptCommandManager;
 
-	public AdHocConfigCommandModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
+	public AdHocConfigCommandModule(PubSubConfig config, PacketWriter packetWriter,
 			AdHocScriptCommandManager scriptCommandManager) {
-		super(config, pubsubRepository, packetWriter);
+		super(config, packetWriter);
 		this.scriptCommandManager = scriptCommandManager;
 	}
 

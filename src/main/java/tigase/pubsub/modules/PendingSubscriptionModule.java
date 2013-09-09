@@ -39,7 +39,6 @@ import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -68,8 +67,8 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public PendingSubscriptionModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public PendingSubscriptionModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**
@@ -119,14 +118,14 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 				return;
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, node);
+			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, node);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			final ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, node);
-			final IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, node);
+			final ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, node);
+			final IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, node);
 			JID jid = message.getStanzaFrom();
 
 			if (!this.config.isAdmin(jid)) {
@@ -161,10 +160,10 @@ public class PendingSubscriptionModule extends AbstractPubSubModule {
 				nodeSubscriptions.changeSubscription(subscriberJid, subscription);
 			}
 			if (nodeSubscriptions.isChanged()) {
-				this.repository.update(toJid, node, nodeSubscriptions);
+				this.getRepository().update(toJid, node, nodeSubscriptions);
 			}
 			if (nodeAffiliations.isChanged()) {
-				this.repository.update(toJid, node, nodeAffiliations);
+				this.getRepository().update(toJid, node, nodeAffiliations);
 			}
 
 			Packet msg = Message.getMessage(message.getStanzaTo(), JID.jidInstance(subscriberJid), null, null, null, null,

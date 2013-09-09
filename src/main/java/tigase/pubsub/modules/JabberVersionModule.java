@@ -29,7 +29,6 @@ import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.PubSubVersion;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 
@@ -43,8 +42,8 @@ public class JabberVersionModule extends AbstractPubSubModule {
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("query", "jabber:iq:version"));
 
-	public JabberVersionModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public JabberVersionModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**

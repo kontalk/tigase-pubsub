@@ -38,7 +38,6 @@ import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
@@ -65,9 +64,8 @@ public class RetractItemModule extends AbstractPubSubModule {
 	 * @param pubsubRepository
 	 * @param publishItemModule
 	 */
-	public RetractItemModule(final PubSubConfig config, final IPubSubRepository pubsubRepository, PacketWriter packetWriter,
-			final PublishItemModule publishItemModule) {
-		super(config, pubsubRepository, packetWriter);
+	public RetractItemModule(final PubSubConfig config, PacketWriter packetWriter, final PublishItemModule publishItemModule) {
+		super(config, packetWriter);
 		this.publishModule = publishItemModule;
 	}
 
@@ -124,7 +122,7 @@ public class RetractItemModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
 
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
@@ -133,7 +131,7 @@ public class RetractItemModule extends AbstractPubSubModule {
 						"retract-items"));
 			}
 
-			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().getBareJID());
 
 			if (!affiliation.getAffiliation().isDeleteItem()) {
@@ -167,8 +165,8 @@ public class RetractItemModule extends AbstractPubSubModule {
 
 			result.add(packet.okResult((Element) null, 0));
 
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
-			IItems nodeItems = this.repository.getNodeItems(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
+			IItems nodeItems = this.getRepository().getNodeItems(toJid, nodeName);
 
 			for (String id : itemsToDelete) {
 				Date date = nodeItems.getItemCreationDate(id);

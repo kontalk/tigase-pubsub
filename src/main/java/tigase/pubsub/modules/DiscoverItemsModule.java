@@ -34,7 +34,6 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -59,9 +58,8 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 	 * @param pubsubRepository
 	 * @param adCommandModule
 	 */
-	public DiscoverItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
-			AdHocConfigCommandModule adCommandModule) {
-		super(config, pubsubRepository, packetWriter);
+	public DiscoverItemsModule(PubSubConfig config, PacketWriter packetWriter, AdHocConfigCommandModule adCommandModule) {
+		super(config, packetWriter);
 		this.adHocCommandsModule = adCommandModule;
 	}
 
@@ -120,7 +118,7 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 			} else {
 				log.finest("Asking about Items of node " + nodeName);
 
-				AbstractNodeConfig nodeConfig = (nodeName == null) ? null : repository.getNodeConfig(toJid.getBareJID(),
+				AbstractNodeConfig nodeConfig = (nodeName == null) ? null : getRepository().getNodeConfig(toJid.getBareJID(),
 						nodeName);
 				String[] nodes;
 
@@ -129,7 +127,7 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 
 					if (nodeName == null) {
 						parentName = "";
-						nodes = repository.getRootCollection(toJid.getBareJID());
+						nodes = getRepository().getRootCollection(toJid.getBareJID());
 					} else {
 						parentName = nodeName;
 						nodes = nodeConfig.getChildren();
@@ -138,7 +136,7 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 					// = this.repository.getNodesList();
 					if (nodes != null) {
 						for (String node : nodes) {
-							AbstractNodeConfig childNodeConfig = this.repository.getNodeConfig(toJid.getBareJID(), node);
+							AbstractNodeConfig childNodeConfig = this.getRepository().getNodeConfig(toJid.getBareJID(), node);
 
 							if (childNodeConfig != null) {
 								boolean allowed = ((senderJid == null) || (childNodeConfig == null)) ? true
@@ -171,7 +169,7 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 					}
 					resultQuery.addAttribute("node", nodeName);
 
-					IItems items = repository.getNodeItems(toJid.getBareJID(), nodeName);
+					IItems items = getRepository().getNodeItems(toJid.getBareJID(), nodeName);
 					String[] itemsId = items.getItemsIds();
 
 					if (itemsId != null) {

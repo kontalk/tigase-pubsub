@@ -27,6 +27,7 @@ import java.util.Map;
 
 import tigase.component.AbstractComponent;
 import tigase.component.ComponentConfig;
+import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
@@ -40,6 +41,8 @@ import tigase.xmpp.JID;
 public class PubSubConfig extends ComponentConfig {
 
 	private String[] admins;
+
+	private CachedPubSubRepository pubSubRepository;
 
 	private BareJID serviceBareJID = BareJID.bareJIDInstanceNS("tigase-pubsub");
 
@@ -61,6 +64,10 @@ public class PubSubConfig extends ComponentConfig {
 	public Map<String, Object> getDefaults(Map<String, Object> params) {
 		final HashMap<String, Object> props = new HashMap<String, Object>();
 		return props;
+	}
+
+	public CachedPubSubRepository getPubSubRepository() {
+		return pubSubRepository;
 	}
 
 	/**
@@ -113,5 +120,9 @@ public class PubSubConfig extends ComponentConfig {
 	public void setProperties(Map<String, Object> props) {
 		// TODO Auto-generated method stub
 
+	}
+
+	void setPubSubRepository(CachedPubSubRepository pubSubRepository) {
+		this.pubSubRepository = pubSubRepository;
 	}
 }

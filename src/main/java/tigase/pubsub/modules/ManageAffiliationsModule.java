@@ -34,7 +34,6 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Message;
@@ -76,8 +75,8 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public ManageAffiliationsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public ManageAffiliationsModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**
@@ -128,13 +127,13 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
 
-			final AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(toJid, nodeName);
+			final AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(Authorization.ITEM_NOT_FOUND);
 			}
 
-			final IAffiliations nodeAffiliations = this.repository.getNodeAffiliations(toJid, nodeName);
+			final IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			JID senderJid = packet.getStanzaFrom();
 
 			if (!this.config.isAdmin(senderJid)) {
@@ -150,7 +149,7 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 				processSet(packet, affiliations, nodeName, nodeConfig, nodeAffiliations, packetWriter);
 			}
 			if (nodeAffiliations.isChanged()) {
-				repository.update(toJid, nodeName, nodeAffiliations);
+				getRepository().update(toJid, nodeName, nodeAffiliations);
 			}
 
 		} catch (PubSubException e1) {

@@ -33,7 +33,6 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
@@ -58,8 +57,8 @@ public class UnsubscribeNodeModule extends AbstractPubSubModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public UnsubscribeNodeModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public UnsubscribeNodeModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**
@@ -105,13 +104,13 @@ public class UnsubscribeNodeModule extends AbstractPubSubModule {
 		final String subid = unsubscribe.getAttributeStaticStr("subid");
 
 		try {
-			AbstractNodeConfig nodeConfig = repository.getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			}
 
-			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(jid);
 
@@ -125,7 +124,7 @@ public class UnsubscribeNodeModule extends AbstractPubSubModule {
 				}
 			}
 
-			ISubscriptions nodeSubscriptions = this.repository.getNodeSubscriptions(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, nodeName);
 
 			if (subid != null) {
 				String s = nodeSubscriptions.getSubscriptionId(jid);
@@ -142,7 +141,7 @@ public class UnsubscribeNodeModule extends AbstractPubSubModule {
 			}
 			nodeSubscriptions.changeSubscription(jid, Subscription.none);
 			if (nodeSubscriptions.isChanged()) {
-				this.repository.update(toJid, nodeName, nodeSubscriptions);
+				this.getRepository().update(toJid, nodeName, nodeSubscriptions);
 			}
 
 			packetWriter.write(packet.okResult((Element) null, 0));

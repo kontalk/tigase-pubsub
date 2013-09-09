@@ -37,7 +37,6 @@ import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
@@ -64,9 +63,8 @@ public class PurgeItemsModule extends AbstractPubSubModule {
 	 * @param pubsubRepository
 	 * @param publishModule
 	 */
-	public PurgeItemsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter,
-			PublishItemModule publishModule) {
-		super(config, pubsubRepository, packetWriter);
+	public PurgeItemsModule(PubSubConfig config, PacketWriter packetWriter, PublishItemModule publishModule) {
+		super(config, packetWriter);
 		this.publishModule = publishModule;
 	}
 
@@ -113,7 +111,7 @@ public class PurgeItemsModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
 
-			AbstractNodeConfig nodeConfig = this.repository.getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = this.getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
@@ -122,7 +120,7 @@ public class PurgeItemsModule extends AbstractPubSubModule {
 						"purge-nodes"));
 			}
 
-			IAffiliations nodeAffiliations = repository.getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			UsersAffiliation affiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().getBareJID());
 
 			if (!affiliation.getAffiliation().isPurgeNode()) {
@@ -140,9 +138,9 @@ public class PurgeItemsModule extends AbstractPubSubModule {
 
 			result.add(packet.okResult((Element) null, 0));
 
-			final IItems nodeItems = this.repository.getNodeItems(toJid, nodeName);
+			final IItems nodeItems = this.getRepository().getNodeItems(toJid, nodeName);
 			String[] itemsToDelete = nodeItems.getItemsIds();
-			ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
 
 			result.addAll(publishModule.prepareNotification(new Element("purge", new String[] { "node" },
 					new String[] { nodeName }), packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));

@@ -25,15 +25,13 @@ import tigase.component.PacketWriter;
 import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.repository.IPubSubRepository;
 
 public abstract class AbstractConfigCreateNode extends AbstractPubSubModule {
 
 	protected final LeafNodeConfig defaultNodeConfig;
 
-	public AbstractConfigCreateNode(final PubSubConfig config, final IPubSubRepository pubsubRepository,
-			final LeafNodeConfig defaultNodeConfig, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public AbstractConfigCreateNode(final PubSubConfig config, final LeafNodeConfig defaultNodeConfig, PacketWriter packetWriter) {
+		super(config, packetWriter);
 		this.defaultNodeConfig = defaultNodeConfig;
 	}
 

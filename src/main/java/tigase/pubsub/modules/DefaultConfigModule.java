@@ -29,7 +29,6 @@ import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -41,9 +40,8 @@ public class DefaultConfigModule extends AbstractPubSubModule {
 
 	private final LeafNodeConfig defaultNodeConfig;
 
-	public DefaultConfigModule(PubSubConfig config, IPubSubRepository pubsubRepository, LeafNodeConfig nodeConfig,
-			PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public DefaultConfigModule(PubSubConfig config, LeafNodeConfig nodeConfig, PacketWriter packetWriter) {
+		super(config, packetWriter);
 		this.defaultNodeConfig = nodeConfig;
 	}
 

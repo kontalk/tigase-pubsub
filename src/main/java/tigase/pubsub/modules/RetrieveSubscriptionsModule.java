@@ -30,7 +30,6 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
-import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.server.Packet;
@@ -55,8 +54,8 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 	 * @param config
 	 * @param pubsubRepository
 	 */
-	public RetrieveSubscriptionsModule(PubSubConfig config, IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
-		super(config, pubsubRepository, packetWriter);
+	public RetrieveSubscriptionsModule(PubSubConfig config, PacketWriter packetWriter) {
+		super(config, packetWriter);
 	}
 
 	/**
@@ -108,7 +107,7 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 
 			pubsubResult.addChild(subscriptionsResult);
 			if (nodeName == null) {
-				IPubSubDAO directRepo = this.repository.getPubSubDAO();
+				IPubSubDAO directRepo = this.getRepository().getPubSubDAO();
 				String[] nodes = directRepo.getNodesList(serviceJid);
 
 				if (nodes != null) {
@@ -130,7 +129,7 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 					}
 				}
 			} else {
-				ISubscriptions nodeSubscriptions = repository.getNodeSubscriptions(serviceJid, nodeName);
+				ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(serviceJid, nodeName);
 
 				subscriptionsResult.addAttribute("node", nodeName);
 

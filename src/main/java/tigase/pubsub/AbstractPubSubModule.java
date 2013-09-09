@@ -227,9 +227,6 @@ public abstract class AbstractPubSubModule implements Module {
 
 	protected final PacketWriter packetWriter;
 
-	/** Field description */
-	protected final IPubSubRepository repository;
-
 	/**
 	 * Constructs ...
 	 * 
@@ -239,10 +236,13 @@ public abstract class AbstractPubSubModule implements Module {
 	 * @param packetWriter
 	 *            TODO
 	 */
-	public AbstractPubSubModule(final PubSubConfig config, final IPubSubRepository pubsubRepository, PacketWriter packetWriter) {
+	public AbstractPubSubModule(final PubSubConfig config, PacketWriter packetWriter) {
 		this.config = config;
-		this.repository = pubsubRepository;
 		this.packetWriter = packetWriter;
+	}
+
+	protected IPubSubRepository getRepository() {
+		return config.getPubSubRepository();
 	}
 
 	/**
@@ -271,11 +271,11 @@ public abstract class AbstractPubSubModule implements Module {
 				return true;
 			}
 
-			BareJID[] buddies = this.repository.getUserRoster(owner.getJid());
+			BareJID[] buddies = getRepository().getUserRoster(owner.getJid());
 
 			for (BareJID buddy : buddies) {
 				if (bareJid.equals(buddy)) {
-					String s = this.repository.getBuddySubscription(owner.getJid(), bareJid);
+					String s = getRepository().getBuddySubscription(owner.getJid(), bareJid);
 
 					if ((s != null) && ("from".equals(s) || "both".equals(s))) {
 						return true;
@@ -318,11 +318,11 @@ public abstract class AbstractPubSubModule implements Module {
 				return true;
 			}
 
-			BareJID[] buddies = this.repository.getUserRoster(owner.getJid());
+			BareJID[] buddies = getRepository().getUserRoster(owner.getJid());
 
 			for (BareJID buddy : buddies) {
 				if (bareJid.equals(buddy)) {
-					String[] groups = this.repository.getBuddyGroups(owner.getJid(), bareJid);
+					String[] groups = getRepository().getBuddyGroups(owner.getJid(), bareJid);
 
 					for (String group : groups) {
 						if (Utils.contain(group, groupsAllowed)) {
