@@ -125,5 +125,4 @@ public class PubSubConfig extends ComponentConfig {
 	void setPubSubRepository(CachedPubSubRepository pubSubRepository) {
 		this.pubSubRepository = pubSubRepository;
 	}
-
 }
