@@ -22,6 +22,8 @@
 package tigase.pubsub.repository;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,70 +40,78 @@ public class PubSubDAOPool extends PubSubDAO {
 
 	private static final Logger log = Logger.getLogger(PubSubDAOPool.class.getName());
 
-	private LinkedBlockingQueue<PubSubDAO> daoPool = new LinkedBlockingQueue<PubSubDAO>();
+	private final Map<BareJID, LinkedBlockingQueue<PubSubDAO>> pools = new HashMap<BareJID, LinkedBlockingQueue<PubSubDAO>>();
+
+	// private LinkedBlockingQueue<PubSubDAO> daoPool = new
+	// LinkedBlockingQueue<PubSubDAO>();
 
 	public PubSubDAOPool(UserRepository userRepository, PubSubConfig config) {
 		super(userRepository, config);
 	}
 
-	public void addDao(PubSubDAO dao) {
-		daoPool.offer(dao);
+	public void addDao(BareJID domain, PubSubDAO dao) {
+		LinkedBlockingQueue<PubSubDAO> ee = pools.get(domain);
+		if (ee == null) {
+			ee = new LinkedBlockingQueue<PubSubDAO>();
+			pools.put(domain, ee);
+		}
+		ee.offer(dao);
 	}
 
 	@Override
 	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.addToRootCollection(serviceJid, nodeName);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void deleteItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.deleteItem(serviceJid, nodeName, id);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.deleteNode(serviceJid, nodeName);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
@@ -111,120 +121,137 @@ public class PubSubDAOPool extends PubSubDAO {
 
 	@Override
 	public Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getItem(serviceJid, nodeName, id);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
 	@Override
 	public Date getItemCreationDate(BareJID serviceJid, final String nodeName, final String id) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getItemCreationDate(serviceJid, nodeName, id);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
 	@Override
 	public String[] getItemsIds(BareJID serviceJid, String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getItemsIds(serviceJid, nodeName);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
 	@Override
 	public Date getItemUpdateDate(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getItemUpdateDate(serviceJid, nodeName, id);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
 	@Override
 	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getNodeAffiliations(serviceJid, nodeName);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
 	@Override
 	public String[] getNodesList(BareJID serviceJid) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getNodesList(serviceJid);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
 	@Override
 	public NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getNodeSubscriptions(serviceJid, nodeName);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
+	protected String getPoolDetails(BareJID serviceJid) {
+		String result = "";
+
+		LinkedBlockingQueue<PubSubDAO> ee;
+		if (pools.containsKey(serviceJid)) {
+			result += serviceJid + " pool ";
+			ee = this.pools.get(serviceJid);
+		} else {
+			result += "default pool ";
+			ee = this.pools.get(null);
+		}
+
+		result += "has " + ee.size() + " element(s).";
+
+		return result;
+	}
+
 	@Override
 	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.getRootNodes(serviceJid);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
@@ -233,66 +260,74 @@ public class PubSubDAOPool extends PubSubDAO {
 	public void init() throws RepositoryException {
 	}
 
+	protected void offerDao(BareJID serviceJid, PubSubDAO dao) {
+		LinkedBlockingQueue<PubSubDAO> ee = this.pools.containsKey(serviceJid) ? this.pools.get(serviceJid)
+				: this.pools.get(null);
+		ee.offer(dao);
+	}
+
 	@Override
 	protected String readNodeConfigFormData(BareJID serviceJid, final String nodeName) throws TigaseDBException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				return dao.readNodeConfigFormData(serviceJid, nodeName);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
 	}
 
 	@Override
 	public void removeAllFromRootCollection(BareJID serviceJid) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.removeAllFromRootCollection(serviceJid);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.removeFromRootCollection(serviceJid, nodeName);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void removeSubscriptions(BareJID serviceJid, String nodeName, int changedIndex) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.removeSubscriptions(serviceJid, nodeName, changedIndex);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
-	public PubSubDAO takeDao() {
+	public PubSubDAO takeDao(BareJID serviceJid) {
 		try {
-			return daoPool.take();
+			LinkedBlockingQueue<PubSubDAO> ee = this.pools.containsKey(serviceJid) ? this.pools.get(serviceJid)
+					: this.pools.get(null);
+			return ee.take();
 		} catch (InterruptedException ex) {
 			log.log(Level.WARNING, "Couldn't obtain PubSub DAO from the pool", ex);
 		}
@@ -301,60 +336,60 @@ public class PubSubDAOPool extends PubSubDAO {
 
 	@Override
 	public void updateAffiliations(BareJID serviceJid, String nodeName, String serializedData) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.updateAffiliations(serviceJid, nodeName, serializedData);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void updateNodeConfig(final BareJID serviceJid, final String nodeName, final String serializedData)
 			throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.updateNodeConfig(serviceJid, nodeName, serializedData);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData)
 			throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.updateSubscriptions(serviceJid, nodeName, changedIndex, serializedData);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 
 	@Override
 	public void writeItem(final BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
 			final String publisher, final Element item) throws RepositoryException {
-		PubSubDAO dao = takeDao();
+		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
 				dao.writeItem(serviceJid, nodeName, timeInMilis, id, publisher, item);
 			} finally {
-				addDao(dao);
+				offerDao(serviceJid, dao);
 			}
 		} else {
-			log.warning("dao is NULL, pool empty? - " + daoPool.size());
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 	}
 

@@ -24,10 +24,14 @@ package tigase.pubsub;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.script.Bindings;
 
@@ -35,7 +39,6 @@ import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component.AbstractComponent;
 import tigase.component.PacketWriter;
 import tigase.conf.Configurable;
-import tigase.db.DataRepository;
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
@@ -77,6 +80,7 @@ import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
 import tigase.xml.Element;
+import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
 /**
@@ -120,11 +124,12 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
+	private static final Pattern PARAMETRIZED_PROPERTY_PATTERN = Pattern.compile("(.+)\\[(.*)\\]|(.+)");
+
 	/**
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
-
 	/**
 	 * Field description
 	 */
@@ -133,21 +138,40 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+
+	public static Map<String, Object> getProperties(String key, Map<String, Object> props) {
+		Map<String, Object> result = new HashMap<String, Object>();
+
+		for (Entry<String, Object> entry : props.entrySet()) {
+			Matcher matcher = PARAMETRIZED_PROPERTY_PATTERN.matcher(entry.getKey());
+			if (matcher.find()) {
+				String keyBaseName = matcher.group(1) != null ? matcher.group(1) : matcher.group(3);
+				String keyMod = matcher.group(2);
+
+				if (keyBaseName.equals(key))
+					result.put(keyMod, entry.getValue());
+			}
+		}
+		return result;
+	}
+
 	private AdHocConfigCommandModule adHocCommandsModule;
 	protected LeafNodeConfig defaultNodeConfig;
 	private PubSubDAO directPubSubRepository;
 	private Integer maxRepositoryCacheSize;
 	private PendingSubscriptionModule pendingSubscriptionModule;
 	private PresenceCollectorModule presenceCollectorModule;
+
 	private PublishItemModule publishNodeModule;
+
 	protected CachedPubSubRepository pubsubRepository;
+
+	// ~--- constructors
+	// ---------------------------------------------------------
 
 	private AdHocScriptCommandManager scriptCommandManager;
 
 	protected UserRepository userRepository;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	private XsltTool xslTransformer;
 
@@ -165,6 +189,100 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		return result;
 	}
 
+	// ~--- set methods
+	// ----------------------------------------------------------
+
+	protected PubSubDAO createDAO(Map<String, Object> props) {
+		final Map<String, Object> classNames = getProperties(PUBSUB_REPO_CLASS_PROP_KEY, props);
+		final Map<String, Object> resUris = getProperties(PUBSUB_REPO_URL_PROP_KEY, props);
+		final Map<String, Object> poolSizes = getProperties(PUBSUB_REPO_POOL_SIZE_PROP_KEY, props);
+
+		final String default_cls_name = (String) classNames.get(null);
+
+		if (resUris.size() > 1) {
+			PubSubDAOPool master_dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
+			for (Entry<String, Object> e : resUris.entrySet()) {
+				String domain = e.getKey();
+				String resUri = (String) e.getValue();
+				String className = classNames.containsKey(domain) ? (String) classNames.get(domain) : default_cls_name;
+
+				int dao_pool_size;
+				try {
+					dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain) ? poolSizes.get(domain)
+							: poolSizes.get(null)));
+				} catch (Exception ex) {
+					dao_pool_size = 1;
+				}
+
+				if (log.isLoggable(Level.FINER)) {
+					log.finer("Creating DAO for domain=" + domain + "; class=" + className + "; uri=" + resUri + "; poolSize="
+							+ dao_pool_size);
+				}
+
+				PubSubDAO dao;
+				if (dao_pool_size > 1) {
+					PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
+
+					for (int i = 0; i < dao_pool_size; i++) {
+						if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+							dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig, resUri));
+						} else {
+							dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
+						}
+					}
+					dao = dao_pool;
+				} else {
+					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+						dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
+					} else {
+						dao = new PubSubDAO(userRepository, this.componentConfig);
+					}
+				}
+
+				if (log.isLoggable(Level.CONFIG))
+					log.config("Register DAO for " + (domain == null ? "default " : "") + "domain "
+							+ (domain == null ? "" : domain));
+
+				master_dao_pool.addDao(BareJID.bareJIDInstanceNS(domain), dao);
+			}
+			return master_dao_pool;
+		} else {
+			String domain = null;
+			String resUri = (String) resUris.get(null);
+			String className = default_cls_name;
+
+			int dao_pool_size;
+			try {
+				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain) ? poolSizes.get(domain)
+						: poolSizes.get(null)));
+			} catch (Exception ex) {
+				dao_pool_size = 1;
+			}
+
+			PubSubDAO dao;
+			if (dao_pool_size > 1) {
+				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
+
+				for (int i = 0; i < dao_pool_size; i++) {
+					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+						dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig, resUri));
+					} else {
+						dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
+					}
+				}
+				dao = dao_pool;
+			} else {
+				if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+					dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
+				} else {
+					dao = new PubSubDAO(userRepository, this.componentConfig);
+				}
+			}
+			return dao;
+		}
+
+	}
+
 	/**
 	 * Method description
 	 * 
@@ -177,6 +295,9 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		// return new StatelessPubSubRepository(directRepository, this.config);
 		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
 	}
+
+	// ~--- methods
+	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -231,7 +352,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		return props;
 	}
 
-	// ~--- set methods
+	// ~--- get methods
 	// ----------------------------------------------------------
 
 	/**
@@ -272,9 +393,6 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 									// choose Tools | Templates.
 		binds.put(COMPONENT, this);
 	}
-
-	// ~--- methods
-	// --------------------------------------------------------------
 
 	/**
 	 * Method description
@@ -322,9 +440,6 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.componentConfig, this.directPubSubRepository,
 				this.pubsubRepository));
 	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
 
 	/**
 	 * Method description
@@ -406,43 +521,13 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
 
 			if (userRepository == null) {
-
-				// if (!res_uri.contains("autoCreateUser=true")) {
-				// res_uri += "&autoCreateUser=true";
-				// }
 				userRepository = RepositoryFactory.getUserRepository(cls_name, res_uri, null);
 				userRepository.initRepository(res_uri, null);
 				log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 			}
 
-			int dao_pool_size = 1;
+			dao = createDAO(props);
 
-			try {
-				dao_pool_size = Integer.parseInt((String) props.get(PUBSUB_REPO_POOL_SIZE_PROP_KEY));
-			} catch (Exception e) {
-				dao_pool_size = 1;
-			}
-			if (log.isLoggable(Level.FINE)) {
-				log.fine("PubSubDAO pool size: " + dao_pool_size);
-			}
-			if (dao_pool_size > 1) {
-				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
-
-				for (int i = 0; i < dao_pool_size; i++) {
-					if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-						dao_pool.addDao(new PubSubDAOJDBC(userRepository, this.componentConfig, res_uri));
-					} else {
-						dao_pool.addDao(new PubSubDAO(userRepository, this.componentConfig));
-					}
-				}
-				dao = dao_pool;
-			} else {
-				if (cls_name.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-					dao = new PubSubDAOJDBC(userRepository, this.componentConfig, res_uri);
-				} else {
-					dao = new PubSubDAO(userRepository, this.componentConfig);
-				}
-			}
 			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
