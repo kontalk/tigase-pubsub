@@ -1,16 +1,16 @@
 -- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_nodes' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_nodes] (
-		[service_jid] VARCHAR(2049) NOT NULL  /* Service JID */,
+		[service_jid] nvarchar(2049) NOT NULL  /* Service JID */,
 		[service_jid_sha1] [varbinary](40) NOT NULL  /* SHA1 hash of service_jid_sha1 */,
 		[service_jid_index] AS CAST( [service_jid] AS NVARCHAR(255)),
 		[name] TEXT NOT NULL  /* Node name (unique). */ ,
 		[name_sha1] [varbinary](40) NOT NULL  /* SHA1 hash of node_name used for uniqueness */,
 		[name_index] AS CAST( [name] AS NVARCHAR(255)),
 		[type] INT NOT NULL  /* Node type (0:collection, 1:leaf). */ ,
-		[title] VARCHAR(1000) NULL  /* A friendly name for the node. */ ,
+		[title] nvarchar(1000) NULL  /* A friendly name for the node. */ ,
 		[description] TEXT  /* A description of the node. */ ,
-		[creator] VARCHAR(2047) NULL  /* The JID of the node creator. */ ,
+		[creator] nvarchar(2047) NULL  /* The JID of the node creator. */ ,
 		[creation_date] DATETIME NULL  /* The datetime when the node was created. */ ,
 		[configuration] NTEXT NULL ,
 		[affiliations] NTEXT NULL ,
@@ -36,13 +36,13 @@ if not exists (select * from sysobjects where name='tig_pubsub_items' and xtype=
 	CREATE  TABLE [dbo].[tig_pubsub_items] (
 		[service_jid_sha1] [varbinary](40) NOT NULL,
 		[node_name_sha1] [varbinary](40) NOT NULL,
-		[id] VARCHAR(MAX) NOT NULL,
+		[id] nvarchar(MAX) NOT NULL,
 		[creation_date] DATETIME NULL,
-		[publisher] VARCHAR(2047) NULL,
+		[publisher] nvarchar(2047) NULL,
 		[update_date] DATETIME NULL,
 		[data] NTEXT NULL,
 		[id_index] AS CAST( [id] AS NVARCHAR(255)),
-		[pk_node_id_hash] AS CAST( HASHBYTES('SHA1', CONVERT( varchar(max), [service_jid_sha1],2) + CONVERT( varchar(max), [node_name_sha1],2) + [id]) AS VARBINARY(40)) PERSISTED,
+		[pk_node_id_hash] AS CAST( HASHBYTES('SHA1', CONVERT( nvarchar(max), [service_jid_sha1],2) + CONVERT( nvarchar(max), [node_name_sha1],2) + [id]) AS VARBINARY(40)) PERSISTED,
 
 		PRIMARY KEY  ( [pk_node_id_hash] ),
 
@@ -89,10 +89,10 @@ GO
 
 -- QUERY START:
 create procedure dbo.TigPubSubCreateNode
-	@_service_jid varchar(2049), 
-	@_node_name varchar(max),
+	@_service_jid nvarchar(2049), 
+	@_node_name nvarchar(max),
 	@_node_type int,
-	@_node_creator varchar(2047),
+	@_node_creator nvarchar(2047),
 	@_node_conf ntext
 AS	
 begin
@@ -112,8 +112,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubRemoveNode]
-	@_service_jid varchar(2049), 
-	@_node_name varchar(MAX)
+	@_service_jid nvarchar(2049), 
+	@_node_name nvarchar(MAX)
 AS	
 begin
   delete from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name);
@@ -133,9 +133,9 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubGetItem]
-	@_service_jid varchar(2049), 
-	@_node_name varchar(MAX),
-	@_item_id varchar(MAX)
+	@_service_jid nvarchar(2049), 
+	@_node_name nvarchar(MAX),
+	@_item_id nvarchar(MAX)
 AS	
 begin
   select data, publisher, creation_date, update_date
@@ -154,10 +154,10 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubWriteItem]
-	@_service_jid varchar(2049), 
-	@_node_name varchar(MAX),
-	@_item_id varchar(MAX),
-	@_publisher varchar(2047),
+	@_service_jid nvarchar(2049), 
+	@_node_name nvarchar(MAX),
+	@_item_id nvarchar(MAX),
+	@_publisher nvarchar(2047),
 	@_item_data ntext
 AS	
 begin
@@ -165,7 +165,7 @@ begin
 	-- Update the row if it exists.    
     UPDATE [dbo].[tig_pubsub_items] 
 		SET publisher = @_publisher, data = @_item_data, update_date = getdate()
-		WHERE [dbo].[tig_pubsub_items].pk_node_id_hash = (HASHBYTES('SHA1', CONVERT( varchar(max), [service_jid_sha1],2) +  CONVERT(varchar(max), HASHBYTES('SHA1',@_node_name) ,2)  + @_item_id))
+		WHERE [dbo].[tig_pubsub_items].pk_node_id_hash = (HASHBYTES('SHA1', CONVERT( nvarchar(max), [service_jid_sha1],2) +  CONVERT(nvarchar(max), HASHBYTES('SHA1',@_node_name) ,2)  + @_item_id))
 	-- Insert the row if the UPDATE statement failed.	
 	IF (@@ROWCOUNT = 0 )
 	BEGIN
@@ -186,9 +186,9 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubDeleteItem]
-	@_service_jid varchar(2049), 
-	@_node_name varchar(MAX),
-	@_item_id varchar(MAX)
+	@_service_jid nvarchar(2049), 
+	@_node_name nvarchar(MAX),
+	@_item_id nvarchar(MAX)
 AS	
 begin
 	delete from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) AND id = @_item_id ;
@@ -205,8 +205,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubGetNodeItemsIds]
-	@_service_jid varchar(2049), 
-	@_node_name varchar(MAX)
+	@_service_jid nvarchar(2049), 
+	@_node_name nvarchar(MAX)
 AS	
 begin
 	select id from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) ;
@@ -223,7 +223,7 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubGetAllNodes]
-	@_service_jid varchar(2049)
+	@_service_jid nvarchar(2049)
 AS	
 begin
 	select name from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
@@ -240,7 +240,7 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubDeleteAllNodes]
-	@_service_jid varchar(2049)
+	@_service_jid nvarchar(2049)
 AS	
 begin
   delete from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
@@ -259,8 +259,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubSetNodeConfiguration]
-	@_service_jid varchar(2049), 
-	@_node_name varchar(MAX),
+	@_service_jid nvarchar(2049), 
+	@_node_name nvarchar(MAX),
 	@_node_conf ntext
 AS	
 begin
@@ -279,8 +279,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubSetNodeAffiliations]
-	@_service_jid varchar(2049),
-	@_node_name varchar(MAX),
+	@_service_jid nvarchar(2049),
+	@_node_name nvarchar(MAX),
 	@_node_aff ntext
 AS
 begin
@@ -298,8 +298,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubGetNodeConfiguration]
-	@_service_jid varchar(2049),
-	@_node_name varchar(MAX)
+	@_service_jid nvarchar(2049),
+	@_node_name nvarchar(MAX)
 AS
 begin
   select configuration from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
@@ -316,8 +316,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubGetNodeAffiliations]
-	@_service_jid varchar(2049),
-	@_node_name varchar(MAX)
+	@_service_jid nvarchar(2049),
+	@_node_name nvarchar(MAX)
 AS
 begin
   select affiliations from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
@@ -334,8 +334,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubGetNodeSubscriptions]
-	@_service_jid varchar(2049),
-	@_node_name varchar(MAX)
+	@_service_jid nvarchar(2049),
+	@_node_name nvarchar(MAX)
 AS
 begin
   select data from tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) order by [index] ;
@@ -352,8 +352,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubSetNodeSubscriptions]
-	@_service_jid varchar(2049),
-	@_node_name varchar(MAX),
+	@_service_jid nvarchar(2049),
+	@_node_name nvarchar(MAX),
 	@_node_index bigint,
 	@_node_data ntext
 AS	
@@ -382,8 +382,8 @@ GO
 
 -- QUERY START:
 create procedure [dbo].[TigPubSubDeleteNodeSubscriptions]
-	@_service_jid varchar(2049),
-	@_node_name varchar(MAX),
+	@_service_jid nvarchar(2049),
+	@_node_name nvarchar(MAX),
 	@_node_index bigint
 AS
 begin
