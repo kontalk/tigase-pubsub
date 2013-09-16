@@ -1,8 +1,8 @@
-package tigase.component;
+package tigase.component2;
 
 import java.util.Map;
 
-import tigase.component.eventbus.EventBus;
+import tigase.component2.eventbus.EventBus;
 import tigase.xmpp.BareJID;
 
 public abstract class ComponentConfig {

@@ -1,12 +1,12 @@
-package tigase.component.modules;
+package tigase.component2.modules;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tigase.component.PacketWriter;
-import tigase.component.exceptions.ComponentException;
+import tigase.component2.PacketWriter;
+import tigase.component2.exceptions.ComponentException;
 import tigase.criteria.Criteria;
 import tigase.server.Packet;
 import tigase.util.TigaseStringprepException;

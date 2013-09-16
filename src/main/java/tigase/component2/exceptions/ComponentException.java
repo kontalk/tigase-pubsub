@@ -1,4 +1,4 @@
-package tigase.component.exceptions;
+package tigase.component2.exceptions;
 
 import tigase.server.Packet;
 import tigase.xmpp.Authorization;

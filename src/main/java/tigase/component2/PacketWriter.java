@@ -1,4 +1,4 @@
-package tigase.component;
+package tigase.component2;
 
 import java.util.Collection;
 

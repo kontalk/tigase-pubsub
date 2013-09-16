@@ -8,10 +8,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import tigase.component.PacketWriter;
-import tigase.component.eventbus.Event;
-import tigase.component.eventbus.EventHandler;
-import tigase.component.eventbus.EventType;
+import tigase.component2.PacketWriter;
+import tigase.component2.eventbus.Event;
+import tigase.component2.eventbus.EventHandler;
+import tigase.component2.eventbus.EventType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.modules.PresenceCollectorModule;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler;

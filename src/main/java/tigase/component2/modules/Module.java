@@ -1,6 +1,6 @@
-package tigase.component.modules;
+package tigase.component2.modules;
 
-import tigase.component.exceptions.ComponentException;
+import tigase.component2.exceptions.ComponentException;
 import tigase.criteria.Criteria;
 import tigase.server.Packet;
 import tigase.util.TigaseStringprepException;

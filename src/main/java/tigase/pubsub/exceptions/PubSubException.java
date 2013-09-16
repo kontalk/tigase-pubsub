@@ -22,7 +22,7 @@
 
 package tigase.pubsub.exceptions;
 
-import tigase.component.exceptions.ComponentException;
+import tigase.component2.exceptions.ComponentException;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 

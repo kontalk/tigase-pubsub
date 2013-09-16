@@ -36,8 +36,8 @@ import java.util.regex.Pattern;
 import javax.script.Bindings;
 
 import tigase.adhoc.AdHocScriptCommandManager;
-import tigase.component.AbstractComponent;
-import tigase.component.PacketWriter;
+import tigase.component2.AbstractComponent;
+import tigase.component2.PacketWriter;
 import tigase.conf.Configurable;
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;

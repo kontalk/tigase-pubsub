@@ -20,7 +20,7 @@
  *
  */
 
-package tigase.component;
+package tigase.component2;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -29,11 +29,11 @@ import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tigase.component.eventbus.DefaultEventBus;
-import tigase.component.eventbus.EventBus;
-import tigase.component.exceptions.ComponentException;
-import tigase.component.modules.Module;
-import tigase.component.modules.ModulesManager;
+import tigase.component2.eventbus.DefaultEventBus;
+import tigase.component2.eventbus.EventBus;
+import tigase.component2.exceptions.ComponentException;
+import tigase.component2.modules.Module;
+import tigase.component2.modules.ModulesManager;
 import tigase.disco.XMPPService;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.Packet;

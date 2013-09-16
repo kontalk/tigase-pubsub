@@ -28,7 +28,7 @@ import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
 import tigase.adhoc.AdHocCommandManager;
 import tigase.adhoc.AdHocScriptCommandManager;
-import tigase.component.PacketWriter;
+import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;
