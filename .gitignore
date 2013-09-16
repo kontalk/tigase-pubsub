@@ -5,3 +5,9 @@ target
 
 /nbactions.xml
 /tigase-pubsub.iml
+/certs
+/etc
+/logs
+/scripts
+/derby.log
+/init-pubsub.properties

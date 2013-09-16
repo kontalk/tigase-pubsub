@@ -71,7 +71,42 @@ public class DefaultEventBusTest {
 	}
 
 	@Test
-	public void test() {
+	public void test0() {
+		Object fakeSource1 = new Object();
+		Object fakeSource2 = new Object();
+		final String[] value = new String[1];
+		Test01Handler h1 = new Test01Handler() {
+
+			@Override
+			public void onTest01Event(String data) {
+				Assert.fail("It shouldn't be called!");
+			}
+		};
+		eventBus.addHandler(Test01Event.TYPE, fakeSource1, h1);
+		eventBus.addHandler(Test01Event.TYPE, fakeSource2, new Test01Handler() {
+
+			@Override
+			public void onTest01Event(String data) {
+				value[0] = "h" + data;
+			}
+		});
+
+		Test01Event event = new Test01Event("test0.1");
+		eventBus.fire(event, this);
+
+		event = new Test01Event("test0.2");
+		eventBus.fire(event, fakeSource2);
+
+		Assert.assertEquals("htest0.2", value[0]);
+
+		eventBus.remove(h1);
+
+		event = new Test01Event("test0.3");
+		eventBus.fire(event, fakeSource1);
+	}
+
+	@Test
+	public void test1() {
 		final String[] value = new String[5];
 		eventBus.addHandler(Test01Event.TYPE, new Test01Handler() {
 
@@ -117,5 +152,48 @@ public class DefaultEventBusTest {
 		Assert.assertNull(value[2]);
 		Assert.assertNull(value[3]);
 		Assert.assertNull(value[4]);
+	}
+
+	@Test
+	public void testRemove() {
+		final String[] value = new String[2];
+		Test01Handler h1 = new Test01Handler() {
+
+			@Override
+			public void onTest01Event(String data) {
+				value[0] = data;
+			}
+		};
+		EventListener l1 = new EventListener() {
+
+			@Override
+			public void onEvent(Event<? extends EventHandler> event) {
+				value[1] = ((Test01Event) event).getData();
+			}
+		};
+		eventBus.addHandler(Test01Event.TYPE, h1);
+		eventBus.addListener(Test01Event.TYPE, l1);
+
+		Test01Event event = new Test01Event("t1");
+		eventBus.fire(event, this);
+
+		Assert.assertEquals("t1", value[0]);
+		Assert.assertEquals("t1", value[1]);
+
+		eventBus.remove(h1);
+
+		event = new Test01Event("t2");
+		eventBus.fire(event, this);
+
+		Assert.assertEquals("t1", value[0]);
+		Assert.assertEquals("t2", value[1]);
+
+		eventBus.remove(Test01Event.TYPE, l1);
+
+		event = new Test01Event("t3");
+		eventBus.fire(event, this);
+
+		Assert.assertEquals("t1", value[0]);
+		Assert.assertEquals("t2", value[1]);
 	}
 }
