@@ -136,7 +136,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	private AdHocConfigCommandModule adHocCommandsModule;
 	protected LeafNodeConfig defaultNodeConfig;
 	private PubSubDAO directPubSubRepository;
-	private Integer maxRepositoryCacheSize;
+	protected Integer maxRepositoryCacheSize;
 	private PendingSubscriptionModule pendingSubscriptionModule;
 	private PresenceCollectorModule presenceCollectorModule;
 	private PublishItemModule publishNodeModule;

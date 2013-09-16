@@ -9,14 +9,14 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.xmpp.BareJID;
 
-class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
+public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations {
 
 	protected final Map<BareJID, UsersAffiliation> changedAffs = new HashMap<BareJID, UsersAffiliation>();
 
 	private NodeAffiliations() {
 	}
 
-	NodeAffiliations(tigase.pubsub.repository.NodeAffiliations nodeAffiliations) {
+	public NodeAffiliations(tigase.pubsub.repository.NodeAffiliations nodeAffiliations) {
 		affs.putAll(nodeAffiliations.getAffiliationsMap());
 	}
 
