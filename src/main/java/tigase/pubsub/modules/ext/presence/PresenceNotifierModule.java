@@ -3,8 +3,8 @@ package tigase.pubsub.modules.ext.presence;
 import java.util.List;
 import java.util.logging.Level;
 
-import tigase.component.PacketWriter;
-import tigase.component.exceptions.ComponentException;
+import tigase.component2.PacketWriter;
+import tigase.component2.exceptions.ComponentException;
 import tigase.criteria.Criteria;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AbstractPubSubModule;

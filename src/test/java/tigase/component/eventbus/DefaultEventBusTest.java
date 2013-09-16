@@ -6,6 +6,12 @@ import org.junit.Test;
 
 import tigase.component.eventbus.DefaultEventBusTest.Test01Handler.Test01Event;
 import tigase.component.eventbus.DefaultEventBusTest.Test02Handler.Test02Event;
+import tigase.component2.eventbus.DefaultEventBus;
+import tigase.component2.eventbus.Event;
+import tigase.component2.eventbus.EventBus;
+import tigase.component2.eventbus.EventHandler;
+import tigase.component2.eventbus.EventListener;
+import tigase.component2.eventbus.EventType;
 
 public class DefaultEventBusTest {
 

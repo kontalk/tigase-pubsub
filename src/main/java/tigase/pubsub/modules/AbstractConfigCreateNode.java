@@ -21,7 +21,7 @@
  */
 package tigase.pubsub.modules;
 
-import tigase.component.PacketWriter;
+import tigase.component2.PacketWriter;
 import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;

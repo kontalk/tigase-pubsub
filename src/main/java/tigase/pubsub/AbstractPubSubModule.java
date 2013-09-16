@@ -28,9 +28,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import tigase.component.PacketWriter;
-import tigase.component.eventbus.EventBus;
-import tigase.component.modules.Module;
+import tigase.component2.PacketWriter;
+import tigase.component2.eventbus.EventBus;
+import tigase.component2.modules.Module;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;

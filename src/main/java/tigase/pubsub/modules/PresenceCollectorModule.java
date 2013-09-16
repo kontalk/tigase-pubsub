@@ -30,10 +30,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import tigase.component.PacketWriter;
-import tigase.component.eventbus.Event;
-import tigase.component.eventbus.EventHandler;
-import tigase.component.eventbus.EventType;
+import tigase.component2.PacketWriter;
+import tigase.component2.eventbus.Event;
+import tigase.component2.eventbus.EventHandler;
+import tigase.component2.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;

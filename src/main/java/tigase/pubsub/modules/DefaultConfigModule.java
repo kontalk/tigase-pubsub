@@ -21,7 +21,7 @@
  */
 package tigase.pubsub.modules;
 
-import tigase.component.PacketWriter;
+import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;

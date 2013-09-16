@@ -32,8 +32,8 @@ import java.util.logging.Level;
 import javax.script.Bindings;
 
 import tigase.adhoc.AdHocScriptCommandManager;
-import tigase.component.AbstractComponent;
-import tigase.component.PacketWriter;
+import tigase.component2.AbstractComponent;
+import tigase.component2.PacketWriter;
 import tigase.conf.Configurable;
 import tigase.db.DataRepository;
 import tigase.db.RepositoryFactory;

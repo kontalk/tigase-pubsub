@@ -25,8 +25,8 @@ package tigase.pubsub;
 import java.util.HashMap;
 import java.util.Map;
 
-import tigase.component.AbstractComponent;
-import tigase.component.ComponentConfig;
+import tigase.component2.AbstractComponent;
+import tigase.component2.ComponentConfig;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
