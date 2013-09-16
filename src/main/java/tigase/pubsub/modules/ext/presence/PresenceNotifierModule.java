@@ -36,22 +36,23 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		this.presencePerNodeExtension.addLoginToNodeHandler(new LoginToNodeHandler() {
 
 			@Override
-			public void onLoginToNode(JID jid, String node, Packet presenceStanza) {
-				PresenceNotifierModule.this.onLoginToNode(jid, node, presenceStanza);
+			public void onLoginToNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
+				PresenceNotifierModule.this.onLoginToNode(serviceJID, node, occupantJID, presenceStanza);
 			}
 		});
 		this.presencePerNodeExtension.addLogoffFromNodeHandler(new LogoffFromNodeHandler() {
 
 			@Override
-			public void onLogoffFromNode(JID jid, String node, Packet presenceStanza) {
-				PresenceNotifierModule.this.onLogoffFromNode(jid, node, presenceStanza);
+			public void onLogoffFromNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
+				PresenceNotifierModule.this.onLogoffFromNode(serviceJID, node, occupantJID, presenceStanza);
 			}
+
 		});
 		this.presencePerNodeExtension.addUpdatePresenceHandler(new UpdatePresenceHandler() {
 
 			@Override
-			public void onPresenceUpdate(JID jid, String node, Packet presenceStanza) {
-				PresenceNotifierModule.this.onPresenceUpdate(jid, node, presenceStanza);
+			public void onPresenceUpdate(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
+				PresenceNotifierModule.this.onPresenceUpdate(serviceJID, node, occupantJID, presenceStanza);
 			}
 		});
 	}
@@ -83,14 +84,12 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		packetWriter.write(notifications);
 	}
 
-	protected void onLoginToNode(JID jid, String node, Packet presenceStanza) {
+	protected void onLoginToNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
 		try {
-			final BareJID serviceJID = presenceStanza.getStanzaTo().getBareJID();
-
 			Element notification = new Element("presence");
 			notification.setAttribute("xmlns", PresencePerNodeExtension.XMLNS_EXTENSION);
 			notification.setAttribute("node", node);
-			notification.setAttribute("jid", jid.toString());
+			notification.setAttribute("jid", occupantJID.toString());
 			notification.setAttribute("type", "available");
 
 			publish(serviceJID, node, notification);
@@ -99,14 +98,12 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		}
 	}
 
-	protected void onLogoffFromNode(JID jid, String node, Packet presenceStanza) {
+	protected void onLogoffFromNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
 		try {
-			final BareJID serviceJID = presenceStanza.getStanzaTo().getBareJID();
-
 			Element notification = new Element("presence");
 			notification.setAttribute("xmlns", PresencePerNodeExtension.XMLNS_EXTENSION);
 			notification.setAttribute("node", node);
-			notification.setAttribute("jid", jid.toString());
+			notification.setAttribute("jid", occupantJID.toString());
 			notification.setAttribute("type", "unavailable");
 
 			publish(serviceJID, node, notification);
@@ -115,7 +112,7 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		}
 	}
 
-	protected void onPresenceUpdate(JID jid, String node, Packet presenceStanza) {
+	protected void onPresenceUpdate(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
 	}
 
 	@Override
