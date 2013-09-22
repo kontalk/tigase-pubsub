@@ -30,6 +30,16 @@
 
 package tigase.admin
 
+import tigase.server.*
+import tigase.util.*
+import tigase.xmpp.*
+import tigase.db.*
+import tigase.xml.*
+import tigase.vhosts.*
+import tigase.pubsub.*
+import tigase.pubsub.repository.IPubSubRepository
+import tigase.pubsub.exceptions.PubSubException
+import tigase.pubsub.modules.NodeCreateModule.NodeCreateHandler.NodeCreateEvent;
 
 def NODE = "node"
 def OWNER = "owner";
@@ -99,14 +109,17 @@ try {
 			colNodeConfig = (CollectionNodeConfig) absNodeConfig;
 		}		
 			
-		pubsubRepository.createNode(toJid, node, 
-			(owner == null || owner.isEmpty()) ? p.getStanzaFrom().getBareJID().toString() : owner,
+		if (owner == null || owner.isEmpty()) { 
+			owner = p.getStanzaFrom().getBareJID();
+		} else {
+			owner = BareJID.bareJIDInstance(owner);
+		}
+		pubsubRepository.createNode(toJid, node, owner,
 			nodeConfig, nodeType, collection);
 		
 		def nodeaAffiliations  = pubsubRepository.getNodeAffiliations(toJid, node);
 
-		nodeaAffiliations.addAffiliation(p.getElement().getAttributeStaticStr("from"),
-																			Affiliation.owner);
+		nodeaAffiliations.addAffiliation(owner,Affiliation.owner);
 		pubsubRepository.update(toJid, node, nodeaAffiliations);
 		if (colNodeConfig == null) {
 			pubsubRepository.addToRootCollection(toJid, node);
@@ -115,7 +128,8 @@ try {
 			pubsubRepository.update(toJid, collection, colNodeConfig);
 		}
 		
-		component.nodeCreateModule.fireOnNodeCreatedConfigChange(node);
+		NodeCreateEvent event = new NodeCreateEvent(packet, node);		
+		component.getEventBus().fire(event);
 
 		if (collection != '') {
 			def colNodeSubscriptions =
