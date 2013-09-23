@@ -23,6 +23,7 @@
 package tigase.pubsub.modules;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
@@ -34,6 +35,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.ext.presence.PresencePerNodeExtension;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
@@ -55,6 +57,30 @@ import tigase.xmpp.StanzaType;
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class ManageSubscriptionModule extends AbstractPubSubModule {
+	private class SubscriptionFilter {
+
+		private String jidContains;
+
+		public SubscriptionFilter(Element f) throws PubSubException {
+			for (Element e : f.getChildren()) {
+				if ("jid".equals(e.getName())) {
+					this.jidContains = e.getAttributeStaticStr("contains");
+				} else
+					throw new PubSubException(Authorization.BAD_REQUEST, "Unknown filter '" + e.getName() + "'");
+			}
+		}
+
+		public boolean match(UsersSubscription usersSubscription) {
+			boolean match = true;
+
+			if (jidContains != null)
+				match = match && usersSubscription.getJid().toString().contains(jidContains);
+
+			return match;
+		}
+
+	}
+
 	private static final Criteria CRIT = ElementCriteria.name("iq").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub#owner")).add(
 			ElementCriteria.name("subscriptions"));
@@ -186,12 +212,18 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 	}
 
 	private void processGet(Packet packet, Element subscriptions, String nodeName, final ISubscriptions nodeSubscriptions,
-			PacketWriter packetWriter) throws RepositoryException {
+			PacketWriter packetWriter) throws RepositoryException, PubSubException {
 		Element ps = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub#owner" });
 
 		Packet iq = packet.okResult(ps, 0);
 
 		Element afr = new Element("subscriptions", new String[] { "node" }, new String[] { nodeName });
+
+		SubscriptionFilter subscriptionFilter = null;
+		Element filterE = subscriptions.getChild("filter", PresencePerNodeExtension.XMLNS_EXTENSION);
+		if (filterE != null) {
+			subscriptionFilter = new SubscriptionFilter(filterE);
+		}
 
 		ps.addChild(afr);
 
@@ -200,6 +232,10 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 		if (subscribers != null) {
 			for (UsersSubscription usersSubscription : subscribers) {
 				if (usersSubscription.getSubscription() == Subscription.none) {
+					continue;
+				}
+
+				if (subscriptionFilter != null && !subscriptionFilter.match(usersSubscription)) {
 					continue;
 				}
 
