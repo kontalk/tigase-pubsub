@@ -1,5 +1,6 @@
 package tigase.pubsub.modules.ext.presence;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -21,6 +22,7 @@ import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 
 public class PresenceNotifierModule extends AbstractPubSubModule {
 
@@ -57,6 +59,21 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		});
 	}
 
+	protected Element createPresenceNotificationItem(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
+		Element notification = new Element("presence");
+		notification.setAttribute("xmlns", PresencePerNodeExtension.XMLNS_EXTENSION);
+		notification.setAttribute("node", node);
+		notification.setAttribute("jid", occupantJID.toString());
+
+		if (presenceStanza == null || presenceStanza.getType() == StanzaType.unavailable) {
+			notification.setAttribute("type", "unavailable");
+		} else if (presenceStanza.getType() == StanzaType.available) {
+			notification.setAttribute("type", "available");
+		}
+
+		return notification;
+	}
+
 	@Override
 	public String[] getFeatures() {
 		return new String[] { PresencePerNodeExtension.XMLNS_EXTENSION };
@@ -65,6 +82,37 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 	@Override
 	public Criteria getModuleCriteria() {
 		return null;
+	}
+
+	protected void onLoginToNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
+		try {
+			Element notification = createPresenceNotificationItem(serviceJID, node, occupantJID, presenceStanza);
+			// publish new occupant presence to all occupants
+			publish(serviceJID, node, notification);
+
+			// publish presence of all occupants to new occupant
+			publishToOne(serviceJID, node, occupantJID);
+
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Problem on sending LoginToNodeEvent", e);
+		}
+	}
+
+	protected void onLogoffFromNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
+		try {
+			Element notification = createPresenceNotificationItem(serviceJID, node, occupantJID, presenceStanza);
+
+			publish(serviceJID, node, notification);
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Problem on sending LogoffFromNodeEvent", e);
+		}
+	}
+
+	protected void onPresenceUpdate(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
+	}
+
+	@Override
+	public void process(Packet packet) throws ComponentException, TigaseStringprepException {
 	}
 
 	protected void publish(BareJID serviceJID, String nodeName, Element itemToSend) throws RepositoryException {
@@ -84,39 +132,26 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		packetWriter.write(notifications);
 	}
 
-	protected void onLoginToNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
-		try {
-			Element notification = new Element("presence");
-			notification.setAttribute("xmlns", PresencePerNodeExtension.XMLNS_EXTENSION);
-			notification.setAttribute("node", node);
-			notification.setAttribute("jid", occupantJID.toString());
-			notification.setAttribute("type", "available");
+	protected void publishToOne(BareJID serviceJID, String nodeName, JID destinationJID) throws RepositoryException {
+		AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(serviceJID, nodeName);
 
-			publish(serviceJID, node, notification);
-		} catch (Exception e) {
-			log.log(Level.WARNING, "Problem on sending LoginToNodeEvent", e);
+		Collection<JID> occupants = presencePerNodeExtension.getNodeOccupants(serviceJID, nodeName);
+		for (JID jid : occupants) {
+			Packet p = presencePerNodeExtension.getPresence(serviceJID, nodeName, jid);
+			if (p == null)
+				continue;
+
+			Element items = new Element("items");
+			items.addAttribute("node", nodeName);
+			Element item = new Element("item");
+			items.addChild(item);
+			item.addChild(createPresenceNotificationItem(serviceJID, nodeName, jid, p));
+
+			List<Packet> notifications = publishItemModule.prepareNotification(new JID[] { destinationJID }, items,
+					JID.jidInstance(serviceJID), nodeConfig, nodeName, null);
+			packetWriter.write(notifications);
+
 		}
-	}
-
-	protected void onLogoffFromNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
-		try {
-			Element notification = new Element("presence");
-			notification.setAttribute("xmlns", PresencePerNodeExtension.XMLNS_EXTENSION);
-			notification.setAttribute("node", node);
-			notification.setAttribute("jid", occupantJID.toString());
-			notification.setAttribute("type", "unavailable");
-
-			publish(serviceJID, node, notification);
-		} catch (Exception e) {
-			log.log(Level.WARNING, "Problem on sending LogoffFromNodeEvent", e);
-		}
-	}
-
-	protected void onPresenceUpdate(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
-	}
-
-	@Override
-	public void process(Packet packet) throws ComponentException, TigaseStringprepException {
 	}
 
 }
