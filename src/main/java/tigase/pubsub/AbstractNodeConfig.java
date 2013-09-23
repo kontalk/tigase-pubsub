@@ -271,8 +271,7 @@ public abstract class AbstractNodeConfig {
 		} else {
 			try {
 				return PublisherModel.valueOf(tmp);
-			}
-			catch(Throwable ex) {
+			} catch (Throwable ex) {
 				return null;
 			}
 		}
@@ -342,6 +341,12 @@ public abstract class AbstractNodeConfig {
 				"Roster groups allowed to subscribe"));
 		form.addField(Field.fieldBoolean(PUBSUB + "notify_sub_aff_state", true,
 				"Notify subscribers when owner change their subscription or affiliation state"));
+		form.addField(Field.fieldBoolean(TIGASE + "allow_view_subscribers", false,
+				"Allows get list of subscribers for each sybscriber"));
+	}
+
+	public boolean isAllowToViewSubscribers() {
+		return form.getAsBoolean(TIGASE + "allow_view_subscribers");
 	}
 
 	/**
