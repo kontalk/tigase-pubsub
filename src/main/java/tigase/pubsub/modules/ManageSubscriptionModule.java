@@ -85,6 +85,29 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 		super(config, packetWriter);
 	}
 
+	private void checkPrivileges(StanzaType type, Element element, JID senderJid, AbstractNodeConfig nodeConfig,
+			IAffiliations nodeAffiliations, ISubscriptions nodeSubscriptions) throws PubSubException {
+		boolean allowed = false;
+
+		// for "tigase:pubsub:1"
+		if (!allowed && type == StanzaType.get && nodeConfig.isAllowToViewSubscribers()) {
+			Subscription senderSubscription = nodeSubscriptions.getSubscription(senderJid.getBareJID());
+			allowed = senderSubscription == Subscription.subscribed;
+		}
+
+		if (!allowed) {
+			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
+			allowed = senderAffiliation.getAffiliation() == Affiliation.owner;
+		}
+
+		if (!allowed && this.config.isAdmin(senderJid)) {
+			allowed = true;
+		}
+
+		if (!allowed)
+			throw new PubSubException(element, Authorization.FORBIDDEN);
+	}
+
 	/**
 	 * Method description
 	 * 
@@ -126,9 +149,6 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 			String nodeName = subscriptions.getAttributeStaticStr("node");
 			StanzaType type = packet.getType();
 
-			if ((type == null) || (type != StanzaType.get && type != StanzaType.set)) {
-				throw new PubSubException(Authorization.BAD_REQUEST);
-			}
 			if (nodeName == null) {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.NODE_REQUIRED);
 			}
@@ -143,20 +163,15 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			JID senderJid = packet.getStanzaFrom();
 
-			if (!this.config.isAdmin(senderJid)) {
-				UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
+			checkPrivileges(type, element, senderJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
-				if (senderAffiliation.getAffiliation() != Affiliation.owner) {
-					throw new PubSubException(element, Authorization.FORBIDDEN);
-				}
-			}
 			if (type == StanzaType.get) {
 				processGet(packet, subscriptions, nodeName, nodeSubscriptions, packetWriter);
-			} else {
-				if (type == StanzaType.set) {
-					processSet(packet, subscriptions, nodeName, nodeConfig, nodeSubscriptions, packetWriter);
-				}
-			}
+			} else if (type == StanzaType.set) {
+				processSet(packet, subscriptions, nodeName, nodeConfig, nodeSubscriptions, packetWriter);
+			} else
+				throw new PubSubException(Authorization.BAD_REQUEST);
+
 			if (nodeSubscriptions.isChanged()) {
 				getRepository().update(toJid, nodeName, nodeSubscriptions);
 			}
