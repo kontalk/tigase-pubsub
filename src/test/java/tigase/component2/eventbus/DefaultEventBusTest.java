@@ -1,11 +1,11 @@
-package tigase.component.eventbus;
+package tigase.component2.eventbus;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import tigase.component.eventbus.DefaultEventBusTest.Test01Handler.Test01Event;
-import tigase.component.eventbus.DefaultEventBusTest.Test02Handler.Test02Event;
+import tigase.component2.eventbus.DefaultEventBusTest.Test01Handler.Test01Event;
+import tigase.component2.eventbus.DefaultEventBusTest.Test02Handler.Test02Event;
 import tigase.component2.eventbus.DefaultEventBus;
 import tigase.component2.eventbus.Event;
 import tigase.component2.eventbus.EventBus;
