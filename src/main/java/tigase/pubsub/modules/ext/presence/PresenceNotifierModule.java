@@ -137,6 +137,10 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 
 		Collection<JID> occupants = presencePerNodeExtension.getNodeOccupants(serviceJID, nodeName);
 		for (JID jid : occupants) {
+
+			if (jid.equals(destinationJID))
+				continue;
+
 			Packet p = presencePerNodeExtension.getPresence(serviceJID, nodeName, jid);
 			if (p == null)
 				continue;
