@@ -66,17 +66,21 @@ import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurat
 import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.modules.ext.presence.PresenceNodeSubscriptions;
 import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
+import tigase.pubsub.repository.PubSubRepositoryWrapper;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
 import tigase.xml.Element;
+import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
 /**
@@ -115,16 +119,15 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	}
 
 	public static final String ADMINS_KEY = "admin";
-
 	private static final String COMPONENT = "component";
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
+
 	/**
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
-
 	/**
 	 * Field description
 	 */
@@ -139,15 +142,18 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	private Integer maxRepositoryCacheSize;
 	private PendingSubscriptionModule pendingSubscriptionModule;
 	private PresenceCollectorModule presenceCollectorModule;
+	private PresenceNotifierModule presenceNotifierModule;
+
 	private PublishItemModule publishNodeModule;
-	protected CachedPubSubRepository pubsubRepository;
+
+	protected IPubSubRepository pubsubRepository;
+
+	// ~--- constructors
+	// ---------------------------------------------------------
 
 	private AdHocScriptCommandManager scriptCommandManager;
 
 	protected UserRepository userRepository;
-
-	// ~--- constructors
-	// ---------------------------------------------------------
 
 	private XsltTool xslTransformer;
 
@@ -161,8 +167,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	@Override
 	protected PubSubConfig createComponentConfigInstance(AbstractComponent<?> abstractComponent) {
-		PubSubConfig result = new PubSubConfig(abstractComponent);
-		return result;
+		PubSubConfig componentConfig = new PubSubConfig(abstractComponent);
+		return componentConfig;
 	}
 
 	/**
@@ -173,9 +179,18 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	 * 
 	 * @return
 	 */
-	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
-		// return new StatelessPubSubRepository(directRepository, this.config);
-		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
+	protected IPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
+		IPubSubRepository wrapper = new PubSubRepositoryWrapper(new CachedPubSubRepository(directRepository,
+				maxRepositoryCacheSize)) {
+			@Override
+			public ISubscriptions getNodeSubscriptions(final BareJID serviceJid, final String nodeName)
+					throws RepositoryException {
+				return new PresenceNodeSubscriptions(serviceJid, nodeName, super.getNodeSubscriptions(serviceJid, nodeName),
+						presenceNotifierModule);
+			}
+		};
+
+		return wrapper;
 	}
 
 	/**
@@ -263,7 +278,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
 		registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
 		registerModule(new XmppPingModule(componentConfig, writer));
-		registerModule(new PresenceNotifierModule(componentConfig, writer, publishNodeModule));
+		this.presenceNotifierModule = registerModule(new PresenceNotifierModule(componentConfig, writer, publishNodeModule));
 
 		this.pubsubRepository.init();
 	}

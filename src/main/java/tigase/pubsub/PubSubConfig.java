@@ -27,7 +27,7 @@ import java.util.Map;
 
 import tigase.component2.AbstractComponent;
 import tigase.component2.ComponentConfig;
-import tigase.pubsub.repository.cached.CachedPubSubRepository;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
@@ -40,11 +40,11 @@ import tigase.xmpp.JID;
  */
 public class PubSubConfig extends ComponentConfig {
 
-	private String[] admins;
+	protected String[] admins;
 
-	private CachedPubSubRepository pubSubRepository;
+	protected IPubSubRepository pubSubRepository;
 
-	private BareJID serviceBareJID = BareJID.bareJIDInstanceNS("tigase-pubsub");
+	protected BareJID serviceBareJID = BareJID.bareJIDInstanceNS("tigase-pubsub");
 
 	public PubSubConfig(AbstractComponent<?> component) {
 		super(component);
@@ -66,7 +66,7 @@ public class PubSubConfig extends ComponentConfig {
 		return props;
 	}
 
-	public CachedPubSubRepository getPubSubRepository() {
+	public IPubSubRepository getPubSubRepository() {
 		return pubSubRepository;
 	}
 
@@ -122,7 +122,7 @@ public class PubSubConfig extends ComponentConfig {
 
 	}
 
-	void setPubSubRepository(CachedPubSubRepository pubSubRepository) {
+	void setPubSubRepository(IPubSubRepository pubSubRepository) {
 		this.pubSubRepository = pubSubRepository;
 	}
 

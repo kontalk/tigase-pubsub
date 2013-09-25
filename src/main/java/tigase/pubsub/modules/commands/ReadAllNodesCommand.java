@@ -6,9 +6,9 @@ import tigase.adhoc.AdHocResponse;
 import tigase.adhoc.AdhHocRequest;
 import tigase.form.Form;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -17,9 +17,9 @@ public class ReadAllNodesCommand implements AdHocCommand {
 
 	private final PubSubConfig config;
 	private final PubSubDAO dao;
-	private final CachedPubSubRepository repository;
+	private final IPubSubRepository repository;
 
-	public ReadAllNodesCommand(PubSubConfig config, PubSubDAO directPubSubRepository, CachedPubSubRepository pubsubRepository) {
+	public ReadAllNodesCommand(PubSubConfig config, PubSubDAO directPubSubRepository, IPubSubRepository pubsubRepository) {
 		this.dao = directPubSubRepository;
 		this.repository = pubsubRepository;
 		this.config = config;

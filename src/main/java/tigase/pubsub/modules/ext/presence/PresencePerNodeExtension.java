@@ -269,6 +269,23 @@ public class PresencePerNodeExtension {
 		return Collections.unmodifiableCollection(occs);
 	}
 
+	public Collection<Packet> getPresence(BareJID serviceJID, String nodeName, BareJID occupantJID) {
+		Map<String, Map<BareJID, Map<String, Packet>>> resources = this.presences.get(occupantJID);
+		if (resources == null)
+			return Collections.emptyList();
+
+		Set<Packet> prs = new HashSet<Packet>();
+
+		for (Map<BareJID, Map<String, Packet>> services : resources.values()) {
+			Map<String, Packet> nodes = services.get(serviceJID);
+			if (nodes != null && nodes.containsKey(nodeName)) {
+				prs.add(nodes.get(nodeName));
+			}
+		}
+
+		return prs;
+	}
+
 	public Packet getPresence(BareJID serviceJID, String nodeName, JID occupantJID) {
 		Map<String, Map<BareJID, Map<String, Packet>>> resources = this.presences.get(occupantJID.getBareJID());
 		if (resources == null)
