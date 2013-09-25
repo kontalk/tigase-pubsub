@@ -256,6 +256,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	protected void init() {
 		final PacketWriter writer = getWriter();
 		this.xslTransformer = new XsltTool();
+		this.modulesManager.reset();
+		this.eventBus.reset();
 		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer));
 		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
 				this.presenceCollectorModule));

@@ -69,9 +69,13 @@ public class ModulesManager {
 		return handled;
 	}
 
+	public void reset() {
+		this.modules.clear();
+	}
+	
 	public <T extends Module> T register(final T module) {
 		if (log.isLoggable(Level.CONFIG))
-			log.config("Register Component module: " + module.getClass().getCanonicalName());
+			log.config("Register Component module: " + module.getClass().getCanonicalName());		
 		this.modules.add(module);
 		return module;
 	}

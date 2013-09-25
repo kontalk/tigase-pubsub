@@ -287,7 +287,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 			ISubscriptions nodesSubscriptions) throws RepositoryException {
 		beforePrepareNotification(nodeConfig, nodesSubscriptions);
 
-		List<JID> tmp = new ArrayList<JID>();
+		HashSet<JID> tmp = new HashSet<JID>();
 		for (BareJID j : getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions)) {
 			tmp.add(JID.jidInstance(j));
 		}
@@ -318,7 +318,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 		JID[] subscribers = tmp.toArray(new JID[] {});
 
 		if (nodeConfig.isDeliverPresenceBased()) {
-			List<JID> s = new ArrayList<JID>();
+			HashSet<JID> s = new HashSet<JID>();
 
 			for (JID jid : subscribers) {
 				for (JID subjid : this.presenceCollector.getAllAvailableResources(jid.getBareJID())) {

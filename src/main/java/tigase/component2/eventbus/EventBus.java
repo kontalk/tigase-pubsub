@@ -19,4 +19,6 @@ public abstract class EventBus {
 	protected void setEventSource(Event<EventHandler> event, Object source) {
 		event.setSource(source);
 	}
+	
+	public abstract void reset();
 }
