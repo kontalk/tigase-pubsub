@@ -35,7 +35,6 @@ import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
 import tigase.conf.Configurable;
-import tigase.db.DataRepository;
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
@@ -67,6 +66,7 @@ import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurat
 import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
@@ -263,6 +263,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
 		registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
 		registerModule(new XmppPingModule(componentConfig, writer));
+		registerModule(new PresenceNotifierModule(componentConfig, writer, publishNodeModule));
+
 		this.pubsubRepository.init();
 	}
 
