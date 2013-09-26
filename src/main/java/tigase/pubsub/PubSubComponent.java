@@ -256,31 +256,54 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	protected void init() {
 		final PacketWriter writer = getWriter();
 		this.xslTransformer = new XsltTool();
-		this.modulesManager.reset();
-		this.eventBus.reset();
-		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer));
-		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
-				this.presenceCollectorModule));
-		registerModule(new RetractItemModule(componentConfig, writer, this.publishNodeModule));
-		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(componentConfig, writer));
-		registerModule(new ManageSubscriptionModule(componentConfig, writer));
-		registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule));
-		registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
-		registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
-		registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig, writer));
-		registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
-		registerModule(new UnsubscribeNodeModule(componentConfig, writer));
-		registerModule(new ManageAffiliationsModule(componentConfig, writer));
-		registerModule(new RetrieveItemsModule(componentConfig, writer));
-		registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
-		registerModule(new JabberVersionModule(componentConfig, writer));
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, writer, scriptCommandManager));
-		registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
-		registerModule(new DiscoverItemsModule(componentConfig, writer, this.adHocCommandsModule));
-		registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
-		registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
-		registerModule(new XmppPingModule(componentConfig, writer));
-		this.presenceNotifierModule = registerModule(new PresenceNotifierModule(componentConfig, writer, publishNodeModule));
+		// this.modulesManager.reset();
+		// this.eventBus.reset();
+		if (!isRegistered(PresenceCollectorModule.class))
+			this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer));
+		if (!isRegistered(PublishItemModule.class))
+			this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
+					this.presenceCollectorModule));
+		if (!isRegistered(RetractItemModule.class))
+			registerModule(new RetractItemModule(componentConfig, writer, this.publishNodeModule));
+		if (!isRegistered(PendingSubscriptionModule.class))
+			this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(componentConfig, writer));
+		if (!isRegistered(ManageSubscriptionModule.class))
+			registerModule(new ManageSubscriptionModule(componentConfig, writer));
+		if (!isRegistered(SubscribeNodeModule.class))
+			registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule));
+		if (!isRegistered(NodeCreateModule.class))
+			registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
+		if (!isRegistered(NodeCreateModule.class))
+			registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
+		if (!isRegistered(NodeCreateModule.class))
+			registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig, writer));
+		if (!isRegistered(NodeCreateModule.class))
+			registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
+		if (!isRegistered(UnsubscribeNodeModule.class))
+			registerModule(new UnsubscribeNodeModule(componentConfig, writer));
+		if (!isRegistered(UnsubscribeNodeModule.class))
+			registerModule(new ManageAffiliationsModule(componentConfig, writer));
+		if (!isRegistered(UnsubscribeNodeModule.class))
+			registerModule(new RetrieveItemsModule(componentConfig, writer));
+		if (!isRegistered(PurgeItemsModule.class))
+			registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
+		if (!isRegistered(JabberVersionModule.class))
+			registerModule(new JabberVersionModule(componentConfig, writer));
+		if (!isRegistered(AdHocConfigCommandModule.class))
+			this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, writer,
+					scriptCommandManager));
+		if (!isRegistered(DiscoverInfoModule.class))
+			registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
+		if (!isRegistered(DiscoverItemsModule.class))
+			registerModule(new DiscoverItemsModule(componentConfig, writer, this.adHocCommandsModule));
+		if (!isRegistered(DiscoverItemsModule.class))
+			registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
+		if (!isRegistered(RetrieveSubscriptionsModule.class))
+			registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
+		if (!isRegistered(XmppPingModule.class))
+			registerModule(new XmppPingModule(componentConfig, writer));
+		if (!isRegistered(PresenceNotifierModule.class))
+			this.presenceNotifierModule = registerModule(new PresenceNotifierModule(componentConfig, writer, publishNodeModule));
 
 		this.pubsubRepository.init();
 	}
