@@ -96,7 +96,7 @@ create procedure dbo.TigPubSubCreateNode
 	@_node_conf ntext
 AS	
 begin
-	insert into tig_pubsub_nodes (service_jid, service_jid_sha1, name, name_sha1, type, creator, creation_date, configuration)
+	insert into dbo.tig_pubsub_nodes (service_jid, service_jid_sha1, name, name_sha1, type, creator, creation_date, configuration)
 		values (@_service_jid, HASHBYTES('SHA1', @_service_jid), @_node_name, HASHBYTES('SHA1', @_node_name), @_node_type, @_node_creator, getdate(), @_node_conf);
 end
 -- QUERY END:
@@ -116,9 +116,9 @@ create procedure [dbo].[TigPubSubRemoveNode]
 	@_node_name nvarchar(MAX)
 AS	
 begin
-  delete from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name);
-  delete from tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name);
-  delete from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
+  delete from dbo.tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name);
+  delete from dbo.tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name);
+  delete from dbo.tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
 
 end
 -- QUERY END:
@@ -139,7 +139,7 @@ create procedure [dbo].[TigPubSubGetItem]
 AS	
 begin
   select data, publisher, creation_date, update_date
-    from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) AND id = @_item_id;
+    from dbo.tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) AND id = @_item_id;
 
 end
 -- QUERY END:
@@ -191,7 +191,7 @@ create procedure [dbo].[TigPubSubDeleteItem]
 	@_item_id nvarchar(MAX)
 AS	
 begin
-	delete from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) AND id = @_item_id ;
+	delete from dbo.tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) AND id = @_item_id ;
 end
 -- QUERY END:
 GO
@@ -209,7 +209,7 @@ create procedure [dbo].[TigPubSubGetNodeItemsIds]
 	@_node_name nvarchar(MAX)
 AS	
 begin
-	select id from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) ;
+	select id from dbo.tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) ;
 end
 -- QUERY END:
 GO
@@ -226,7 +226,7 @@ create procedure [dbo].[TigPubSubGetAllNodes]
 	@_service_jid nvarchar(2049)
 AS	
 begin
-	select name from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
+	select name from dbo.tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
 end
 -- QUERY END:
 GO
@@ -243,9 +243,9 @@ create procedure [dbo].[TigPubSubDeleteAllNodes]
 	@_service_jid nvarchar(2049)
 AS	
 begin
-  delete from tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
-  delete from tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
-  delete from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
+  delete from dbo.tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
+  delete from dbo.tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
+  delete from dbo.tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
 end
 -- QUERY END:
 GO
@@ -264,7 +264,7 @@ create procedure [dbo].[TigPubSubSetNodeConfiguration]
 	@_node_conf ntext
 AS	
 begin
-  update tig_pubsub_nodes set configuration = @_node_conf where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 =  HASHBYTES('SHA1', @_node_name);
+  update dbo.tig_pubsub_nodes set configuration = @_node_conf where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 =  HASHBYTES('SHA1', @_node_name);
 end
 -- QUERY END:
 GO
@@ -284,7 +284,7 @@ create procedure [dbo].[TigPubSubSetNodeAffiliations]
 	@_node_aff ntext
 AS
 begin
-  update tig_pubsub_nodes set affiliations = @_node_aff where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
+  update dbo.tig_pubsub_nodes set affiliations = @_node_aff where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
 end
 -- QUERY END:
 GO
@@ -302,7 +302,7 @@ create procedure [dbo].[TigPubSubGetNodeConfiguration]
 	@_node_name nvarchar(MAX)
 AS
 begin
-  select configuration from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
+  select configuration from dbo.tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
 end
 -- QUERY END:
 GO
@@ -320,7 +320,7 @@ create procedure [dbo].[TigPubSubGetNodeAffiliations]
 	@_node_name nvarchar(MAX)
 AS
 begin
-  select affiliations from tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
+  select affiliations from dbo.tig_pubsub_nodes where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND name_sha1 = HASHBYTES('SHA1', @_node_name);
 end
 -- QUERY END:
 GO
@@ -338,7 +338,7 @@ create procedure [dbo].[TigPubSubGetNodeSubscriptions]
 	@_node_name nvarchar(MAX)
 AS
 begin
-  select data from tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) order by [index] ;
+  select data from dbo.tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) order by [index] ;
 end
 -- QUERY END:
 GO
@@ -387,7 +387,7 @@ create procedure [dbo].[TigPubSubDeleteNodeSubscriptions]
 	@_node_index bigint
 AS
 begin
-  delete from tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) AND [index] = @_node_index ;
+  delete from dbo.tig_pubsub_subscriptions where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) AND [index] = @_node_index ;
 end
 -- QUERY END:
 GO
