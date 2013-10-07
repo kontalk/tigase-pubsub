@@ -16,7 +16,8 @@ import tigase.xmpp.BareJID;
  * @version 5.0.0, 2010.03.27 at 05:27:46 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class NodeSubscriptions implements ISubscriptions {
+public abstract class NodeSubscriptions implements ISubscriptions {
+
 	protected final static String DELIMITER = ";";
 
 	/** Field description */
@@ -28,8 +29,8 @@ public class NodeSubscriptions implements ISubscriptions {
 	 * 
 	 * @return
 	 */
-	public static NodeSubscriptions create() {
-		NodeSubscriptions s = new NodeSubscriptions();
+	public static tigase.pubsub.repository.cached.NodeSubscriptions create() {
+		tigase.pubsub.repository.cached.NodeSubscriptions s = new tigase.pubsub.repository.cached.NodeSubscriptions();
 
 		return s;
 	}

@@ -381,8 +381,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
 
-		NodeAffiliations nodeAffiliations = new NodeAffiliations(tigase.pubsub.repository.NodeAffiliations.create(null));
-		NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions.create());
+		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create(null);
+		NodeSubscriptions nodeSubscriptions = tigase.pubsub.repository.NodeSubscriptions.create();
 		Node node = new Node(serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
 		String key = createKey(serviceJid, nodeName);

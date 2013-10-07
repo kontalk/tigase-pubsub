@@ -7,17 +7,17 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.xmpp.BareJID;
 
-public class NodeAffiliations implements IAffiliations {
+public abstract class NodeAffiliations implements IAffiliations {
 
 	protected final static String DELIMITER = ";";
 
-	public static NodeAffiliations create(String data) {
-		NodeAffiliations a = new NodeAffiliations();
+	public static tigase.pubsub.repository.cached.NodeAffiliations create(String data) {
+		tigase.pubsub.repository.cached.NodeAffiliations a = new tigase.pubsub.repository.cached.NodeAffiliations();
 		try {
 			a.parse(data);
 			return a;
 		} catch (Exception e) {
-			return new NodeAffiliations();
+			return new tigase.pubsub.repository.cached.NodeAffiliations();
 		}
 	}
 
@@ -55,7 +55,7 @@ public class NodeAffiliations implements IAffiliations {
 	@Override
 	public NodeAffiliations clone() throws CloneNotSupportedException {
 		synchronized (this.affs) {
-			NodeAffiliations clone = new NodeAffiliations();
+			NodeAffiliations clone = new tigase.pubsub.repository.cached.NodeAffiliations();
 			for (UsersAffiliation a : this.affs.values()) {
 				clone.affs.put(a.getJid(), a.clone());
 			}
