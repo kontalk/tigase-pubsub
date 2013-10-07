@@ -747,27 +747,22 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void update(BareJID serviceJid, String nodeName, ISubscriptions nodeSubscriptions) throws RepositoryException {
 		++updateSubscriptionsCalled;
+		Node node = getNode(serviceJid, nodeName);
 
-		if (nodeSubscriptions instanceof NodeSubscriptions) {
-			Node node = getNode(serviceJid, nodeName);
-
-			if (node != null) {
-				if (node.getNodeSubscriptions() != nodeSubscriptions) {
-					throw new RuntimeException("INCORRECT");
-				}
-
-				node.subscriptionsMerge();
-
-				// node.setNodeSubscriptionsChangeTimestamp();
-				// synchronized (mutex) {
-				log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
-				nodesToSave.add(node);
-				tlazyWriteThread.wakeup();
-
-				// }
+		if (node != null) {
+			if (node.getNodeSubscriptions() != nodeSubscriptions) {
+				throw new RuntimeException("INCORRECT");
 			}
-		} else {
-			throw new RuntimeException("Wrong class");
+
+			node.subscriptionsMerge();
+
+			// node.setNodeSubscriptionsChangeTimestamp();
+			// synchronized (mutex) {
+			log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
+			nodesToSave.add(node);
+			tlazyWriteThread.wakeup();
+
+			// }
 		}
 	}
 }
