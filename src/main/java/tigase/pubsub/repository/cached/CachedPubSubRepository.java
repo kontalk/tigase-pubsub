@@ -750,10 +750,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		Node node = getNode(serviceJid, nodeName);
 
 		if (node != null) {
-			if (node.getNodeSubscriptions() != nodeSubscriptions) {
-				throw new RuntimeException("INCORRECT");
-			}
-
 			node.subscriptionsMerge();
 
 			// node.setNodeSubscriptionsChangeTimestamp();
