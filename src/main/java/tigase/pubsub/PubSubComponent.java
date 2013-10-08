@@ -273,17 +273,17 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule));
 		if (!isRegistered(NodeCreateModule.class))
 			registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
-		if (!isRegistered(NodeCreateModule.class))
+		if (!isRegistered(NodeDeleteModule.class))
 			registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
-		if (!isRegistered(NodeCreateModule.class))
+		if (!isRegistered(DefaultConfigModule.class))
 			registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig, writer));
-		if (!isRegistered(NodeCreateModule.class))
+		if (!isRegistered(NodeConfigModule.class))
 			registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
 		if (!isRegistered(UnsubscribeNodeModule.class))
 			registerModule(new UnsubscribeNodeModule(componentConfig, writer));
-		if (!isRegistered(UnsubscribeNodeModule.class))
+		if (!isRegistered(ManageAffiliationsModule.class))
 			registerModule(new ManageAffiliationsModule(componentConfig, writer));
-		if (!isRegistered(UnsubscribeNodeModule.class))
+		if (!isRegistered(RetrieveItemsModule.class))
 			registerModule(new RetrieveItemsModule(componentConfig, writer));
 		if (!isRegistered(PurgeItemsModule.class))
 			registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
@@ -296,7 +296,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
 		if (!isRegistered(DiscoverItemsModule.class))
 			registerModule(new DiscoverItemsModule(componentConfig, writer, this.adHocCommandsModule));
-		if (!isRegistered(DiscoverItemsModule.class))
+		if (!isRegistered(RetrieveAffiliationsModule.class))
 			registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
 		if (!isRegistered(RetrieveSubscriptionsModule.class))
 			registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
