@@ -2,7 +2,7 @@
  * PubSubComponent.java
  *
  * Tigase Jabber/XMPP Server
- * Copyright (C) 2004-2012 "Artur Hefczyc" <artur.hefczyc@tigase.org>
+ * Copyright (C) 2004-2013 "Tigase, Inc." <office@tigase.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,30 +20,31 @@
  *
  */
 
+
+
 package tigase.pubsub;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.script.Bindings;
+//~--- non-JDK imports --------------------------------------------------------
 
 import tigase.adhoc.AdHocScriptCommandManager;
+
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
+
 import tigase.conf.Configurable;
+
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
+
 import tigase.pubsub.modules.AdHocConfigCommandModule;
+import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.commands.DefaultConfigCommand
+		.DefaultNodeConfigurationChangedHandler;
+import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
+import tigase.pubsub.modules.commands.ReadAllNodesCommand;
+import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
 import tigase.pubsub.modules.DefaultConfigModule;
 import tigase.pubsub.modules.DiscoverInfoModule;
 import tigase.pubsub.modules.DiscoverItemsModule;
@@ -65,246 +66,200 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.modules.commands.DefaultConfigCommand;
-import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurationChangedHandler;
-import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
-import tigase.pubsub.modules.commands.ReadAllNodesCommand;
-import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.cached.CachedPubSubRepository;
+
 import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
+
 import tigase.xml.Element;
+
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
+//~--- JDK imports ------------------------------------------------------------
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.script.Bindings;
+
 /**
  * Class description
- * 
- * 
+ *
+ *
  * @version 5.1.0, 2010.11.02 at 01:05:02 MDT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PubSubComponent extends AbstractComponent<PubSubConfig> implements Configurable, DisableDisco {
-
-	private class AdHocScriptCommandManagerImpl implements AdHocScriptCommandManager {
-
-		private final PubSubComponent component;
-
-		public AdHocScriptCommandManagerImpl(PubSubComponent component) {
-			this.component = component;
-		}
-
-		@Override
-		public List<Element> getCommandListItems(JID senderJid, JID toJid) {
-			return component.getScriptItems(Command.XMLNS, toJid, senderJid);
-		}
-
-		@Override
-		public List<Packet> process(Packet packet) {
-			Queue<Packet> results = new ArrayDeque<Packet>();
-
-			if (component.processScriptCommand(packet, results)) {
-				return new ArrayList<Packet>(results);
-			}
-
-			return null;
-		}
-
-	}
-
+public class PubSubComponent
+				extends AbstractComponent<PubSubConfig>
+				implements Configurable, DisableDisco {
+	/** Field description */
 	public static final String ADMINS_KEY = "admin";
 
-	private static final String COMPONENT = "component";
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
-	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
-	private static final Pattern PARAMETRIZED_PROPERTY_PATTERN = Pattern.compile("(.+)\\[(.*)\\]|(.+)");
 
 	/**
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
+
 	/**
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_POOL_SIZE_PROP_KEY = "pubsub-repo-pool-size";
+
 	/**
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
+	private static final String   COMPONENT                = "component";
+	private static final String   MAX_CACHE_SIZE = "pubsub-repository-cache-size";
+	private static final Pattern  PARAMETRIZED_PROPERTY_PATTERN = Pattern.compile(
+			"(.+)\\[(.*)\\]|(.+)");
 
-	public static Map<String, Object> getProperties(String key, Map<String, Object> props) {
-		Map<String, Object> result = new HashMap<String, Object>();
+	//~--- fields ---------------------------------------------------------------
 
-		for (Entry<String, Object> entry : props.entrySet()) {
-			Matcher matcher = PARAMETRIZED_PROPERTY_PATTERN.matcher(entry.getKey());
-			if (matcher.find()) {
-				String keyBaseName = matcher.group(1) != null ? matcher.group(1) : matcher.group(3);
-				String keyMod = matcher.group(2);
-
-				if (keyBaseName.equals(key))
-					result.put(keyMod, entry.getValue());
-			}
-		}
-		return result;
-	}
-
-	private AdHocConfigCommandModule adHocCommandsModule;
+	/** Field description */
 	protected LeafNodeConfig defaultNodeConfig;
-	private PubSubDAO directPubSubRepository;
+
+	/** Field description */
 	protected Integer maxRepositoryCacheSize;
-	private PendingSubscriptionModule pendingSubscriptionModule;
-	private PresenceCollectorModule presenceCollectorModule;
 
-	private PublishItemModule publishNodeModule;
-
+	/** Field description */
 	protected CachedPubSubRepository pubsubRepository;
+
+	/** Field description */
+	protected UserRepository          userRepository;
+	private AdHocConfigCommandModule  adHocCommandsModule;
+	private PubSubDAO                 directPubSubRepository;
+	private PendingSubscriptionModule pendingSubscriptionModule;
+	private PresenceCollectorModule   presenceCollectorModule;
+	private PublishItemModule         publishNodeModule;
 
 	// ~--- constructors
 	// ---------------------------------------------------------
-
 	private AdHocScriptCommandManager scriptCommandManager;
+	private XsltTool                  xslTransformer;
 
-	protected UserRepository userRepository;
-
-	private XsltTool xslTransformer;
+	//~--- constructors ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 * 
+	 *
 	 */
 	public PubSubComponent() {
 		this.scriptCommandManager = new AdHocScriptCommandManagerImpl(this);
 	}
 
+	//~--- methods --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param binds is a <code>Bindings</code>
+	 */
 	@Override
-	protected PubSubConfig createComponentConfigInstance(AbstractComponent<?> abstractComponent) {
-		PubSubConfig result = new PubSubConfig(abstractComponent);
-		return result;
-	}
+	public void initBindings(Bindings binds) {
+		super.initBindings(binds);    // To change body of generated methods,
 
-	// ~--- set methods
-	// ----------------------------------------------------------
-
-	protected PubSubDAO createDAO(Map<String, Object> props) {
-		final Map<String, Object> classNames = getProperties(PUBSUB_REPO_CLASS_PROP_KEY, props);
-		final Map<String, Object> resUris = getProperties(PUBSUB_REPO_URL_PROP_KEY, props);
-		final Map<String, Object> poolSizes = getProperties(PUBSUB_REPO_POOL_SIZE_PROP_KEY, props);
-
-		final String default_cls_name = (String) classNames.get(null);
-
-		if (resUris.size() > 1) {
-			PubSubDAOPool master_dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
-			for (Entry<String, Object> e : resUris.entrySet()) {
-				String domain = e.getKey();
-				String resUri = (String) e.getValue();
-				String className = classNames.containsKey(domain) ? (String) classNames.get(domain) : default_cls_name;
-
-				int dao_pool_size;
-				try {
-					dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain) ? poolSizes.get(domain)
-							: poolSizes.get(null)));
-				} catch (Exception ex) {
-					dao_pool_size = 1;
-				}
-
-				if (log.isLoggable(Level.FINER)) {
-					log.finer("Creating DAO for domain=" + domain + "; class=" + className + "; uri=" + resUri + "; poolSize="
-							+ dao_pool_size);
-				}
-
-				PubSubDAO dao;
-				if (dao_pool_size > 1) {
-					PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
-
-					for (int i = 0; i < dao_pool_size; i++) {
-						if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-							dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig, resUri));
-						} else {
-							dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
-						}
-					}
-					dao = dao_pool;
-				} else {
-					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-						dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
-					} else {
-						dao = new PubSubDAO(userRepository, this.componentConfig);
-					}
-				}
-
-				if (log.isLoggable(Level.CONFIG))
-					log.config("Register DAO for " + (domain == null ? "default " : "") + "domain "
-							+ (domain == null ? "" : domain));
-
-				master_dao_pool.addDao(BareJID.bareJIDInstanceNS(domain), dao);
-			}
-			return master_dao_pool;
-		} else {
-			String domain = null;
-			String resUri = (String) resUris.get(null);
-			String className = default_cls_name;
-
-			int dao_pool_size;
-			try {
-				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain) ? poolSizes.get(domain)
-						: poolSizes.get(null)));
-			} catch (Exception ex) {
-				dao_pool_size = 1;
-			}
-
-			PubSubDAO dao;
-			if (dao_pool_size > 1) {
-				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
-
-				for (int i = 0; i < dao_pool_size; i++) {
-					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-						dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig, resUri));
-					} else {
-						dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
-					}
-				}
-				dao = dao_pool;
-			} else {
-				if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-					dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
-				} else {
-					dao = new PubSubDAO(userRepository, this.componentConfig);
-				}
-			}
-			return dao;
-		}
-
+		// choose Tools | Templates.
+		binds.put(COMPONENT, this);
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * @param directRepository
-	 * 
-	 * @return
+	 *
+	 *
+	 * @param admins
+	 * @param pubSubDAO
+	 * @param createPubSubRepository
+	 * @param defaultNodeConfig
+	 *
+	 * @throws RepositoryException
+	 * @throws TigaseDBException
+	 * @throws UserNotFoundException
 	 */
-	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
-		// return new StatelessPubSubRepository(directRepository, this.config);
-		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
+	public void initialize(String[] admins, PubSubDAO pubSubDAO,
+			IPubSubRepository createPubSubRepository, LeafNodeConfig defaultNodeConfig)
+					throws UserNotFoundException, TigaseDBException, RepositoryException {
+		this.componentConfig.setAdmins(admins);
+
+		// this.componentConfig.setServiceName("tigase-pubsub");
+
+		// XXX remove ASAP
+		if (pubSubDAO != null) {
+			pubSubDAO.init();
+		}
+		this.directPubSubRepository = pubSubDAO;
+		this.pubsubRepository       = createPubSubRepository(pubSubDAO);
+		this.defaultNodeConfig      = defaultNodeConfig;
+		this.defaultNodeConfig.read(userRepository, componentConfig, PubSubComponent
+				.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.defaultNodeConfig.write(userRepository, componentConfig, PubSubComponent
+				.DEFAULT_LEAF_NODE_CONFIG_KEY);
+		this.componentConfig.setPubSubRepository(pubsubRepository);
+		init();
+
+		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this
+				.componentConfig, this.userRepository);
+
+		configCommand.addDefaultNodeConfigurationChangedHandler(
+				new DefaultNodeConfigurationChangedHandler() {
+			@Override
+			public void onDefaultConfigurationChanged(Packet packet, PubSubConfig config) {
+				onChangeDefaultNodeConfig();
+			}
+		});
+		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.componentConfig,
+				this.directPubSubRepository));
+		this.adHocCommandsModule.register(configCommand);
+		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.componentConfig, this
+				.directPubSubRepository, this.userRepository));
+		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.componentConfig, this
+				.directPubSubRepository, this.pubsubRepository));
 	}
+
+	/**
+	 * Method description
+	 *
+	 */
+	public void onChangeDefaultNodeConfig() {
+		try {
+			this.defaultNodeConfig.read(userRepository, componentConfig,
+					DEFAULT_LEAF_NODE_CONFIG_KEY);
+			log.info("Node " + getComponentId() + " read default node configuration.");
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reading default config error", e);
+		}
+	}
+
+	//~--- get methods ----------------------------------------------------------
 
 	// ~--- methods
 	// --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param params
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -313,29 +268,29 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 		// By default use the same repository as all other components:
 		String repo_class = RepositoryFactory.DERBY_REPO_CLASS_PROP_VAL;
-		String repo_uri = RepositoryFactory.DERBY_REPO_URL_PROP_VAL;
-		String conf_db = null;
+		String repo_uri   = RepositoryFactory.DERBY_REPO_URL_PROP_VAL;
+		String conf_db    = null;
 
 		if (params.get(RepositoryFactory.GEN_USER_DB) != null) {
 			conf_db = (String) params.get(RepositoryFactory.GEN_USER_DB);
-		} // end of if (params.get(GEN_USER_DB) != null)
+		}    // end of if (params.get(GEN_USER_DB) != null)
 		if (conf_db != null) {
 			if (conf_db.equals("mysql")) {
 				repo_class = RepositoryFactory.MYSQL_REPO_CLASS_PROP_VAL;
-				repo_uri = RepositoryFactory.MYSQL_REPO_URL_PROP_VAL;
+				repo_uri   = RepositoryFactory.MYSQL_REPO_URL_PROP_VAL;
 			}
 			if (conf_db.equals("pgsql")) {
 				repo_class = RepositoryFactory.PGSQL_REPO_CLASS_PROP_VAL;
-				repo_uri = RepositoryFactory.PGSQL_REPO_URL_PROP_VAL;
+				repo_uri   = RepositoryFactory.PGSQL_REPO_URL_PROP_VAL;
 			}
 			if (conf_db.equals("sqlserver")) {
 				repo_class = RepositoryFactory.SQLSERVER_REPO_CLASS_PROP_VAL;
-				repo_uri = RepositoryFactory.SQLSERVER_REPO_URL_PROP_VAL;
+				repo_uri   = RepositoryFactory.SQLSERVER_REPO_URL_PROP_VAL;
 			}
-		} // end of if (conf_db != null)
+		}    // end of if (conf_db != null)
 		if (params.get(RepositoryFactory.GEN_USER_DB_URI) != null) {
 			repo_uri = (String) params.get(RepositoryFactory.GEN_USER_DB_URI);
-		} // end of if (params.get(GEN_USER_DB_URI) != null)
+		}    // end of if (params.get(GEN_USER_DB_URI) != null)
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
 		props.put(MAX_CACHE_SIZE, "2000");
@@ -352,99 +307,51 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		return props;
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
-
 	/**
 	 * Method description
-	 * 
+	 *
+	 *
+	 * @return a value of <code>String</code>
 	 */
-	protected void init() {
-		final PacketWriter writer = getWriter();
-		this.xslTransformer = new XsltTool();
-		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer));
-		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
-				this.presenceCollectorModule));
-		registerModule(new RetractItemModule(componentConfig, writer, this.publishNodeModule));
-		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(componentConfig, writer));
-		registerModule(new ManageSubscriptionModule(componentConfig, writer));
-		registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule));
-		registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
-		registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
-		registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig, writer));
-		registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
-		registerModule(new UnsubscribeNodeModule(componentConfig, writer));
-		registerModule(new ManageAffiliationsModule(componentConfig, writer));
-		registerModule(new RetrieveItemsModule(componentConfig, writer));
-		registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
-		registerModule(new JabberVersionModule(componentConfig, writer));
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, writer, scriptCommandManager));
-		registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
-		registerModule(new DiscoverItemsModule(componentConfig, writer, this.adHocCommandsModule));
-		registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
-		registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
-		registerModule(new XmppPingModule(componentConfig, writer));
-		this.pubsubRepository.init();
-	}
-
 	@Override
-	public void initBindings(Bindings binds) {
-		super.initBindings(binds); // To change body of generated methods,
-									// choose Tools | Templates.
-		binds.put(COMPONENT, this);
+	public String getDiscoDescription() {
+		return "PubSub";
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * @param admins
-	 * @param pubSubDAO
-	 * @param createPubSubRepository
-	 * @param defaultNodeConfig
-	 * 
-	 * @throws RepositoryException
-	 * @throws TigaseDBException
-	 * @throws UserNotFoundException
+	 *
+	 *
+	 * @param key is a <code>String</code>
+	 * @param props is a <code>Map<String,Object></code>
+	 *
+	 * @return a value of <code>Map<String,Object></code>
 	 */
-	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
-			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
-		this.componentConfig.setAdmins(admins);
-		// this.componentConfig.setServiceName("tigase-pubsub");
+	public static Map<String, Object> getProperties(String key, Map<String, Object> props) {
+		Map<String, Object> result = new HashMap<String, Object>();
 
-		// XXX remove ASAP
-		if (pubSubDAO != null) {
-			pubSubDAO.init();
-		}
-		this.directPubSubRepository = pubSubDAO;
-		this.pubsubRepository = createPubSubRepository(pubSubDAO);
-		this.defaultNodeConfig = defaultNodeConfig;
-		this.defaultNodeConfig.read(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-		this.defaultNodeConfig.write(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
-		this.componentConfig.setPubSubRepository(pubsubRepository);
-		init();
+		for (Entry<String, Object> entry : props.entrySet()) {
+			Matcher matcher = PARAMETRIZED_PROPERTY_PATTERN.matcher(entry.getKey());
 
-		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.componentConfig, this.userRepository);
+			if (matcher.find()) {
+				String keyBaseName = (matcher.group(1) != null)
+						? matcher.group(1)
+						: matcher.group(3);
+				String keyMod      = matcher.group(2);
 
-		configCommand.addDefaultNodeConfigurationChangedHandler(new DefaultNodeConfigurationChangedHandler() {
-
-			@Override
-			public void onDefaultConfigurationChanged(Packet packet, PubSubConfig config) {
-				onChangeDefaultNodeConfig();
+				if (keyBaseName.equals(key)) {
+					result.put(keyMod, entry.getValue());
+				}
 			}
-		});
-		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.componentConfig, this.directPubSubRepository));
-		this.adHocCommandsModule.register(configCommand);
-		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.componentConfig, this.directPubSubRepository,
-				this.userRepository));
-		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.componentConfig, this.directPubSubRepository,
-				this.pubsubRepository));
+		}
+
+		return result;
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @return
 	 */
 	@Override
@@ -452,19 +359,12 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		return true;
 	}
 
-	public void onChangeDefaultNodeConfig() {
-		try {
-			this.defaultNodeConfig.read(userRepository, componentConfig, DEFAULT_LEAF_NODE_CONFIG_KEY);
-			log.info("Node " + getComponentId() + " read default node configuration.");
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Reading default config error", e);
-		}
-	}
+	//~--- set methods ----------------------------------------------------------
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param props
 	 */
 	@Override
@@ -517,21 +417,272 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		}
 		try {
 			PubSubDAO dao;
-			String cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
-			String res_uri = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
+			String    cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
+			String    res_uri  = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
 
 			if (userRepository == null) {
 				userRepository = RepositoryFactory.getUserRepository(cls_name, res_uri, null);
 				userRepository.initRepository(res_uri, null);
 				log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
 			}
-
 			dao = createDAO(props);
-
-			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
+			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig(
+					"default"));
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
 			e.printStackTrace();
 		}
 	}
+
+	//~--- methods --------------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param abstractComponent is a <code>AbstractComponent<?></code>
+	 *
+	 * @return a value of <code>PubSubConfig</code>
+	 */
+	@Override
+	protected PubSubConfig createComponentConfigInstance(
+			AbstractComponent<?> abstractComponent) {
+		PubSubConfig result = new PubSubConfig(abstractComponent);
+
+		return result;
+	}
+
+	// ~--- set methods
+	// ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param props is a <code>Map<String,Object></code>
+	 *
+	 * @return a value of <code>PubSubDAO</code>
+	 */
+	protected PubSubDAO createDAO(Map<String, Object> props) {
+		final Map<String, Object> classNames = getProperties(PUBSUB_REPO_CLASS_PROP_KEY,
+				props);
+		final Map<String, Object> resUris = getProperties(PUBSUB_REPO_URL_PROP_KEY, props);
+		final Map<String, Object> poolSizes = getProperties(PUBSUB_REPO_POOL_SIZE_PROP_KEY,
+				props);
+		final String default_cls_name = (String) classNames.get(null);
+
+		if (resUris.size() > 1) {
+			PubSubDAOPool master_dao_pool = new PubSubDAOPool(userRepository, this
+					.componentConfig);
+
+			for (Entry<String, Object> e : resUris.entrySet()) {
+				String domain    = e.getKey();
+				String resUri    = (String) e.getValue();
+				String className = classNames.containsKey(domain)
+						? (String) classNames.get(domain)
+						: default_cls_name;
+				int    dao_pool_size;
+
+				try {
+					dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
+							? poolSizes.get(domain)
+							: poolSizes.get(null)));
+				} catch (Exception ex) {
+					dao_pool_size = 1;
+				}
+				if (log.isLoggable(Level.FINER)) {
+					log.finer("Creating DAO for domain=" + domain + "; class=" + className +
+							"; uri=" + resUri + "; poolSize=" + dao_pool_size);
+				}
+
+				PubSubDAO dao;
+
+				if (dao_pool_size > 1) {
+					PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this
+							.componentConfig);
+
+					for (int i = 0; i < dao_pool_size; i++) {
+						if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+							dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this
+									.componentConfig, resUri));
+						} else {
+							dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
+						}
+					}
+					dao = dao_pool;
+				} else {
+					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+						dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
+					} else {
+						dao = new PubSubDAO(userRepository, this.componentConfig);
+					}
+				}
+				if (log.isLoggable(Level.CONFIG)) {
+					log.config("Register DAO for " + ((domain == null)
+							? "default "
+							: "") + "domain " + ((domain == null)
+							? ""
+							: domain));
+				}
+				master_dao_pool.addDao(BareJID.bareJIDInstanceNS(domain), dao);
+			}
+
+			return master_dao_pool;
+		} else {
+			String domain    = null;
+			String resUri    = (String) resUris.get(null);
+			String className = default_cls_name;
+			int    dao_pool_size;
+
+			try {
+				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
+						? poolSizes.get(domain)
+						: poolSizes.get(null)));
+			} catch (Exception ex) {
+				dao_pool_size = 1;
+			}
+
+			PubSubDAO dao;
+
+			if (dao_pool_size > 1) {
+				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
+
+				for (int i = 0; i < dao_pool_size; i++) {
+					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+						dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig,
+								resUri));
+					} else {
+						dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
+					}
+				}
+				dao = dao_pool;
+			} else {
+				if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
+					dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
+				} else {
+					dao = new PubSubDAO(userRepository, this.componentConfig);
+				}
+			}
+
+			return dao;
+		}
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param directRepository
+	 *
+	 * @return
+	 */
+	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
+
+		// return new StatelessPubSubRepository(directRepository, this.config);
+		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
+	}
+
+	// ~--- get methods
+	// ----------------------------------------------------------
+
+	/**
+	 * Method description
+	 *
+	 */
+	protected void init() {
+		final PacketWriter writer = getWriter();
+
+		this.xslTransformer = new XsltTool();
+		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(
+				componentConfig, writer));
+		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig,
+				writer, this.xslTransformer, this.presenceCollectorModule));
+		registerModule(new RetractItemModule(componentConfig, writer, this
+				.publishNodeModule));
+		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(
+				componentConfig, writer));
+		registerModule(new ManageSubscriptionModule(componentConfig, writer));
+		registerModule(new SubscribeNodeModule(componentConfig, writer, this
+				.pendingSubscriptionModule));
+		registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig,
+				this.publishNodeModule));
+		registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
+		registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig,
+				writer));
+		registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig,
+				this.publishNodeModule));
+		registerModule(new UnsubscribeNodeModule(componentConfig, writer));
+		registerModule(new ManageAffiliationsModule(componentConfig, writer));
+		registerModule(new RetrieveItemsModule(componentConfig, writer));
+		registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
+		registerModule(new JabberVersionModule(componentConfig, writer));
+		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(
+				componentConfig, writer, scriptCommandManager));
+		registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
+		registerModule(new DiscoverItemsModule(componentConfig, writer, this
+				.adHocCommandsModule));
+		registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
+		registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
+		registerModule(new XmppPingModule(componentConfig, writer));
+		this.pubsubRepository.init();
+	}
+
+	//~--- inner classes --------------------------------------------------------
+
+	private class AdHocScriptCommandManagerImpl
+					implements AdHocScriptCommandManager {
+		private final PubSubComponent component;
+
+		//~--- constructors -------------------------------------------------------
+
+		/**
+		 * Constructs ...
+		 *
+		 *
+		 * @param component
+		 */
+		public AdHocScriptCommandManagerImpl(PubSubComponent component) {
+			this.component = component;
+		}
+
+		//~--- methods ------------------------------------------------------------
+
+		/**
+		 * Method description
+		 *
+		 *
+		 * @param packet is a <code>Packet</code>
+		 *
+		 * @return a value of <code>List<Packet></code>
+		 */
+		@Override
+		public List<Packet> process(Packet packet) {
+			Queue<Packet> results = new ArrayDeque<Packet>();
+
+			if (component.processScriptCommand(packet, results)) {
+				return new ArrayList<Packet>(results);
+			}
+
+			return null;
+		}
+
+		//~--- get methods --------------------------------------------------------
+
+		/**
+		 * Method description
+		 *
+		 *
+		 * @param senderJid is a <code>JID</code>
+		 * @param toJid is a <code>JID</code>
+		 *
+		 * @return a value of <code>List<Element></code>
+		 */
+		@Override
+		public List<Element> getCommandListItems(JID senderJid, JID toJid) {
+			return component.getScriptItems(Command.XMLNS, toJid, senderJid);
+		}
+	}
 }
+
+
+//~ Formatted in Tigase Code Convention on 13/10/16
