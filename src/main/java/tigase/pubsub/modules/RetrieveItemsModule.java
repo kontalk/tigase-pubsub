@@ -24,6 +24,7 @@ package tigase.pubsub.modules;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import tigase.component2.PacketWriter;
@@ -207,11 +208,14 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 
 				if (ids != null) {
 					requestedId = Arrays.asList(ids);
+					requestedId = new ArrayList<String>(requestedId);
+					Collections.reverse(requestedId);
 				}
 			}
 			if (requestedId != null) {
 				int c = 0;
 
+				List<Element> ritemsList = new ArrayList<Element>();
 				for (String id : requestedId) {
 					Element item = nodeItems.getItem(id);
 
@@ -219,9 +223,11 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 						if ((maxItems != null) && (++c) > maxItems) {
 							break;
 						}
-						ritems.addChild(item);
+						ritemsList.add(item);
 					}
 				}
+				Collections.reverse(ritemsList);
+				ritems.addChildren(ritemsList);
 			}
 
 			packetWriter.write(iq);
