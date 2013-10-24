@@ -209,7 +209,7 @@ create procedure [dbo].[TigPubSubGetNodeItemsIds]
 	@_node_name nvarchar(MAX)
 AS	
 begin
-	select id from dbo.tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) ;
+	select id from dbo.tig_pubsub_items where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) AND node_name_sha1 = HASHBYTES('SHA1', @_node_name) order by creation_date;
 end
 -- QUERY END:
 GO

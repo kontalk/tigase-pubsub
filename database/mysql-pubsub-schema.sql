@@ -81,7 +81,7 @@ end //
 
 -- Write item of the node
 drop procedure if exists TigPubSubWriteItem //
-create procedure TigPubSubWriteItem(_service_jid varchar(2049), _node_name text, _item_id text, _publisher varchar(2047), _item_data mediumtext)
+create procedure TigPubSubWriteItem(_service_jid varchar(2049), _node_name text, _item_id text, _publisher varchar(2047), _item_data mediumtext, _timestamp BIGINT)
 begin
   insert into tig_pubsub_items (service_jid_sha1, node_name_sha1, id, creation_date, update_date, publisher, data)
     values (SHA1(_service_jid), SHA1(_node_name), _item_id, now(), now(), _publisher, _item_data)
@@ -99,7 +99,7 @@ end //
 drop procedure if exists TigPubSubGetNodeItemsIds //
 create procedure TigPubSubGetNodeItemsIds(_service_jid varchar(2049), _node_name text)
 begin
-  select id from tig_pubsub_items where service_jid_sha1 = SHA1(_service_jid) AND node_name_sha1 = SHA1(_node_name) ;
+  select id from tig_pubsub_items where service_jid_sha1 = SHA1(_service_jid) AND node_name_sha1 = SHA1(_node_name) order by creation_date;
 end //
 
 -- Get all nodes names
