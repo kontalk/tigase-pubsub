@@ -1,4 +1,9 @@
 -- QUERY START:
+SET QUOTED_IDENTIFIER ON
+-- QUERY END:
+GO
+
+-- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_nodes' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_nodes] (
 		[service_jid] nvarchar(2049) NOT NULL  /* Service JID */,
