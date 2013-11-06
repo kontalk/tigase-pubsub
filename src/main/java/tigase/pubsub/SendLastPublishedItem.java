@@ -30,7 +30,8 @@ public enum SendLastPublishedItem {
 	 * When a new subscription is processed and whenever a subscriber comes
 	 * online
 	 */
-	on_sub_and_presence("When a new subscription is processed and whenever a subscriber comes online");
+	// on_sub_and_presence("When a new subscription is processed and whenever a subscriber comes online")
+	;
 
 	public static String[] descriptions() {
 		String[] result = new String[values().length];

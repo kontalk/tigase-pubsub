@@ -270,7 +270,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		if (!isRegistered(ManageSubscriptionModule.class))
 			registerModule(new ManageSubscriptionModule(componentConfig, writer));
 		if (!isRegistered(SubscribeNodeModule.class))
-			registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule));
+			registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule, publishNodeModule));
 		if (!isRegistered(NodeCreateModule.class))
 			registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
 		if (!isRegistered(NodeDeleteModule.class))

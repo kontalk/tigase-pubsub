@@ -512,6 +512,29 @@ public class PublishItemModule extends AbstractPubSubModule {
 		}
 	}
 
+	public void publishLastItem(BareJID serviceJid, AbstractNodeConfig nodeConfig, JID destinationJID)
+			throws RepositoryException {
+		IItems nodeItems = this.getRepository().getNodeItems(serviceJid, nodeConfig.getNodeName());
+		String[] ids = nodeItems.getItemsIds();
+
+		if (ids != null && ids.length > 0) {
+			String lastID = ids[ids.length - 1];
+			Element payload = nodeItems.getItem(lastID);
+
+			Element items = new Element("items");
+			items.addAttribute("node", nodeConfig.getNodeName());
+			Element item = new Element("item");
+			item.addAttribute("id", lastID);
+			items.addChild(item);
+			item.addChild(payload);
+
+			List<Packet> notifications = prepareNotification(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid),
+					nodeConfig, nodeConfig.getNodeName(), null);
+			packetWriter.write(notifications);
+		}
+
+	}
+
 	/**
 	 * Method description
 	 * 

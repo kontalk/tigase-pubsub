@@ -287,6 +287,15 @@ public abstract class AbstractNodeConfig {
 		return form.getAsStrings("pubsub#roster_groups_allowed");
 	}
 
+	public SendLastPublishedItem getSendLastPublishedItem() {
+		String s = form.getAsString(PUBSUB + "send_last_published_item");
+		try {
+			return s == null ? SendLastPublishedItem.never : SendLastPublishedItem.valueOf(s);
+		} catch (Exception e) {
+			return SendLastPublishedItem.never;
+		}
+	}
+
 	/**
 	 * Method description
 	 * 
@@ -321,10 +330,8 @@ public abstract class AbstractNodeConfig {
 				null, asStrinTable(AccessModel.values())));
 		form.addField(Field.fieldListSingle(PUBSUB + "publish_model", PublisherModel.publishers.name(),
 				"Specify the publisher model", null, asStrinTable(PublisherModel.values())));
-		// form.addField(Field.fieldListSingle(PUBSUB +
-		// "send_last_published_item", SendLastPublishedItem.on_sub.name(),
-		// "When to send the last published item", null,
-		// asStrinTable(PublisherModel.values())));
+		form.addField(Field.fieldListSingle(PUBSUB + "send_last_published_item", SendLastPublishedItem.on_sub.name(),
+				"When to send the last published item", null, asStrinTable(PublisherModel.values())));
 		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
 				"The domains allowed to access this node (blank for any)"));
 		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
