@@ -12,4 +12,5 @@ public interface Module {
 	Criteria getModuleCriteria();
 
 	void process(final Packet packet) throws ComponentException, TigaseStringprepException;
+
 }

@@ -23,9 +23,12 @@
 package tigase.pubsub;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import tigase.component2.PacketWriter;
@@ -129,9 +132,9 @@ public abstract class AbstractPubSubModule implements Module {
 	 * 
 	 * @return
 	 */
-	public static List<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final BareJID[] jids,
+	public static Collection<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final BareJID[] jids,
 			final IAffiliations affiliations, final ISubscriptions subscriptions) {
-		List<BareJID> result = new ArrayList<BareJID>();
+		Set<BareJID> result = new HashSet<BareJID>();
 		final boolean presenceExpired = nodeConfig.isPresenceExpired();
 
 		if (jids != null) {
@@ -167,8 +170,8 @@ public abstract class AbstractPubSubModule implements Module {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public static List<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig, final IAffiliations affiliations,
-			final ISubscriptions subscriptions) throws RepositoryException {
+	public static Collection<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig,
+			final IAffiliations affiliations, final ISubscriptions subscriptions) throws RepositoryException {
 		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
 
 		if (subscribers == null) {

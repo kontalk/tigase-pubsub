@@ -14,6 +14,9 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 
 	protected final Map<BareJID, UsersSubscription> changedSubs = new HashMap<BareJID, UsersSubscription>();
 
+	public NodeSubscriptions() {
+	}
+
 	/**
 	 * Constructs ...
 	 * 

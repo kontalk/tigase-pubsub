@@ -405,8 +405,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
 
-		NodeAffiliations nodeAffiliations = new NodeAffiliations(tigase.pubsub.repository.NodeAffiliations.create(null));
-		NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions.create());
+		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create(null);
+		NodeSubscriptions nodeSubscriptions = tigase.pubsub.repository.NodeSubscriptions.create();
 		Node node = new Node(serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
 		String key = createKey(serviceJid, nodeName);
@@ -796,26 +796,17 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void update(BareJID serviceJid, String nodeName, ISubscriptions nodeSubscriptions) throws RepositoryException {
 		++updateSubscriptionsCalled;
+		Node node = getNode(serviceJid, nodeName);
 
-		if (nodeSubscriptions instanceof NodeSubscriptions) {
-			Node node = getNode(serviceJid, nodeName);
+		if (node != null) {
+			node.subscriptionsMerge();
 
-			if (node != null) {
-				if (node.getNodeSubscriptions() != nodeSubscriptions) {
-					throw new RuntimeException("INCORRECT");
-				}
-
-				node.subscriptionsMerge();
-
-				// node.setNodeSubscriptionsChangeTimestamp();
-				// synchronized (mutex) {
-				log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
-				tlazyWriteThread.save(node);
-
-				// }
-			}
-		} else {
-			throw new RuntimeException("Wrong class");
+			// node.setNodeSubscriptionsChangeTimestamp();
+			// synchronized (mutex) {
+			log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
+			nodesToSave.add(node);
+			tlazyWriteThread.wakeup();
+			// }
 		}
 	}
 }

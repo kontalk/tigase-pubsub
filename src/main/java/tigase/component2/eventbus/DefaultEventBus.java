@@ -180,4 +180,9 @@ public class DefaultEventBus extends EventBus {
 		this.throwingExceptionOn = throwingExceptionOn;
 	}
 
+	public void reset() {
+		synchronized (this.handlers) {
+			this.handlers.clear();
+		}
+	}
 }

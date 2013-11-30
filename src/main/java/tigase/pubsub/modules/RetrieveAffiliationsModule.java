@@ -34,6 +34,7 @@ import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 /**
  * Class description
@@ -94,8 +95,7 @@ public class RetrieveAffiliationsModule extends AbstractPubSubModule {
 			final BareJID serviceJid = packet.getStanzaTo().getBareJID();
 			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element affiliations = pubsub.getChild("affiliations");
-			final String senderJid = packet.getStanzaFrom().toString();
-			final String senderBareJid = packet.getStanzaFrom().getBareJID().toString();
+			final BareJID senderBareJid = packet.getStanzaFrom().getBareJID();
 			final Element pubsubResult = new Element("pubsub", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/pubsub" });
 

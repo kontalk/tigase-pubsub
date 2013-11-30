@@ -269,6 +269,38 @@ public class PresencePerNodeExtension {
 		return Collections.unmodifiableCollection(occs);
 	}
 
+	public Collection<String> getNodes(BareJID serviceJID, JID occupantJID) {
+		Map<String, Map<BareJID, Map<String, Packet>>> resources = this.presences.get(occupantJID.getBareJID());
+		if (resources == null)
+			return Collections.emptyList();
+
+		Map<BareJID, Map<String, Packet>> x = resources.get(occupantJID.getResource());
+
+		if (x == null)
+			return Collections.emptyList();
+
+		Map<String, Packet> p = x.get(serviceJID);
+
+		return Collections.unmodifiableCollection(p.keySet());
+	}
+
+	public Collection<Packet> getPresence(BareJID serviceJID, String nodeName, BareJID occupantJID) {
+		Map<String, Map<BareJID, Map<String, Packet>>> resources = this.presences.get(occupantJID);
+		if (resources == null)
+			return Collections.emptyList();
+
+		Set<Packet> prs = new HashSet<Packet>();
+
+		for (Map<BareJID, Map<String, Packet>> services : resources.values()) {
+			Map<String, Packet> nodes = services.get(serviceJID);
+			if (nodes != null && nodes.containsKey(nodeName)) {
+				prs.add(nodes.get(nodeName));
+			}
+		}
+
+		return prs;
+	}
+
 	public Packet getPresence(BareJID serviceJID, String nodeName, JID occupantJID) {
 		Map<String, Map<BareJID, Map<String, Packet>>> resources = this.presences.get(occupantJID.getBareJID());
 		if (resources == null)
@@ -294,18 +326,23 @@ public class PresencePerNodeExtension {
 	}
 
 	protected void process(Packet packet) {
-		Element pubsubExtElement = packet.getElement().getChild("pubsub", XMLNS_EXTENSION);
-		if (pubsubExtElement == null)
-			return;
-
-		final String nodeName = pubsubExtElement.getAttributeStaticStr("node");
 		final StanzaType type = packet.getType();
 		final BareJID serviceJID = packet.getStanzaTo().getBareJID();
 
-		if (type == null || type == StanzaType.available) {
-			addPresence(serviceJID, nodeName, packet);
-		} else if (StanzaType.unavailable == type) {
-			removePresence(serviceJID, nodeName, packet.getStanzaFrom(), packet);
+		Element pubsubExtElement = packet.getElement().getChild("pubsub", XMLNS_EXTENSION);
+		if (pubsubExtElement != null) {
+			final String nodeName = pubsubExtElement.getAttributeStaticStr("node");
+
+			if (type == null || type == StanzaType.available) {
+				addPresence(serviceJID, nodeName, packet);
+			} else if (StanzaType.unavailable == type) {
+				removePresence(serviceJID, nodeName, packet.getStanzaFrom(), packet);
+			}
+		} else if (type == StanzaType.unavailable) {
+			Collection<String> nds = getNodes(serviceJID, packet.getStanzaFrom());
+			for (String nodeName : nds) {
+				removePresence(serviceJID, nodeName, packet.getStanzaFrom(), packet);
+			}
 		}
 	}
 

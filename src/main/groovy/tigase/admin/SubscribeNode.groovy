@@ -30,6 +30,15 @@
 
 package tigase.admin
 
+import tigase.server.*
+import tigase.util.*
+import tigase.xmpp.*
+import tigase.db.*
+import tigase.xml.*
+import tigase.vhosts.*
+import tigase.pubsub.*
+import tigase.pubsub.repository.IPubSubRepository
+import tigase.pubsub.exceptions.PubSubException
 
 def NODE = "node"
 def JIDS = "jids";
@@ -65,7 +74,8 @@ try {
 		def nodeAffiliations  = pubsubRepository.getNodeAffiliations(toJid, node);
 		def nodeSubscriptions = pubsubRepository.getNodeSubscriptions(toJid, node);
 		
-		jids.each { jid ->
+		jids.each { jidStr ->
+			def jid = BareJID.bareJIDInstance(jidStr);
 			def subscription = nodeSubscriptions.getSubscription(jid)
 			def affiliation = nodeAffiliations.getSubscriberAffiliation(jid).getAffiliation();
 			

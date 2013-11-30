@@ -30,6 +30,16 @@
 
 package tigase.admin
 
+import tigase.server.*
+import tigase.util.*
+import tigase.xmpp.*
+import tigase.db.*
+import tigase.xml.*
+import tigase.vhosts.*
+import tigase.pubsub.*
+import tigase.pubsub.repository.IPubSubRepository
+import tigase.pubsub.exceptions.PubSubException
+import tigase.pubsub.modules.NodeDeleteModule.NodeDeleteHandler.NodeDeleteEvent;
 
 def NODE = "node"
 
@@ -62,7 +72,7 @@ try {
 		AbstractNodeConfig nodeConfig = pubsubRepository.getNodeConfig(toJid, node);
 
 		if (nodeConfig == null) {
-			throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+			throw new PubSubException(p.getElement(), Authorization.ITEM_NOT_FOUND);
 		}
 
 		List<Packet> results = [];
@@ -115,7 +125,8 @@ try {
 		
 		pubsubRepository.deleteNode(toJid, node);
 			
-		component.nodeDeleteModule.fireOnNodeDeleted(node);
+		NodeDeleteEvent event = new NodeDeleteEvent(packet, node);
+		component.getEventBus().fire(event);
 		
 		results.each { packet ->
 			component.addOutPacket(packet);

@@ -33,6 +33,7 @@ import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.SendLastPublishedItem;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
@@ -92,6 +93,8 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 
 	private final PendingSubscriptionModule pendingSubscriptionModule;
 
+	private PublishItemModule publishItemModule;
+
 	/**
 	 * Constructs ...
 	 * 
@@ -101,9 +104,10 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 	 * @param manageSubscriptionModule
 	 */
 	public SubscribeNodeModule(PubSubConfig config, PacketWriter packetWriter,
-			PendingSubscriptionModule manageSubscriptionModule) {
+			PendingSubscriptionModule manageSubscriptionModule, PublishItemModule publishItemModule) {
 		super(config, packetWriter);
 		this.pendingSubscriptionModule = manageSubscriptionModule;
+		this.publishItemModule = publishItemModule;
 	}
 
 	/**
@@ -141,7 +145,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 	 */
 	@Override
 	public void process(Packet packet) throws PubSubException {
-		final BareJID toJid = packet.getStanzaTo().getBareJID();
+		final BareJID serviceJid = packet.getStanzaTo().getBareJID();
 		final Element pubSub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 		final Element subscribe = pubSub.getChild("subscribe");
 		final JID senderJid = packet.getStanzaFrom();
@@ -149,7 +153,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 		final BareJID jid = BareJID.bareJIDInstanceNS(subscribe.getAttributeStaticStr("jid"));
 
 		try {
-			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
+			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(serviceJid, nodeName);
 
 			if (nodeConfig == null) {
 				throw new PubSubException(packet.getElement(), Authorization.ITEM_NOT_FOUND);
@@ -159,7 +163,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.FORBIDDEN, "User blocked by domain");
 			}
 
-			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
+			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(serviceJid, nodeName);
 			UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(senderJid.getBareJID());
 
 			if (!this.config.isAdmin(senderJid) && (senderAffiliation.getAffiliation() != Affiliation.owner)
@@ -167,7 +171,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 				throw new PubSubException(packet.getElement(), Authorization.BAD_REQUEST, PubSubErrorCondition.INVALID_JID);
 			}
 
-			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
+			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(serviceJid, nodeName);
 
 			// TODO 6.1.3.2 Presence Subscription Required
 			// TODO 6.1.3.3 Not in Roster Group
@@ -237,6 +241,8 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 
 			String subid = nodeSubscriptions.getSubscriptionId(jid);
 
+			boolean sendLastPublishedItem = false;
+
 			if (subid == null) {
 				subid = nodeSubscriptions.addSubscriberJid(jid, newSubscription);
 				nodeAffiliations.addAffiliation(jid, affiliation);
@@ -245,6 +251,7 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, packet.getStanzaTo(),
 							subid, jid, nodeAffiliations));
 				}
+				sendLastPublishedItem = nodeConfig.getSendLastPublishedItem() == SendLastPublishedItem.on_sub;
 			} else {
 				nodeSubscriptions.changeSubscription(jid, newSubscription);
 				nodeAffiliations.changeAffiliation(jid, affiliation);
@@ -254,16 +261,20 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 			// "owner",
 			// JIDUtils.getNodeID(element.getAttribute("from")));
 			if (nodeSubscriptions.isChanged()) {
-				this.getRepository().update(toJid, nodeName, nodeSubscriptions);
+				this.getRepository().update(serviceJid, nodeName, nodeSubscriptions);
 			}
 			if (nodeAffiliations.isChanged()) {
-				this.getRepository().update(toJid, nodeName, nodeAffiliations);
+				this.getRepository().update(serviceJid, nodeName, nodeAffiliations);
 			}
 			Packet result = packet.okResult(makeSubscription(nodeName, jid, newSubscription, subid), 0);
 
 			results.add(result);
 
 			packetWriter.write(results);
+
+			if (sendLastPublishedItem) {
+				publishItemModule.publishLastItem(serviceJid, nodeConfig, JID.jidInstance(jid));
+			}
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

@@ -84,6 +84,10 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		return null;
 	}
 
+	public PresencePerNodeExtension getPresencePerNodeExtension() {
+		return presencePerNodeExtension;
+	}
+
 	protected void onLoginToNode(BareJID serviceJID, String node, JID occupantJID, Packet presenceStanza) {
 		try {
 			Element notification = createPresenceNotificationItem(serviceJID, node, occupantJID, presenceStanza);
@@ -137,6 +141,10 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 
 		Collection<JID> occupants = presencePerNodeExtension.getNodeOccupants(serviceJID, nodeName);
 		for (JID jid : occupants) {
+
+			if (jid.equals(destinationJID))
+				continue;
+
 			Packet p = presencePerNodeExtension.getPresence(serviceJID, nodeName, jid);
 			if (p == null)
 				continue;

@@ -24,6 +24,7 @@ package tigase.pubsub.modules;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import tigase.component2.PacketWriter;
@@ -137,7 +138,6 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 			final Element pubsub = packet.getElement().getChild("pubsub", "http://jabber.org/protocol/pubsub");
 			final Element items = pubsub.getChild("items");
 			final String nodeName = items.getAttributeStaticStr("node");
-			final Integer maxItems = asInteger(items.getAttributeStaticStr("max_items"));
 			final JID senderJid = packet.getStanzaFrom();
 
 			if (nodeName == null) {
@@ -200,6 +200,19 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 
 			rpubsub.addChild(ritems);
 
+			Integer maxItems = asInteger(items.getAttributeStaticStr("max_items"));
+			Integer offset = 0;
+
+			final Element rsmGet = pubsub.getChild("set", "http://jabber.org/protocol/rsm");
+			if (rsmGet != null) {
+				Element m = rsmGet.getChild("max");
+				if (m != null)
+					maxItems = asInteger(m.getCData());
+				m = rsmGet.getChild("index");
+				if (m != null)
+					offset = asInteger(m.getCData());
+			}
+
 			IItems nodeItems = this.getRepository().getNodeItems(toJid, nodeName);
 
 			if (requestedId == null) {
@@ -207,21 +220,45 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 
 				if (ids != null) {
 					requestedId = Arrays.asList(ids);
+					requestedId = new ArrayList<String>(requestedId);
+					Collections.reverse(requestedId);
 				}
 			}
-			if (requestedId != null) {
-				int c = 0;
 
-				for (String id : requestedId) {
+			final Element rsmResponse = new Element("set", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/rsm" });
+
+			if (requestedId != null) {
+				if (maxItems == null)
+					maxItems = requestedId.size();
+
+				List<Element> ritemsList = new ArrayList<Element>();
+
+				rsmResponse.addChild(new Element("count", "" + requestedId.size()));
+
+				String lastId = null;
+				for (int i = 0; i < maxItems; i++) {
+					if (i + offset >= requestedId.size())
+						continue;
+					String id = requestedId.get(i + offset);
+					if (i == 0) {
+						rsmResponse.addChild(new Element("first", id, new String[] { "index" }, new String[] { ""
+								+ (i + offset) }));
+					}
 					Element item = nodeItems.getItem(id);
 
-					if (item != null) {
-						if ((maxItems != null) && (++c) > maxItems) {
-							break;
-						}
-						ritems.addChild(item);
-					}
+					lastId = id;
+					ritemsList.add(item);
 				}
+				if (lastId != null)
+					rsmResponse.addChild(new Element("last", lastId));
+
+				Collections.reverse(ritemsList);
+				ritems.addChildren(ritemsList);
+
+				if (maxItems != requestedId.size())
+					rpubsub.addChild(rsmResponse);
+
 			}
 
 			packetWriter.write(iq);

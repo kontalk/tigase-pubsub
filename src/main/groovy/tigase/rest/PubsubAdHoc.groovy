@@ -21,17 +21,26 @@ package tigase.rest.pubsub
  * Last modified by $Author$
  * $Date$
  */
+import tigase.http.rest.Service
+import tigase.server.Command
+import tigase.server.Iq
+import tigase.server.Packet
+import tigase.util.Base64
+import tigase.xml.Element
+import tigase.xmpp.BareJID
+import tigase.xmpp.JID
+import tigase.xmpp.StanzaType
 
 /**
  * Class implements generic support for PubSub ad-hoc commands
  */
 class PubSubHandler extends tigase.http.rest.Handler {
 
-    def COMMAND_XMLNS = "http://jabber.org/protocol/commands";
+    def TIMEOUT = 30 * 1000;
 
+    def COMMAND_XMLNS = "http://jabber.org/protocol/commands";
     def DATA_XMLNS = "jabber:x:data";
     def DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
-    def TIMEOUT = 30 * 1000;
 
     public PubSubHandler() {
         regex = /\/([^@\/]+)@([^@\/]+)/

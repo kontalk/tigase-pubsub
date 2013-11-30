@@ -152,6 +152,10 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 		return writer;
 	}
 
+	public boolean isRegistered(final Class<? extends Module> moduleClass) {
+		return this.modulesManager.isRegistered(moduleClass);
+	}
+
 	/**
 	 * @param packet
 	 */
@@ -221,7 +225,11 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 	}
 
 	public <M extends Module> M registerModule(final M module) {
-		return this.modulesManager.register(module);
+		return this.modulesManager.register(module, false);
+	}
+
+	public <M extends Module> M registerModule(final M module, boolean skipIfRegistered) {
+		return this.modulesManager.register(module, skipIfRegistered);
 	}
 
 	/**

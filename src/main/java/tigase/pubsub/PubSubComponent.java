@@ -27,12 +27,9 @@ package tigase.pubsub;
 //~--- non-JDK imports --------------------------------------------------------
 
 import tigase.adhoc.AdHocScriptCommandManager;
-
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
-
 import tigase.conf.Configurable;
-
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
@@ -67,10 +64,19 @@ import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
+import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurationChangedHandler;
+import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
+import tigase.pubsub.modules.commands.ReadAllNodesCommand;
+import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.modules.ext.presence.PresenceNodeSubscriptions;
+import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
+import tigase.pubsub.repository.PubSubRepositoryWrapper;
 import tigase.pubsub.repository.RepositoryException;
 
 import tigase.server.Command;
@@ -110,14 +116,15 @@ public class PubSubComponent
 	/** Field description */
 	public static final String ADMINS_KEY = "admin";
 
+	private static final String COMPONENT = "component";
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
+	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 
 	/**
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_CLASS_PROP_KEY = "pubsub-repo-class";
-
 	/**
 	 * Field description
 	 */
@@ -127,8 +134,6 @@ public class PubSubComponent
 	 * Field description
 	 */
 	protected static final String PUBSUB_REPO_URL_PROP_KEY = "pubsub-repo-url";
-	private static final String   COMPONENT                = "component";
-	private static final String   MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 	private static final Pattern  PARAMETRIZED_PROPERTY_PATTERN = Pattern.compile(
 			"(.+)\\[(.*)\\]|(.+)");
 
@@ -141,7 +146,7 @@ public class PubSubComponent
 	protected Integer maxRepositoryCacheSize;
 
 	/** Field description */
-	protected CachedPubSubRepository pubsubRepository;
+	protected IPubSubRepository pubsubRepository;
 
 	/** Field description */
 	protected UserRepository          userRepository;
@@ -149,14 +154,13 @@ public class PubSubComponent
 	private PubSubDAO                 directPubSubRepository;
 	private PendingSubscriptionModule pendingSubscriptionModule;
 	private PresenceCollectorModule   presenceCollectorModule;
+	private PresenceNotifierModule    presenceNotifierModule;	
 	private PublishItemModule         publishNodeModule;
 
 	// ~--- constructors
 	// ---------------------------------------------------------
 	private AdHocScriptCommandManager scriptCommandManager;
 	private XsltTool                  xslTransformer;
-
-	//~--- constructors ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
@@ -181,7 +185,7 @@ public class PubSubComponent
 		// choose Tools | Templates.
 		binds.put(COMPONENT, this);
 	}
-
+	
 	/**
 	 * Method description
 	 *
@@ -233,6 +237,20 @@ public class PubSubComponent
 				.directPubSubRepository, this.userRepository));
 		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.componentConfig, this
 				.directPubSubRepository, this.pubsubRepository));
+	}
+
+	protected IPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
+		IPubSubRepository wrapper = new PubSubRepositoryWrapper(new CachedPubSubRepository(directRepository,
+				maxRepositoryCacheSize)) {
+			@Override
+			public ISubscriptions getNodeSubscriptions(final BareJID serviceJid, final String nodeName)
+					throws RepositoryException {
+				return new PresenceNodeSubscriptions(serviceJid, nodeName, super.getNodeSubscriptions(serviceJid, nodeName),
+						presenceNotifierModule);
+			}
+		};
+
+		return wrapper;
 	}
 
 	/**
@@ -313,6 +331,61 @@ public class PubSubComponent
 	 *
 	 * @return a value of <code>String</code>
 	 */
+	protected void init() {
+		final PacketWriter writer = getWriter();
+		this.xslTransformer = new XsltTool();
+		// this.modulesManager.reset();
+		// this.eventBus.reset();
+		if (!isRegistered(PresenceCollectorModule.class))
+			this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer));
+		if (!isRegistered(PublishItemModule.class))
+			this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
+					this.presenceCollectorModule));
+		if (!isRegistered(RetractItemModule.class))
+			registerModule(new RetractItemModule(componentConfig, writer, this.publishNodeModule));
+		if (!isRegistered(PendingSubscriptionModule.class))
+			this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(componentConfig, writer));
+		if (!isRegistered(ManageSubscriptionModule.class))
+			registerModule(new ManageSubscriptionModule(componentConfig, writer));
+		if (!isRegistered(SubscribeNodeModule.class))
+			registerModule(new SubscribeNodeModule(componentConfig, writer, this.pendingSubscriptionModule, publishNodeModule));
+		if (!isRegistered(NodeCreateModule.class))
+			registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
+		if (!isRegistered(NodeDeleteModule.class))
+			registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
+		if (!isRegistered(DefaultConfigModule.class))
+			registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig, writer));
+		if (!isRegistered(NodeConfigModule.class))
+			registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig, this.publishNodeModule));
+		if (!isRegistered(UnsubscribeNodeModule.class))
+			registerModule(new UnsubscribeNodeModule(componentConfig, writer));
+		if (!isRegistered(ManageAffiliationsModule.class))
+			registerModule(new ManageAffiliationsModule(componentConfig, writer));
+		if (!isRegistered(RetrieveItemsModule.class))
+			registerModule(new RetrieveItemsModule(componentConfig, writer));
+		if (!isRegistered(PurgeItemsModule.class))
+			registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
+		if (!isRegistered(JabberVersionModule.class))
+			registerModule(new JabberVersionModule(componentConfig, writer));
+		if (!isRegistered(AdHocConfigCommandModule.class))
+			this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(componentConfig, writer,
+					scriptCommandManager));
+		if (!isRegistered(DiscoverInfoModule.class))
+			registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
+		if (!isRegistered(DiscoverItemsModule.class))
+			registerModule(new DiscoverItemsModule(componentConfig, writer, this.adHocCommandsModule));
+		if (!isRegistered(RetrieveAffiliationsModule.class))
+			registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
+		if (!isRegistered(RetrieveSubscriptionsModule.class))
+			registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
+		if (!isRegistered(XmppPingModule.class))
+			registerModule(new XmppPingModule(componentConfig, writer));
+		if (!isRegistered(PresenceNotifierModule.class))
+			this.presenceNotifierModule = registerModule(new PresenceNotifierModule(componentConfig, writer, publishNodeModule));
+
+		this.pubsubRepository.init();
+	}
+
 	@Override
 	public String getDiscoDescription() {
 		return "PubSub";
@@ -566,65 +639,6 @@ public class PubSubComponent
 
 			return dao;
 		}
-	}
-
-	/**
-	 * Method description
-	 *
-	 *
-	 * @param directRepository
-	 *
-	 * @return
-	 */
-	protected CachedPubSubRepository createPubSubRepository(PubSubDAO directRepository) {
-
-		// return new StatelessPubSubRepository(directRepository, this.config);
-		return new CachedPubSubRepository(directRepository, maxRepositoryCacheSize);
-	}
-
-	// ~--- get methods
-	// ----------------------------------------------------------
-
-	/**
-	 * Method description
-	 *
-	 */
-	protected void init() {
-		final PacketWriter writer = getWriter();
-
-		this.xslTransformer = new XsltTool();
-		this.presenceCollectorModule = registerModule(new PresenceCollectorModule(
-				componentConfig, writer));
-		this.publishNodeModule = registerModule(new PublishItemModule(componentConfig,
-				writer, this.xslTransformer, this.presenceCollectorModule));
-		registerModule(new RetractItemModule(componentConfig, writer, this
-				.publishNodeModule));
-		this.pendingSubscriptionModule = registerModule(new PendingSubscriptionModule(
-				componentConfig, writer));
-		registerModule(new ManageSubscriptionModule(componentConfig, writer));
-		registerModule(new SubscribeNodeModule(componentConfig, writer, this
-				.pendingSubscriptionModule));
-		registerModule(new NodeCreateModule(componentConfig, writer, this.defaultNodeConfig,
-				this.publishNodeModule));
-		registerModule(new NodeDeleteModule(componentConfig, writer, this.publishNodeModule));
-		registerModule(new DefaultConfigModule(componentConfig, this.defaultNodeConfig,
-				writer));
-		registerModule(new NodeConfigModule(componentConfig, writer, this.defaultNodeConfig,
-				this.publishNodeModule));
-		registerModule(new UnsubscribeNodeModule(componentConfig, writer));
-		registerModule(new ManageAffiliationsModule(componentConfig, writer));
-		registerModule(new RetrieveItemsModule(componentConfig, writer));
-		registerModule(new PurgeItemsModule(componentConfig, writer, this.publishNodeModule));
-		registerModule(new JabberVersionModule(componentConfig, writer));
-		this.adHocCommandsModule = registerModule(new AdHocConfigCommandModule(
-				componentConfig, writer, scriptCommandManager));
-		registerModule(new DiscoverInfoModule(componentConfig, writer, modulesManager));
-		registerModule(new DiscoverItemsModule(componentConfig, writer, this
-				.adHocCommandsModule));
-		registerModule(new RetrieveAffiliationsModule(componentConfig, writer));
-		registerModule(new RetrieveSubscriptionsModule(componentConfig, writer));
-		registerModule(new XmppPingModule(componentConfig, writer));
-		this.pubsubRepository.init();
 	}
 
 	//~--- inner classes --------------------------------------------------------

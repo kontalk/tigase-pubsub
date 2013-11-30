@@ -13,7 +13,7 @@ public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations 
 
 	protected final Map<BareJID, UsersAffiliation> changedAffs = new HashMap<BareJID, UsersAffiliation>();
 
-	private NodeAffiliations() {
+	public NodeAffiliations() {
 	}
 
 	public NodeAffiliations(tigase.pubsub.repository.NodeAffiliations nodeAffiliations) {
