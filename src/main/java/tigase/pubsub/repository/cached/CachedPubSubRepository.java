@@ -639,7 +639,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public String[] getRootCollection(BareJID serviceJid) throws RepositoryException {
 		Set<String> rootCollection = getRootCollectionSet(serviceJid);
-
+		if (rootCollection == null)
+			return null;
 		return rootCollection.toArray(new String[rootCollection.size()]);
 	}
 	
@@ -654,6 +655,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			}
 			String[] x = dao.getRootNodes(serviceJid);
 
+			if (rootCollection == null) {
+				rootCollection = new HashSet<String>();
+			}
 			if (x != null) {
 				for (String string : x) {
 					rootCollection.add(string);
