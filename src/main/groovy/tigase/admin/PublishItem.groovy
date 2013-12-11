@@ -78,6 +78,10 @@ try {
 		def toJid = p.getStanzaTo().getBareJID();
 
 		def nodeConfig = pubsubRepository.getNodeConfig(toJid, node);
+		if (nodeConfig == null) {
+			throw new PubSubException(Authorization.ITEM_NOT_FOUND, "Node " + node + " needs " + 
+				"to be created before an item can be published.");
+		}
 		if (nodeConfig.getNodeType() == NodeType.collection) {
 			throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
 						new PubSubErrorCondition("unsupported", "publish"));
@@ -142,10 +146,24 @@ try {
 		
 		Command.addTextField(result, "Note", "Operation successful");
 	} else {
-		Command.addTextField(result, "Error", "You do not have enough permissions to publish item to a node.");
+		//Command.addTextField(result, "Error", "You do not have enough permissions to publish item to a node.");
+		throw new PubSubException(Authorization.FORBIDDEN, "You do not have enough " + 
+				"permissions to publish item to a node.");
 	}
 } catch (PubSubException ex) {
 	Command.addTextField(result, "Error", ex.getMessage())	
+	if (ex.getErrorCondition()) {
+		def error = ex.getErrorCondition();
+		Element errorEl = new Element("error");
+		errorEl.setAttribute("type", error.getErrorType());
+		Element conditionEl = new Element(error.getCondition(), ex.getMessage());
+		conditionEl.setXMLNS(Packet.ERROR_NS);
+		errorEl.addChild(conditionEl);
+		Element pubsubCondition = ex.pubSubErrorCondition?.getElement();
+		if (pubsubCondition)
+			errorEl.addChild(pubsubCondition);
+		result.getElement().addChild(errorEl);	
+	}
 } catch (TigaseDBException ex) {
 	Command.addTextField(result, "Note", "Problem accessing database, item not published to node.");
 }

@@ -124,8 +124,10 @@ class PubSubHandler extends tigase.http.rest.Handler {
             }
 
             service.sendPacket(new Iq(iq), TIMEOUT, { Packet result ->
-                if (result == null || result.getType() == StanzaType.error) {
-                    callback(null);
+				def error = result?.getElement().getChild("error");
+                if (result == null || error != null) {
+					String errorResult = error?.toString();
+                    callback(errorResult);
                     return;
                 }
 
