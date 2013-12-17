@@ -93,12 +93,13 @@ try {
 		Command.getData(p, "x", "jabber:x:data").getChildren().each { fieldEl ->
 			def var = fieldEl.getAttribute("var");			
 			def field = nodeConfig.getForm().get(var);
+			def value = fieldEl.getChildCData( "/field/value")
 			if (!field) return;
 			if (field.getType().name().endsWith("-multi")) {
-				nodeConfig.setValue(field.getVar(), field.getValues());
+				nodeConfig.setValues(field.getVar(), value.tokenize());
 			}
 			else {
-				nodeConfig.setValue(field.getVar(), field.getValue());
+				nodeConfig.setValue(field.getVar(), value);
 			}
 		};
 		

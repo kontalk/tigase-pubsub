@@ -178,16 +178,15 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * Method description
 	 * 
 	 * 
-	 * @param jid
-	 * 
+	 * @param bareJid
 	 * @return
 	 */
 	public List<JID> getAllAvailableResources(final BareJID bareJid) {
 		final List<JID> result = new ArrayList<JID>();
-		final Set<String> resources = this.resources.get(bareJid);
+		final Set<String> jid_resources = this.resources.get(bareJid);
 
-		if (resources != null) {
-			for (String reource : resources) {
+		if (jid_resources != null) {
+			for (String reource : jid_resources) {
 				result.add(JID.jidInstanceNS(bareJid, reource));
 			}
 		}
@@ -221,8 +220,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * Method description
 	 * 
 	 * 
-	 * @param jid
-	 * 
+	 * @param bareJid 
 	 * @return
 	 */
 	public boolean isJidAvailable(final BareJID bareJid) {
@@ -233,16 +231,19 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 	private Packet preparePresence(final Packet presence, StanzaType type) {
 		JID to = presence.getTo();
+		JID from = presence.getStanzaFrom();
 
-		if (to != null) {
-			JID jid = to.copyWithoutResource();
-			Element p = new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(), to.toString() });
+		if ( from != null && to != null && !((from.getBareJID()).equals( to.getBareJID())) ){
+			JID jid = from.copyWithoutResource();
+			Element p = new Element( "presence", new String[] { "to", "from" },
+															 new String[] { jid.toString(), to.toString() } );
 
-			if (type != null) {
+			if ( type != null ){
 				p.setAttribute("type", type.toString());
 			}
+			p.setXMLNS( "jabber:client" );
 
-			return new Presence(p, jid, presence.getStanzaTo());
+			return new Presence(p, to, from);
 		}
 
 		return null;
@@ -253,60 +254,57 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * 
 	 * @param packet
-	 * @param packetWriter
-	 * 
-	 * @return
-	 * 
 	 * @throws PubSubException
 	 */
 	@Override
-	public void process(Packet packet) throws PubSubException {
+	public void process( Packet packet ) throws PubSubException {
 		final StanzaType type = packet.getType();
 		final JID jid = packet.getStanzaFrom();
 		final JID toJid = packet.getStanzaTo();
 
-		PresenceChangeEvent event = new PresenceChangeEvent(packet);
-		config.getEventBus().fire(event, this);
+		PresenceChangeEvent event = new PresenceChangeEvent( packet );
+		config.getEventBus().fire( event, this );
 
-		if (type == null || type == StanzaType.available) {
-			boolean added = addJid(jid);
-			firePresenceChangeEvent(packet);
-			if (added) {
-				Packet p = new Presence(new Element("presence", new String[] { "to", "from" }, new String[] { jid.toString(),
-						toJid.toString() }), toJid, jid);
+		if ( type == null || type == StanzaType.available ){
+			boolean added = addJid( jid );
+			firePresenceChangeEvent( packet );
+			if ( added ){
+				Packet p = new Presence( new Element( "presence", new String[] { "to", "from" },
+																							new String[] { jid.toString(), toJid.toString() } ),
+																 toJid, jid );
 
-				packetWriter.write(p);
+				packetWriter.write( p );
 			}
-		} else if (StanzaType.unavailable == type) {
-			removeJid(jid);
-			firePresenceChangeEvent(packet);
-			Packet p = new Presence(new Element("presence", new String[] { "to", "from", "type" }, new String[] {
-					jid.toString(), toJid.toString(), StanzaType.unavailable.toString() }), toJid, jid);
+		} else if ( StanzaType.unavailable == type ){
+			removeJid( jid );
+			firePresenceChangeEvent( packet );
+			Packet p = new Presence( new Element( "presence", new String[] { "to", "from", "type" }, new String[] {
+				jid.toString(), toJid.toString(), StanzaType.unavailable.toString() } ), toJid, jid );
 
-			packetWriter.write(p);
-		} else if (StanzaType.subscribe == type) {
-			log.finest("Contact " + jid + " wants to subscribe PubSub");
+			packetWriter.write( p );
+		} else if ( StanzaType.subscribe == type ){
+			log.finest( "Contact " + jid + " wants to subscribe PubSub" );
 
-			Packet presence = preparePresence(packet, StanzaType.subscribed);
+			Packet presence = preparePresence( packet, StanzaType.subscribed );
 
-			if (presence != null) {
-				packetWriter.write(presence);
+			if ( presence != null ){
+				packetWriter.write( presence );
 			}
-			presence = preparePresence(packet, StanzaType.subscribe);
-			if (presence != null) {
-				packetWriter.write(presence);
+			presence = preparePresence( packet, StanzaType.subscribe );
+			if ( presence != null ){
+				packetWriter.write( presence );
 			}
-		} else if (StanzaType.unsubscribe == type || StanzaType.unsubscribed == type) {
-			log.finest("Contact " + jid + " wants to unsubscribe PubSub");
+		} else if ( StanzaType.unsubscribe == type || StanzaType.unsubscribed == type ){
+			log.finest( "Contact " + jid + " wants to unsubscribe PubSub" );
 
-			Packet presence = preparePresence(packet, StanzaType.unsubscribed);
+			Packet presence = preparePresence( packet, StanzaType.unsubscribed );
 
-			if (presence != null) {
-				packetWriter.write(presence);
+			if ( presence != null ){
+				packetWriter.write( presence );
 			}
-			presence = preparePresence(packet, StanzaType.unsubscribe);
-			if (presence != null) {
-				packetWriter.write(presence);
+			presence = preparePresence( packet, StanzaType.unsubscribe );
+			if ( presence != null ){
+				packetWriter.write( presence );
 			}
 		}
 
