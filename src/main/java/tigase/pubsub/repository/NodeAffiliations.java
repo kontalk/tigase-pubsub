@@ -2,6 +2,7 @@ package tigase.pubsub.repository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -19,6 +20,15 @@ public abstract class NodeAffiliations implements IAffiliations {
 		} catch (Exception e) {
 			return new tigase.pubsub.repository.cached.NodeAffiliations();
 		}
+	}
+	
+	public static tigase.pubsub.repository.cached.NodeAffiliations create(Queue<UsersAffiliation> data) {
+		tigase.pubsub.repository.cached.NodeAffiliations a = new tigase.pubsub.repository.cached.NodeAffiliations();
+		if (data == null)
+			return a;
+		
+		a.init(data);
+		return a;
 	}
 
 	protected final Map<BareJID, UsersAffiliation> affs = new HashMap<BareJID, UsersAffiliation>();

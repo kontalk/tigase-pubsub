@@ -31,16 +31,26 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import tigase.db.TigaseDBException;
 import tigase.db.UserRepository;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.repository.NodeAffiliations;
+import tigase.pubsub.repository.NodeSubscriptions;
+import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 
@@ -71,8 +81,11 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	private CallableStatement get_item_sp = null;
 	private CallableStatement get_node_affiliations_sp = null;
 	private CallableStatement get_node_configuration_sp = null;
+	private CallableStatement get_node_id_sp = null;
 	private CallableStatement get_node_items_ids_sp = null;
 	private CallableStatement get_node_subscriptions_sp = null;
+	private CallableStatement get_user_affiliations_sp = null;
+	private CallableStatement get_user_subscriptions_sp = null;
 	/**
 	 * Connection validation helper.
 	 */
@@ -84,7 +97,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	private CallableStatement write_item_sp = null;
 
 	public PubSubDAOJDBC( UserRepository repository, PubSubConfig pubSubConfig, final String connection_str ) {
-		super( repository, pubSubConfig );
+		super( repository );
 		this.db_conn = connection_str;
 	}
 
@@ -127,9 +140,9 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void createNode( BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
+	public long createNode( BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 													NodeType nodeType, String collection ) throws RepositoryException {
-
+		long nodeId = 0;
 		ResultSet rs = null;
 		try {
 			String serializedNodeConfig = null;
@@ -153,6 +166,9 @@ public class PubSubDAOJDBC extends PubSubDAO {
 					if ( db_conn.contains( "sqlserver" ) ){
 						create_node_sp.executeUpdate();
 					}
+					if (rs.next()) {
+						nodeId = rs.getLong(1);
+					}
 				}
 			}
 		} catch ( SQLIntegrityConstraintViolationException e ) {
@@ -164,16 +180,16 @@ public class PubSubDAOJDBC extends PubSubDAO {
 			release( null, rs );
 		}
 
+		return nodeId;
 	}
 
 	@Override
-	public void deleteItem( BareJID serviceJid, String nodeName, String id ) throws RepositoryException {
+	public void deleteItem( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized ( delete_item_sp ) {
-				delete_item_sp.setString( 1, serviceJid.toString() );
-				delete_item_sp.setString( 2, nodeName );
-				delete_item_sp.setString( 3, id );
+				delete_item_sp.setLong( 1, nodeId );
+				delete_item_sp.setString( 2, id );
 				delete_item_sp.execute();
 			}
 		} catch ( SQLException e ) {
@@ -182,12 +198,11 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void deleteNode( BareJID serviceJid, String nodeName ) throws RepositoryException {
+	public void deleteNode( BareJID serviceJid, long nodeId ) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized ( remove_node_sp ) {
-				remove_node_sp.setString( 1, serviceJid.toString() );
-				remove_node_sp.setString( 2, nodeName );
+				remove_node_sp.setLong( 1, nodeId );
 				remove_node_sp.execute();
 			}
 		} catch ( SQLException e ) {
@@ -207,57 +222,57 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		super.destroy();
 	}
 
-	protected Date getDateFromItem( BareJID serviceJid, String nodeName, String id, int field ) throws RepositoryException {
+	protected Date getDateFromItem( BareJID serviceJid, long nodeId, String id, int field ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( get_item_sp ) {
-				get_item_sp.setString( 1, serviceJid.toString() );
-				get_item_sp.setString( 2, nodeName );
-				get_item_sp.setString( 3, id );
+				get_item_sp.setLong( 1, nodeId );
+				get_item_sp.setString( 2, id );
 				rs = get_item_sp.executeQuery();
 				if ( rs.next() ){
-					String date = rs.getString( field );
-					if ( date == null ) {
-						return null;
-					}
-					return DateFormat.getDateInstance().parse( date );
+//					String date = rs.getString( field );
+//					if ( date == null ) {
+//						return null;
+//					}
+//					-- po co ten cyrk?
+//					return DateFormat.getDateInstance().parse( date );
+					return rs.getTimestamp( field );
 				}
 				return null;
 			}
 		} catch ( SQLException e ) {
 			throw new RepositoryException( "Item field " + field + " reading error", e );
-		} catch ( ParseException e ) {
-			throw new RepositoryException( "Item field " + field + " parsing error", e );
+//		} catch ( ParseException e ) {
+//			throw new RepositoryException( "Item field " + field + " parsing error", e );
 		} finally {
 			release( null, rs );
 		} // end of catch
 	}
 
 	@Override
-	public Element getItem( BareJID serviceJid, String nodeName, String id ) throws RepositoryException {
-		return itemDataToElement( getStringFromItem( serviceJid, nodeName, id, 1 ).toCharArray() );
+	public Element getItem( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
+		return itemDataToElement( getStringFromItem( serviceJid, nodeId, id, 1 ).toCharArray() );
 	}
 
 	@Override
-	public Date getItemCreationDate( final BareJID serviceJid, final String nodeName, final String id )
+	public Date getItemCreationDate( final BareJID serviceJid, final long nodeId, final String id )
 			throws RepositoryException {
-		return getDateFromItem( serviceJid, nodeName, id, 3 );
+		return getDateFromItem( serviceJid, nodeId, id, 3 );
 	}
 
-	@Override
-	public String getItemPublisher( BareJID serviceJid, String nodeName, String id ) throws RepositoryException {
-		return getStringFromItem( serviceJid, nodeName, id, 2 );
-	}
+//	@Override
+//	public String getItemPublisher( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
+//		return getStringFromItem( serviceJid, nodeId, id, 2 );
+//	}
 
 	@Override
-	public String[] getItemsIds( BareJID serviceJid, String nodeName ) throws RepositoryException {
+	public String[] getItemsIds( BareJID serviceJid, long nodeId ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( get_node_items_ids_sp ) {
-				get_node_items_ids_sp.setString( 1, serviceJid.toString() );
-				get_node_items_ids_sp.setString( 2, nodeName );
+				get_node_items_ids_sp.setLong( 1, nodeId );
 				rs = get_node_items_ids_sp.executeQuery();
 				List<String> ids = new ArrayList<String>();
 				while ( rs.next() ) {
@@ -273,23 +288,47 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public Date getItemUpdateDate( BareJID serviceJid, String nodeName, String id ) throws RepositoryException {
-		return getDateFromItem( serviceJid, nodeName, id, 4 );
+	public Date getItemUpdateDate( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
+		return getDateFromItem( serviceJid, nodeId, id, 4 );
 	}
 
 	@Override
-	public NodeAffiliations getNodeAffiliations( BareJID serviceJid, String nodeName ) throws RepositoryException {
+	public long getNodeId( BareJID serviceJid, String nodeName ) throws RepositoryException {
+		ResultSet rs = null;
+		try {
+			checkConnection();
+			synchronized ( get_node_id_sp ) {
+				get_node_id_sp.setString( 1, serviceJid.toString() );
+				get_node_id_sp.setString( 2, nodeName );
+				rs = get_node_id_sp.executeQuery();
+				if ( rs.next() ) {
+					return rs.getLong(1);
+				}				
+				return 0;
+			}
+		} catch ( SQLException e ) {
+			throw new RepositoryException( "Retrieving node id error", e );
+		}
+		finally {
+			release( null, rs );
+		}
+	}
+	
+	@Override
+	public NodeAffiliations getNodeAffiliations( BareJID serviceJid, long nodeId ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( get_node_affiliations_sp ) {
-				get_node_affiliations_sp.setString( 1, serviceJid.toString() );
-				get_node_affiliations_sp.setString( 2, nodeName );
+				get_node_affiliations_sp.setLong( 1, nodeId );
 				rs = get_node_affiliations_sp.executeQuery();
-				if ( rs.next() ){
-					return NodeAffiliations.create( rs.getString( 1 ) );
+				ArrayDeque<UsersAffiliation> data = new ArrayDeque<UsersAffiliation>();
+				while ( rs.next() ){
+					BareJID jid = BareJID.bareJIDInstanceNS(rs.getString(1));
+					Affiliation affil = Affiliation.valueOf(rs.getString(2));
+					data.offer(new UsersAffiliation(jid, affil));
 				}
-				return null;
+				return NodeAffiliations.create(data);
 			}
 		} catch ( SQLException e ) {
 			throw new RepositoryException( "Node subscribers reading error", e );
@@ -298,6 +337,11 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		} // end of catch
 	}
 
+	@Override
+	public String getNodeConfig(BareJID serviceJid, long nodeId) throws RepositoryException {
+		return readNodeConfigFormData(serviceJid, nodeId);
+	}
+	
 	@Override
 	public String[] getNodesList( BareJID serviceJid ) throws RepositoryException {
 		ResultSet rs = null;
@@ -320,18 +364,22 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public NodeSubscriptions getNodeSubscriptions( BareJID serviceJid, String nodeName ) throws RepositoryException {
+	public NodeSubscriptions getNodeSubscriptions( BareJID serviceJid, long nodeId ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			final NodeSubscriptions ns = NodeSubscriptions.create();
 			checkConnection();
 			synchronized ( get_node_subscriptions_sp ) {
-				get_node_subscriptions_sp.setString( 1, serviceJid.toString() );
-				get_node_subscriptions_sp.setString( 2, nodeName );
+				get_node_subscriptions_sp.setLong( 1, nodeId );
 				rs = get_node_subscriptions_sp.executeQuery();
+				ArrayDeque<UsersSubscription> data = new ArrayDeque<UsersSubscription>();
 				while ( rs.next() ) {
-					ns.parse( rs.getString( 1 ) );
+					BareJID jid = BareJID.bareJIDInstanceNS(rs.getString(1));
+					Subscription subscr = Subscription.valueOf(rs.getString(2));
+					String subscrId = rs.getString(3);
+					data.offer(new UsersSubscription(jid, subscrId, subscr));
 				}
+				ns.init(data);
 				return ns;
 			}
 		} catch ( SQLException e ) {
@@ -350,14 +398,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		return getNodesList( serviceJid );
 	}
 
-	protected String getStringFromItem( BareJID serviceJid, String nodeName, String id, int field ) throws RepositoryException {
+	protected String getStringFromItem( BareJID serviceJid, long nodeId, String id, int field ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( get_item_sp ) {
-				get_item_sp.setString( 1, serviceJid.toString() );
-				get_item_sp.setString( 2, nodeName );
-				get_item_sp.setString( 3, id );
+				get_item_sp.setLong( 1, nodeId );
+				get_item_sp.setString( 2, id );
 				rs = get_item_sp.executeQuery();
 				if ( rs.next() ){
 					return rs.getString( field );
@@ -370,6 +417,53 @@ public class PubSubDAOJDBC extends PubSubDAO {
 			release( null, rs );
 		} // end of catch
 	}
+	
+	@Override
+	public Map<String, UsersAffiliation> getUserAffiliations(BareJID serviceJid, BareJID jid) throws RepositoryException {
+		ResultSet rs = null;
+		try {
+			Map<String, UsersAffiliation> result = new HashMap<String, UsersAffiliation>();
+			synchronized (get_user_affiliations_sp) {
+				get_user_affiliations_sp.setString(1, serviceJid.toString());
+				get_user_affiliations_sp.setString(2, jid.toString());
+				rs = get_user_affiliations_sp.executeQuery();
+				while (rs.next()) {
+					String nodeName = rs.getString(1);
+					Affiliation affil = Affiliation.valueOf(rs.getString(2));
+					result.put(nodeName, new UsersAffiliation(jid, affil));
+				}
+			}
+			return result;
+		} catch (SQLException e) {
+			throw new RepositoryException("User affiliations reading error", e);
+		} finally {
+			release(null, rs);
+		}
+	}
+	
+	@Override
+	public Map<String, UsersSubscription> getUserSubscriptions(BareJID serviceJid, BareJID jid) throws RepositoryException {
+		ResultSet rs = null;
+		try {
+			Map<String, UsersSubscription> result = new HashMap<String, UsersSubscription>();
+			synchronized (get_user_subscriptions_sp) {
+				get_user_subscriptions_sp.setString(1, serviceJid.toString());
+				get_user_subscriptions_sp.setString(2, jid.toString());
+				rs = get_user_subscriptions_sp.executeQuery();
+				while (rs.next()) {
+					String nodeName = rs.getString(1);
+					Subscription subscr = Subscription.valueOf(rs.getString(2));
+					String subscrId = rs.getString(3);
+					result.put(nodeName, new UsersSubscription(jid, subscrId, subscr));
+				}
+			}
+			return result;
+		} catch (SQLException e) {
+			throw new RepositoryException("User affiliations reading error", e);
+		} finally {
+			release(null, rs);
+		}
+	}	
 
 	@Override
 	public void init() throws RepositoryException {
@@ -396,19 +490,22 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		query = "{ call TigPubSubCreateNode(?, ?, ?, ?, ?) }";
 		create_node_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubRemoveNode(?, ?) }";
+		query = "{ call TigPubSubRemoveNode(?) }";
 		remove_node_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubGetItem(?, ?, ?) }";
+		query = "{ call TigPubSubGetNodeId(?, ?) }";
+		get_node_id_sp = conn.prepareCall( query );
+		
+		query = "{ call TigPubSubGetItem(?, ?) }";
 		get_item_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubWriteItem(?, ?, ?, ?, ?) }";
+		query = "{ call TigPubSubWriteItem(?, ?, ?, ?) }";
 		write_item_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubDeleteItem(?, ?, ?) }";
+		query = "{ call TigPubSubDeleteItem(?, ?) }";
 		delete_item_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubGetNodeItemsIds(?, ?) }";
+		query = "{ call TigPubSubGetNodeItemsIds(?) }";
 		get_node_items_ids_sp = conn.prepareCall( query );
 
 		query = "{ call TigPubSubGetAllNodes(?) }";
@@ -417,26 +514,32 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		query = "{ call TigPubSubDeleteAllNodes(?) }";
 		delete_all_nodes_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubSetNodeConfiguration(?, ?, ?) }";
+		query = "{ call TigPubSubSetNodeConfiguration(?, ?) }";
 		set_node_configuration_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubSetNodeAffiliations(?, ?, ?) }";
+		query = "{ call TigPubSubSetNodeAffiliation(?, ?, ?) }";
 		set_node_affiliations_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubGetNodeConfiguration(?, ?) }";
+		query = "{ call TigPubSubGetNodeConfiguration(?) }";
 		get_node_configuration_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubGetNodeAffiliations(?, ?) }";
+		query = "{ call TigPubSubGetNodeAffiliations(?) }";
 		get_node_affiliations_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubGetNodeSubscriptions(?, ?) }";
+		query = "{ call TigPubSubGetNodeSubscriptions(?) }";
 		get_node_subscriptions_sp = conn.prepareCall( query );
 
 		query = "{ call TigPubSubSetNodeSubscriptions(?, ?, ?, ?) }";
 		set_node_subscriptions_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubDeleteNodeSubscriptions(?, ?, ?) }";
+		query = "{ call TigPubSubDeleteNodeSubscription(?, ?) }";
 		delete_node_subscriptions_sp = conn.prepareCall( query );
+				
+		query = "{ call TigPubSubGetUserAffiliations(?, ?) }";
+		get_user_affiliations_sp = conn.prepareCall( query );
+		
+		query = "{ call TigPubSubGetUserSubscriptions(?, ?) }";
+		get_user_subscriptions_sp = conn.prepareCall( query );
 	}
 
 	/**
@@ -453,14 +556,12 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		}
 	}
 
-	@Override
-	protected String readNodeConfigFormData( final BareJID serviceJid, final String nodeName ) throws TigaseDBException {
+	protected String readNodeConfigFormData( final BareJID serviceJid, final long nodeId ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( get_node_configuration_sp ) {
-				get_node_configuration_sp.setString( 1, serviceJid.toString() );
-				get_node_configuration_sp.setString( 2, nodeName );
+				get_node_configuration_sp.setLong( 1, nodeId );
 				rs = get_node_configuration_sp.executeQuery();
 				if ( rs.next() ){
 					return rs.getString( 1 );
@@ -468,7 +569,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				return null;
 			}
 		} catch ( SQLException e ) {
-			throw new TigaseDBException( "Node subscribers reading error", e );
+			throw new RepositoryException( "Node subscribers reading error", e );
 		} finally {
 			release( null, rs );
 		} // end of catch
@@ -504,19 +605,18 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void removeFromRootCollection( BareJID serviceJid, String nodeName ) throws RepositoryException {
+	public void removeFromRootCollection( BareJID serviceJid, long nodeId ) throws RepositoryException {
 		// TODO check it
-		deleteNode( serviceJid, nodeName );
+		deleteNode( serviceJid, nodeId );
 	}
 
 	@Override
-	public void removeSubscriptions( BareJID serviceJid, String nodeName, int changedIndex ) throws RepositoryException {
+	public void removeNodeSubscription( BareJID serviceJid, long nodeId, BareJID jid ) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized ( delete_node_subscriptions_sp ) {
-				delete_node_subscriptions_sp.setString( 1, serviceJid.toString() );
-				delete_node_subscriptions_sp.setString( 2, nodeName );
-				delete_node_subscriptions_sp.setInt( 3, changedIndex );
+				delete_node_subscriptions_sp.setLong( 1, nodeId );
+				delete_node_subscriptions_sp.setString( 2, jid.toString() );
 				delete_node_subscriptions_sp.execute();
 			}
 		} catch ( SQLException e ) {
@@ -525,14 +625,14 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateAffiliations( BareJID serviceJid, String nodeName, String serializedData ) throws RepositoryException {
+	public void updateNodeAffiliation( BareJID serviceJid, long nodeId, UsersAffiliation affiliation ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( set_node_affiliations_sp ) {
-				set_node_affiliations_sp.setString( 1, serviceJid.toString() );
-				set_node_affiliations_sp.setString( 2, nodeName );
-				set_node_affiliations_sp.setString( 3, serializedData );
+				set_node_affiliations_sp.setLong( 1, nodeId );
+				set_node_affiliations_sp.setString( 2, affiliation.getJid().toString() );
+				set_node_affiliations_sp.setString( 3, affiliation.getAffiliation().name() );
 				if ( db_conn != null ){
 					if ( db_conn.contains( "mysql" ) ){
 						rs = set_node_affiliations_sp.executeQuery();
@@ -550,14 +650,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeConfig( final BareJID serviceJid, final String nodeName, final String serializedData )
+	public void updateNodeConfig( final BareJID serviceJid, final long nodeId, final String serializedData )
 			throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( set_node_configuration_sp ) {
-				set_node_configuration_sp.setString( 1, serviceJid.toString() );
-				set_node_configuration_sp.setString( 1, nodeName );
+				set_node_configuration_sp.setLong( 1, nodeId );
 				set_node_configuration_sp.setString( 2, serializedData );
 				if ( db_conn != null ){
 					if ( db_conn.contains( "mysql" ) ){
@@ -576,16 +675,16 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateSubscriptions( BareJID serviceJid, String nodeName, int changedIndex, String serializedData )
+	public void updateNodeSubscription( BareJID serviceJid, long nodeId, UsersSubscription subscription )
 			throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( set_node_subscriptions_sp ) {
-				set_node_subscriptions_sp.setString( 1, serviceJid.toString() );
-				set_node_subscriptions_sp.setString( 2, nodeName );
-				set_node_subscriptions_sp.setInt( 3, changedIndex );
-				set_node_subscriptions_sp.setString( 4, serializedData );
+				set_node_subscriptions_sp.setLong( 1, nodeId );
+				set_node_subscriptions_sp.setString( 2, subscription.getJid().toString() );
+				set_node_subscriptions_sp.setString( 3, subscription.getSubscription().name() );
+				set_node_subscriptions_sp.setString( 4, subscription.getSubid());
 				if ( db_conn != null ){
 					if ( db_conn.contains( "mysql" ) ){
 						rs = set_node_subscriptions_sp.executeQuery();
@@ -603,17 +702,16 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void writeItem( final BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
+	public void writeItem( final BareJID serviceJid, final long nodeId, long timeInMilis, final String id,
 												 final String publisher, final Element item ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
 			synchronized ( write_item_sp ) {
-				write_item_sp.setString( 1, serviceJid.toString() );
-				write_item_sp.setString( 2, nodeName );
-				write_item_sp.setString( 3, id );
-				write_item_sp.setString( 4, publisher );
-				write_item_sp.setString( 5, item.toString() );
+				write_item_sp.setLong( 1, nodeId );
+				write_item_sp.setString( 2, id );
+				write_item_sp.setString( 3, publisher );
+				write_item_sp.setString( 3, item.toString() );
 				if ( db_conn != null ){
 					if ( db_conn.contains( "mysql" ) ){
 						rs = write_item_sp.executeQuery();

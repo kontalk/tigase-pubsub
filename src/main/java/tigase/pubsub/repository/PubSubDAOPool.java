@@ -33,6 +33,11 @@ import tigase.db.UserRepository;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.repository.NodeAffiliations;
+import tigase.pubsub.repository.NodeSubscriptions;
+import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 
@@ -42,11 +47,8 @@ public class PubSubDAOPool extends PubSubDAO {
 
 	private final Map<BareJID, LinkedBlockingQueue<PubSubDAO>> pools = new HashMap<BareJID, LinkedBlockingQueue<PubSubDAO>>();
 
-	// private LinkedBlockingQueue<PubSubDAO> daoPool = new
-	// LinkedBlockingQueue<PubSubDAO>();
-
-	public PubSubDAOPool(UserRepository userRepository, PubSubConfig config) {
-		super(userRepository, config);
+	public PubSubDAOPool(UserRepository userRepository) {
+		super(userRepository);
 	}
 
 	public void addDao(BareJID domain, PubSubDAO dao) {
@@ -73,12 +75,27 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
+	public long createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
+				return dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+			return 0;
+		}
+	}
+
+	@Override
+	public void deleteItem(BareJID serviceJid, long nodeId, String id) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				dao.deleteItem(serviceJid, nodeId, id);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -88,25 +105,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void deleteItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
+	public void deleteNode(BareJID serviceJid, long nodeId) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.deleteItem(serviceJid, nodeName, id);
-			} finally {
-				offerDao(serviceJid, dao);
-			}
-		} else {
-			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
-		}
-	}
-
-	@Override
-	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
-		PubSubDAO dao = takeDao(serviceJid);
-		if (dao != null) {
-			try {
-				dao.deleteNode(serviceJid, nodeName);
+				dao.deleteNode(serviceJid, nodeId);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -120,11 +123,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public Element getItem(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
+	public Element getItem(BareJID serviceJid, long nodeId, String id) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getItem(serviceJid, nodeName, id);
+				return dao.getItem(serviceJid, nodeId, id);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -135,11 +138,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public Date getItemCreationDate(BareJID serviceJid, final String nodeName, final String id) throws RepositoryException {
+	public Date getItemCreationDate(BareJID serviceJid, final long nodeId, final String id) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getItemCreationDate(serviceJid, nodeName, id);
+				return dao.getItemCreationDate(serviceJid, nodeId, id);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -150,11 +153,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public String[] getItemsIds(BareJID serviceJid, String nodeName) throws RepositoryException {
+	public String[] getItemsIds(BareJID serviceJid, long nodeId) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getItemsIds(serviceJid, nodeName);
+				return dao.getItemsIds(serviceJid, nodeId);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -165,11 +168,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public Date getItemUpdateDate(BareJID serviceJid, String nodeName, String id) throws RepositoryException {
+	public Date getItemUpdateDate(BareJID serviceJid, long nodeId, String id) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getItemUpdateDate(serviceJid, nodeName, id);
+				return dao.getItemUpdateDate(serviceJid, nodeId, id);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -180,11 +183,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
+	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, long nodeId) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getNodeAffiliations(serviceJid, nodeName);
+				return dao.getNodeAffiliations(serviceJid, nodeId);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -192,6 +195,36 @@ public class PubSubDAOPool extends PubSubDAO {
 			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
+	}
+	
+	@Override
+	public String getNodeConfig(BareJID serviceJid, long nodeId) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				return dao.getNodeConfig(serviceJid, nodeId);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+			return null;
+		}		
+	}	
+	
+	@Override
+	public long getNodeId(BareJID serviceJid, String nodeName) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				return dao.getNodeId(serviceJid, nodeName);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+			return 0;
+		}		
 	}
 
 	@Override
@@ -210,11 +243,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
+	public NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, long nodeId) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getNodeSubscriptions(serviceJid, nodeName);
+				return dao.getNodeSubscriptions(serviceJid, nodeId);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -257,6 +290,36 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
+	public Map<String, UsersAffiliation> getUserAffiliations(BareJID serviceJid, BareJID jid) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				return dao.getUserAffiliations(serviceJid, jid);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+		}
+		return null;		
+	}
+
+	@Override
+	public Map<String, UsersSubscription> getUserSubscriptions(BareJID serviceJid, BareJID jid) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				return dao.getUserSubscriptions(serviceJid, jid);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+		}
+		return null;
+	}
+	
+	@Override
 	public void init() throws RepositoryException {
 	}
 
@@ -266,8 +329,8 @@ public class PubSubDAOPool extends PubSubDAO {
 		ee.offer(dao);
 	}
 
-	@Override
-	protected String readNodeConfigFormData(BareJID serviceJid, final String nodeName) throws TigaseDBException {
+/*	//@Override
+	protected String readNodeConfigFormData(BareJID serviceJid, final long nodeId) throws TigaseDBException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
@@ -279,7 +342,7 @@ public class PubSubDAOPool extends PubSubDAO {
 			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
-	}
+	}*/
 
 	@Override
 	public void removeAllFromRootCollection(BareJID serviceJid) throws RepositoryException {
@@ -296,11 +359,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
+	public void removeFromRootCollection(BareJID serviceJid, long nodeId) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.removeFromRootCollection(serviceJid, nodeName);
+				dao.removeFromRootCollection(serviceJid, nodeId);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -310,11 +373,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void removeSubscriptions(BareJID serviceJid, String nodeName, int changedIndex) throws RepositoryException {
+	public void removeNodeSubscription(BareJID serviceJid, long nodeId, BareJID jid) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.removeSubscriptions(serviceJid, nodeName, changedIndex);
+				dao.removeNodeSubscription(serviceJid, nodeId, jid);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -335,11 +398,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void updateAffiliations(BareJID serviceJid, String nodeName, String serializedData) throws RepositoryException {
+	public void updateNodeAffiliation(BareJID serviceJid, long nodeId, UsersAffiliation affiliation) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.updateAffiliations(serviceJid, nodeName, serializedData);
+				dao.updateNodeAffiliation(serviceJid, nodeId, affiliation);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -349,12 +412,12 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeConfig(final BareJID serviceJid, final String nodeName, final String serializedData)
+	public void updateNodeConfig(final BareJID serviceJid, final long nodeId, final String serializedData)
 			throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.updateNodeConfig(serviceJid, nodeName, serializedData);
+				dao.updateNodeConfig(serviceJid, nodeId, serializedData);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -364,12 +427,12 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void updateSubscriptions(BareJID serviceJid, String nodeName, int changedIndex, String serializedData)
+	public void updateNodeSubscription(BareJID serviceJid, long nodeId, UsersSubscription subscription)
 			throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.updateSubscriptions(serviceJid, nodeName, changedIndex, serializedData);
+				dao.updateNodeSubscription(serviceJid, nodeId, subscription);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -379,12 +442,12 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void writeItem(final BareJID serviceJid, final String nodeName, long timeInMilis, final String id,
+	public void writeItem(final BareJID serviceJid, long nodeId, long timeInMilis, final String id,
 			final String publisher, final Element item) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.writeItem(serviceJid, nodeName, timeInMilis, id, publisher, item);
+				dao.writeItem(serviceJid, nodeId, timeInMilis, id, publisher, item);
 			} finally {
 				offerDao(serviceJid, dao);
 			}

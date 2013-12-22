@@ -2,6 +2,7 @@ package tigase.pubsub.repository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -162,6 +163,13 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 		return subs.getMap();
 	}
 
+	public void init(Queue<UsersSubscription> data) {
+		UsersSubscription s = null;
+		while ((s = data.poll()) != null) {
+			subs.put(s.getJid(), s);
+		}
+	}
+	
 	/**
 	 * Method description
 	 * 

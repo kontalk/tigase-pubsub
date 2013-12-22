@@ -545,8 +545,7 @@ public class PubSubComponent
 		final String default_cls_name = (String) classNames.get(null);
 
 		if (resUris.size() > 1) {
-			PubSubDAOPool master_dao_pool = new PubSubDAOPool(userRepository, this
-					.componentConfig);
+			PubSubDAOPool master_dao_pool = new PubSubDAOPool(userRepository);
 
 			for (Entry<String, Object> e : resUris.entrySet()) {
 				String domain    = e.getKey();
@@ -561,7 +560,9 @@ public class PubSubComponent
 							? poolSizes.get(domain)
 							: poolSizes.get(null)));
 				} catch (Exception ex) {
-					dao_pool_size = 1;
+					// we should set it at least to 10 to improve performace, 
+					// as previous value (1) was really not enought
+					dao_pool_size = 10;
 				}
 				if (log.isLoggable(Level.FINER)) {
 					log.finer("Creating DAO for domain=" + domain + "; class=" + className +
@@ -571,24 +572,15 @@ public class PubSubComponent
 				PubSubDAO dao;
 
 				if (dao_pool_size > 1) {
-					PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this
-							.componentConfig);
+					PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
 
 					for (int i = 0; i < dao_pool_size; i++) {
-						if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-							dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this
-									.componentConfig, resUri));
-						} else {
-							dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
-						}
+						dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this
+								.componentConfig, resUri));
 					}
 					dao = dao_pool;
 				} else {
-					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-						dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
-					} else {
-						dao = new PubSubDAO(userRepository, this.componentConfig);
-					}
+					dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
 				}
 				if (log.isLoggable(Level.CONFIG)) {
 					log.config("Register DAO for " + ((domain == null)
@@ -612,29 +604,23 @@ public class PubSubComponent
 						? poolSizes.get(domain)
 						: poolSizes.get(null)));
 			} catch (Exception ex) {
-				dao_pool_size = 1;
+				// we should set it at least to 10 to improve performace, 
+				// as previous value (1) was really not enought				
+				dao_pool_size = 10;
 			}
 
 			PubSubDAO dao;
 
 			if (dao_pool_size > 1) {
-				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository, this.componentConfig);
+				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
 
 				for (int i = 0; i < dao_pool_size; i++) {
-					if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-						dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig,
-								resUri));
-					} else {
-						dao_pool.addDao(null, new PubSubDAO(userRepository, this.componentConfig));
-					}
+					dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig,
+							resUri));
 				}
 				dao = dao_pool;
 			} else {
-				if (className.equals("tigase.pubsub.repository.PubSubDAOJDBC")) {
-					dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
-				} else {
-					dao = new PubSubDAO(userRepository, this.componentConfig);
-				}
+				dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
 			}
 
 			return dao;

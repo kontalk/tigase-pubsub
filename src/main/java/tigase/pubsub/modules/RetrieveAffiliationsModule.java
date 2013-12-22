@@ -22,6 +22,7 @@
 
 package tigase.pubsub.modules;
 
+import java.util.Map;
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
@@ -106,24 +107,13 @@ public class RetrieveAffiliationsModule extends AbstractPubSubModule {
 			pubsubResult.addChild(affiliationsResult);
 
 			IPubSubDAO directRepo = this.getRepository().getPubSubDAO();
-			String[] nodes = directRepo.getNodesList(serviceJid);
+			Map<String, UsersAffiliation> userAffiliations = directRepo.getUserAffiliations(serviceJid, senderBareJid);
+			for (Map.Entry<String, UsersAffiliation> entry : userAffiliations.entrySet()) {
+				Affiliation affiliation = entry.getValue().getAffiliation();
+				Element a = new Element("affiliation", new String[]{"node", "affiliation"}, new String[]{
+					entry.getKey(), affiliation.name()});
 
-			if (nodes != null) {
-				for (String node : nodes) {
-					UsersAffiliation[] affilitaions = directRepo.getNodeAffiliations(serviceJid, node).getAffiliations();
-
-					if (affiliations != null) {
-						for (UsersAffiliation usersAffiliation : affilitaions) {
-							if (senderBareJid.equals(usersAffiliation.getJid())) {
-								Affiliation affiliation = usersAffiliation.getAffiliation();
-								Element a = new Element("affiliation", new String[] { "node", "affiliation" }, new String[] {
-										node, affiliation.name() });
-
-								affiliationsResult.addChild(a);
-							}
-						}
-					}
-				}
+				affiliationsResult.addChild(a);
 			}
 
 			packetWriter.write(result);

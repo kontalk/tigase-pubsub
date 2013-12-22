@@ -5,12 +5,13 @@ import tigase.xmpp.BareJID;
 
 public class Node {
 
-	private boolean affNeedsWriting = false;
+	//private boolean affNeedsWriting = false;
 	private boolean conNeedsWriting = false;
 	private long creationTime = System.currentTimeMillis();
 
 	private boolean deleted = false;
 	private String name;
+	private long nodeId;
 
 	// private Long nodeAffiliationsChangeTimestamp;
 
@@ -21,32 +22,38 @@ public class Node {
 	// private Long nodeConfigChangeTimestamp;
 
 	private BareJID serviceJid;
-	private boolean subNeedsWriting = false;
+	//private boolean subNeedsWriting = false;
 
 	// private Long nodeSubscriptionsChangeTimestamp;
 
-	public Node(BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations,
+	public Node(long nodeId, BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations,
 			NodeSubscriptions nodeSubscriptions) {
+		this.nodeId = nodeId;
 		this.serviceJid = serviceJid;
 		this.nodeConfig = nodeConfig;
 		this.nodeAffiliations = nodeAffiliations;
 		this.nodeSubscriptions = nodeSubscriptions;
 		this.name = nodeConfig.getNodeName();
 	}
+	
+	protected long getNodeId() {
+		return nodeId;
+	}
 
 	public void affiliationsMerge() {
 		synchronized (this) {
 			nodeAffiliations.merge();
-			affNeedsWriting = true;
+			//affNeedsWriting = true;
 		}
 	}
 
 	public boolean affiliationsNeedsWriting() {
-		return affNeedsWriting;
+		return nodeAffiliations.isChanged();
 	}
 
 	public void affiliationsSaved() {
-		affNeedsWriting = false;
+	//	affNeedsWriting = false;
+		affiliationsMerge();
 	}
 
 	public void configCopyFrom(AbstractNodeConfig nodeConfig) {
@@ -101,7 +108,7 @@ public class Node {
 	}
 
 	public boolean needsWriting() {
-		return subNeedsWriting || affNeedsWriting || conNeedsWriting;
+		return affiliationsNeedsWriting() || subscriptionsNeedsWriting() || conNeedsWriting;
 	}
 
 	public void setDeleted(boolean deleted) {
@@ -115,7 +122,7 @@ public class Node {
 	public void subscriptionsMerge() {
 		synchronized (this) {
 			nodeSubscriptions.merge();
-			subNeedsWriting = true;
+			//subNeedsWriting = true;
 		}
 	}
 
@@ -132,11 +139,12 @@ public class Node {
 	// }
 
 	public boolean subscriptionsNeedsWriting() {
-		return subNeedsWriting;
+		return nodeSubscriptions.isChanged();
 	}
 
 	public void subscriptionsSaved() {
-		subNeedsWriting = false;
+		//subNeedsWriting = false;
+		this.subscriptionsMerge();
 	}
 
 	// public void setNodeAffiliationsChangeTimestamp() {
