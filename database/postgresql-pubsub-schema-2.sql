@@ -10,7 +10,7 @@ create table tig_pubsub_service_jids (
 	primary key ( service_id )
 );
 
-create unique index tig_pubsub_service_jids_service_jid on tig_pubsub_service_jids using hash ( service_jid );
+create unique index tig_pubsub_service_jids_service_jid on tig_pubsub_service_jids ( service_jid );
 
 -- Table to store jids of node owners, subscribers and affiliates
 create table tig_pubsub_jids (
@@ -20,7 +20,7 @@ create table tig_pubsub_jids (
 	primary key ( jid_id )
 );
 
-create unique index tig_pubsub_jids_jid on tig_pubsub_jids using hash ( jid );
+create unique index tig_pubsub_jids_jid on tig_pubsub_jids ( jid );
 
 -- Table to store nodes configuration
 create table tig_pubsub_nodes (
@@ -28,7 +28,7 @@ create table tig_pubsub_nodes (
 	service_id bigint not null references tig_pubsub_service_jids ( service_id ),
 	name varchar(1024) not null,
 	type int not null,
-	title varchar(1000) not null,
+	title varchar(1000),
 	description text,
 	creator_id bigint references tig_pubsub_jids ( jid_id ),
 	creation_date timestamp,
@@ -39,7 +39,7 @@ create table tig_pubsub_nodes (
 
 create index tig_pubsub_nodes_service_id on tig_pubsub_nodes ( service_id );
 create index tig_pubsub_nodes_name on tig_pubsub_nodes using hash ( name );
-create unique index tig_pubsub_nodes_service_id_name on tig_pubsub_nodes using hash ( service_id, name );
+create unique index tig_pubsub_nodes_service_id_name on tig_pubsub_nodes ( service_id, name );
 
 -- Table to store user nodes affiliations
 create table tig_pubsub_affiliations (
@@ -127,7 +127,7 @@ begin
 	select TigPubSubEnsureJid(_node_creator) into _node_creator_id;
 	insert into tig_pubsub_nodes (service_id,name,"type",creator_id,configuration)
 		values (_service_id, _node_name, _node_type, _node_creator_id, _node_conf);
-	select currval(''tig_pubsub_nodes_node_id'') into _node_id;
+	select currval(''tig_pubsub_nodes_node_id_seq'') into _node_id;
 	return _node_id;
 end;
 ' LANGUAGE 'plpgsql';
@@ -173,6 +173,12 @@ end;
 
 create or replace function TigPubSubDeleteItem(bigint,varchar(1024)) returns void as $$
 	delete from tig_pubsub_items where node_id = $1 and id = $2
+$$ LANGUAGE SQL;
+
+create or replace function TigPubSubGetNodeId(varchar(2049),varchar(1024)) returns table (node_id bigint) as $$
+	select n.node_id from tig_pubsub_nodes n 
+		inner join tig_pubsub_service_jids sj on n.service_id = n.service_id
+		where sj.service_jid = $1 and n.name = $2
 $$ LANGUAGE SQL;
 
 create or replace function TigPubSubGetNodeItemsIds(bigint) returns table (id varchar(1024)) as $$
@@ -225,7 +231,7 @@ begin
 		select 1 into _exists from tig_pubsub_affiliations pa where pa.node_id = _node_id and pa.jid_id = _jid_id;
 	end if;
 	if _affil != ''none'' then
-		if jid_id is null then
+		if _jid_id is null then
 			select TigPubSubEnsureJid(_jid) into _jid_id;
 		end if;
 		if _exists is not null then
@@ -306,6 +312,6 @@ create or replace function TigPubSubGetUserSubscriptions(varchar(2049),varchar(2
 	select n.name, ps.subscription, ps.subscription_id from tig_pubsub_nodes n 
 		inner join tig_pubsub_service_jids sj on sj.service_id = n.service_id
 		inner join tig_pubsub_subscriptions ps on ps.node_id = n.node_id
-		inner join tig_pubsub_jids pj on pj.jid_id = pa.jid_id
+		inner join tig_pubsub_jids pj on pj.jid_id = ps.jid_id
 		where pj.jid = $2 and sj.service_jid = $1
 $$ LANGUAGE SQL;

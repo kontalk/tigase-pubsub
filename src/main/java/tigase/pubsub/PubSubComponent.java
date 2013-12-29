@@ -547,60 +547,18 @@ public class PubSubComponent
 				props);
 		final String default_cls_name = (String) classNames.get(null);
 
-		if (resUris.size() > 1) {
-			PubSubDAOPool master_dao_pool = new PubSubDAOPool(userRepository);
+		
+		
+//		if (resUris.size() > 1) {
+		PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
 
-			for (Entry<String, Object> e : resUris.entrySet()) {
-				String domain    = e.getKey();
-				String resUri    = (String) e.getValue();
-				String className = classNames.containsKey(domain)
-						? (String) classNames.get(domain)
-						: default_cls_name;
-				int    dao_pool_size;
-
-				try {
-					dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
-							? poolSizes.get(domain)
-							: poolSizes.get(null)));
-				} catch (Exception ex) {
-					// we should set it at least to 10 to improve performace, 
-					// as previous value (1) was really not enought
-					dao_pool_size = 10;
-				}
-				if (log.isLoggable(Level.FINER)) {
-					log.finer("Creating DAO for domain=" + domain + "; class=" + className +
-							"; uri=" + resUri + "; poolSize=" + dao_pool_size);
-				}
-
-				PubSubDAO dao;
-
-				if (dao_pool_size > 1) {
-					PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
-
-					for (int i = 0; i < dao_pool_size; i++) {
-						dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this
-								.componentConfig, resUri));
-					}
-					dao = dao_pool;
-				} else {
-					dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
-				}
-				if (log.isLoggable(Level.CONFIG)) {
-					log.config("Register DAO for " + ((domain == null)
-							? "default "
-							: "") + "domain " + ((domain == null)
-							? ""
-							: domain));
-				}
-				master_dao_pool.addDao(BareJID.bareJIDInstanceNS(domain), dao);
-			}
-
-			return master_dao_pool;
-		} else {
-			String domain    = null;
-			String resUri    = (String) resUris.get(null);
-			String className = default_cls_name;
-			int    dao_pool_size;
+		for (Entry<String, Object> e : resUris.entrySet()) {
+			String domain = e.getKey();
+			String resUri = (String) e.getValue();
+			String className = classNames.containsKey(domain)
+					? (String) classNames.get(domain)
+					: default_cls_name;
+			int dao_pool_size;
 
 			try {
 				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
@@ -608,26 +566,60 @@ public class PubSubComponent
 						: poolSizes.get(null)));
 			} catch (Exception ex) {
 				// we should set it at least to 10 to improve performace, 
-				// as previous value (1) was really not enought				
+				// as previous value (1) was really not enought
 				dao_pool_size = 10;
 			}
-
-			PubSubDAO dao;
-
-			if (dao_pool_size > 1) {
-				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
-
-				for (int i = 0; i < dao_pool_size; i++) {
-					dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig,
-							resUri));
-				}
-				dao = dao_pool;
-			} else {
-				dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
+			if (log.isLoggable(Level.FINER)) {
+				log.finer("Creating DAO for domain=" + domain + "; class=" + className
+						+ "; uri=" + resUri + "; poolSize=" + dao_pool_size);
 			}
 
-			return dao;
+			for (int i = 0; i < dao_pool_size; i++) {
+				dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig, resUri));
+			}
+
+			if (log.isLoggable(Level.CONFIG)) {
+				log.config("Registered DAO for " + ((domain == null)
+						? "default "
+						: "") + "domain " + ((domain == null)
+						? ""
+						: domain));
+			}
 		}
+
+		return dao_pool;
+//		} else {
+//			String domain    = null;
+//			String resUri    = (String) resUris.get(null);
+//			String className = default_cls_name;
+//			int    dao_pool_size;
+//
+//			try {
+//				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
+//						? poolSizes.get(domain)
+//						: poolSizes.get(null)));
+//			} catch (Exception ex) {
+//				// we should set it at least to 10 to improve performace, 
+//				// as previous value (1) was really not enought				
+//				dao_pool_size = 10;
+//			}
+//
+//			PubSubDAO dao;
+//
+//			if (dao_pool_size > 1) {
+//				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
+//
+//				for (int i = 0; i < dao_pool_size; i++) {
+//					dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig,
+//							resUri));
+//				}
+//				dao = dao_pool;
+//			} else {
+//				dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
+//			}
+//
+//			return dao;
+//		}
 	}
 
 	//~--- inner classes --------------------------------------------------------

@@ -113,7 +113,7 @@ public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations 
 	private Map<BareJID, UsersAffiliation> changedAffs() {
 		Map<BareJID, UsersAffiliation> changedAffs = this.changedAffs.get();
 		
-		if (changedAffs != null) {
+		if (changedAffs == null) {
 			changedAffs = new HashMap<BareJID, UsersAffiliation>();
 			this.changedAffs.set(changedAffs);
 		}

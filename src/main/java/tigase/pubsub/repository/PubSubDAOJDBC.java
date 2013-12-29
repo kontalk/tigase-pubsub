@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import tigase.db.DataRepository;
 
 import tigase.db.TigaseDBException;
 import tigase.db.UserRepository;
@@ -74,7 +75,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	/**
 	 * Database connection string.
 	 */
-	private String db_conn = null;
+	private String db_conn = null;	
 	private CallableStatement delete_all_nodes_sp = null;
 	private CallableStatement delete_item_sp = null;
 	private CallableStatement delete_node_subscriptions_sp = null;
@@ -162,12 +163,12 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				create_node_sp.setString( 5, serializedNodeConfig );
 
 				if ( db_conn != null ){
-					if ( db_conn.contains( "mysql" ) ){
-						rs = create_node_sp.executeQuery();
-					}
-					if ( db_conn.contains( "sqlserver" ) ){
-						create_node_sp.executeUpdate();
-					}
+//					if ( db_conn.contains( "mysql" ) ){
+					rs = create_node_sp.executeQuery();
+//					}
+//					if ( db_conn.contains( "sqlserver" ) ){
+//						create_node_sp.executeUpdate();
+//					}
 					if (rs.next()) {
 						nodeId = rs.getLong(1);
 					}
@@ -237,7 +238,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 //					if ( date == null ) {
 //						return null;
 //					}
-//					-- po co ten cyrk?
+//					-- why do we need this?
 //					return DateFormat.getDateInstance().parse( date );
 					return rs.getTimestamp( field );
 				}
@@ -557,7 +558,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		query = "{ call TigPubSubGetNodeSubscriptions(?) }";
 		get_node_subscriptions_sp = conn.prepareCall( query );
 
-		query = "{ call TigPubSubSetNodeSubscriptions(?, ?, ?, ?) }";
+		query = "{ call TigPubSubSetNodeSubscription(?, ?, ?, ?) }";
 		set_node_subscriptions_sp = conn.prepareCall( query );
 
 		query = "{ call TigPubSubDeleteNodeSubscription(?, ?) }";
@@ -579,6 +580,17 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	 */
 	private void initRepo() throws SQLException {
 		synchronized ( db_conn ) {
+//			if ( db_conn.startsWith( "jdbc:postgresql" ) ){
+//				database = DataRepository.dbTypes.postgresql;
+//			} else if ( db_conn.startsWith( "jdbc:mysql" ) ){
+//				database = DataRepository.dbTypes.mysql;
+//			} else if ( db_conn.startsWith( "jdbc:derby" ) ){
+//				database = DataRepository.dbTypes.derby;
+//			} else if ( db_conn.startsWith( "jdbc:jtds:sqlserver" ) ){
+//				database = DataRepository.dbTypes.jtds;
+//			} else if ( db_conn.startsWith( "jdbc:sqlserver" ) ){
+//				database = DataRepository.dbTypes.sqlserver;
+//			}			
 			conn = DriverManager.getConnection( db_conn );
 			initPreparedStatements();
 		}
@@ -662,12 +674,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				set_node_affiliations_sp.setString( 2, affiliation.getJid().toString() );
 				set_node_affiliations_sp.setString( 3, affiliation.getAffiliation().name() );
 				if ( db_conn != null ){
-					if ( db_conn.contains( "mysql" ) ){
-						rs = set_node_affiliations_sp.executeQuery();
-					}
-					if ( db_conn.contains( "sqlserver" ) ){
-						set_node_affiliations_sp.executeUpdate();
-					}
+//					if ( db_conn.contains( "mysql" ) ){
+//						rs = set_node_affiliations_sp.executeQuery();
+//					}
+//					if ( db_conn.contains( "sqlserver" ) ){
+//						set_node_affiliations_sp.executeUpdate();
+//					}
+					set_node_affiliations_sp.execute();
 				}
 			}
 		} catch ( SQLException e ) {
@@ -687,12 +700,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				set_node_configuration_sp.setLong( 1, nodeId );
 				set_node_configuration_sp.setString( 2, serializedData );
 				if ( db_conn != null ){
-					if ( db_conn.contains( "mysql" ) ){
-						rs = set_node_configuration_sp.executeQuery();
-					}
-					if ( db_conn.contains( "sqlserver" ) ){
-						set_node_configuration_sp.executeUpdate();
-					}
+//					if ( db_conn.contains( "mysql" ) ){
+//						rs = set_node_configuration_sp.executeQuery();
+//					}
+//					if ( db_conn.contains( "sqlserver" ) ){
+//						set_node_configuration_sp.executeUpdate();
+//					}
+					set_node_configuration_sp.execute();
 				}
 			}
 		} catch ( SQLException e ) {
@@ -714,12 +728,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				set_node_subscriptions_sp.setString( 3, subscription.getSubscription().name() );
 				set_node_subscriptions_sp.setString( 4, subscription.getSubid());
 				if ( db_conn != null ){
-					if ( db_conn.contains( "mysql" ) ){
-						rs = set_node_subscriptions_sp.executeQuery();
-					}
-					if ( db_conn.contains( "sqlserver" ) ){
-						set_node_subscriptions_sp.executeUpdate();
-					}
+//					if ( db_conn.contains( "mysql" ) ){
+//						rs = set_node_subscriptions_sp.executeQuery();
+//					}
+//					if ( db_conn.contains( "sqlserver" ) ){
+//						set_node_subscriptions_sp.executeUpdate();
+//					}
+					set_node_subscriptions_sp.execute();
 				}
 			}
 		} catch ( SQLException e ) {
@@ -739,14 +754,15 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				write_item_sp.setLong( 1, nodeId );
 				write_item_sp.setString( 2, id );
 				write_item_sp.setString( 3, publisher );
-				write_item_sp.setString( 3, item.toString() );
+				write_item_sp.setString( 4, item.toString() );
 				if ( db_conn != null ){
-					if ( db_conn.contains( "mysql" ) ){
-						rs = write_item_sp.executeQuery();
-					}
-					if ( db_conn.contains( "sqlserver" ) ){
-						write_item_sp.executeUpdate();
-					}
+//					if ( db_conn.contains( "mysql" ) ){
+//						rs = write_item_sp.executeQuery();
+//					}
+//					if ( db_conn.contains( "sqlserver" ) ){
+//						write_item_sp.executeUpdate();
+//					}
+					write_item_sp.execute();
 				}
 			}
 		} catch ( SQLException e ) {

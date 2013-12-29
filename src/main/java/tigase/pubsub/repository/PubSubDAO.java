@@ -150,6 +150,9 @@ public abstract class PubSubDAO implements IPubSubDAO {
 	}
 	
 	protected Form parseConfigForm(String cnfData) {
+		if (cnfData == null)
+			return null;
+		
 		char[] data = cnfData.toCharArray();
 		DomBuilderHandler domHandler = new DomBuilderHandler();
 		parser.parse(domHandler, data, 0, data.length);

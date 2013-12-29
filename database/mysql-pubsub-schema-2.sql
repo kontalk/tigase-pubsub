@@ -26,7 +26,7 @@ create table tig_pubsub_nodes (
 	name varchar(1024) not null,
 	name_sha1 char(40) not null,
 	type int not null,
-	title varchar(1000) not null,
+	title varchar(1000),
 	description mediumtext,
 	creator_id bigint,
 	creation_date datetime,
@@ -210,6 +210,15 @@ begin
 	delete from tig_pubsub_items where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;
 end //
 
+drop procedure if exists TigPubSubGetNodeId //
+create procedure TigPubSubGetNodeId(_service_jid varchar(2049), _node_name varchar(1024)) 
+begin
+	select n.node_id from tig_pubsub_nodes n 
+		inner join tig_pubsub_service_jids sj on n.service_id = n.service_id
+		where sj.service_jid_sha1 = SHA1(_service_jid) and n.name_sha1 = SHA1(_node_name)
+			and sj.service_jid = _service_jid and n.name = _node_name;	
+end
+
 drop procedure if exists TigPubSubGetNodeItemIds //
 create procedure TigPubSubGetNodeItemIds(_node_id bigint)
 begin 
@@ -272,7 +281,7 @@ begin
 		select 1 into _exists from tig_pubsub_affiliations pa where pa.node_id = _node_id and pa.jid_id = _jid_id;
 	end if;
 	if _affil != 'none' then
-		if jid_id is null then
+		if _jid_id is null then
 			select TigPubSubEnsureJid(_jid) into _jid_id;
 		end if;
 		if _exists is not null then
@@ -353,7 +362,7 @@ begin
 	select n.name, ps.subscription, ps.subscription_id from tig_pubsub_nodes n 
 		inner join tig_pubsub_service_jids sj on sj.service_id = n.service_id
 		inner join tig_pubsub_subscriptions ps on ps.node_id = n.node_id
-		inner join tig_pubsub_jids pj on pj.jid_id = pa.jid_id
+		inner join tig_pubsub_jids pj on pj.jid_id = ps.jid_id
 		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid) 
 			and pj.jid = _jid and sj.service_jid = _service_jid;
 end //
