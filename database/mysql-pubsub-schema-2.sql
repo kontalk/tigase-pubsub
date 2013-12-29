@@ -216,6 +216,13 @@ begin
 	select id from tig_pubsub_items where node_id = _node_id order by creation_date;
 end //
 
+drop procedure if exists TigPubSubGetNodeItemIdsSince //
+create procedure TigPubSubGetNodeItemIds(_node_id bigint,_since datetime)
+begin 
+	select id from tig_pubsub_items where node_id = _node_id 
+		and creation_date >= _since order by creation_date;
+end //
+
 drop procedure if exists TigPubSubGetAllNodes //
 create procedure TigPubSubGetAllNodes(_service_jid varchar(2049))
 begin

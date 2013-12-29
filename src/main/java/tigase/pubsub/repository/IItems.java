@@ -13,6 +13,8 @@ public interface IItems {
 	public abstract Date getItemCreationDate(String id) throws RepositoryException;
 
 	public abstract String[] getItemsIds() throws RepositoryException;
+	
+	public abstract String[] getItemsIdsSince(Date since) throws RepositoryException;
 
 	public abstract Date getItemUpdateDate(String id) throws RepositoryException;
 

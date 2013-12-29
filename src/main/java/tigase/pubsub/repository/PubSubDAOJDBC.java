@@ -29,6 +29,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayDeque;
@@ -82,6 +83,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	private CallableStatement get_node_affiliations_sp = null;
 	private CallableStatement get_node_configuration_sp = null;
 	private CallableStatement get_node_id_sp = null;
+	private CallableStatement get_node_items_ids_since_sp = null;
 	private CallableStatement get_node_items_ids_sp = null;
 	private CallableStatement get_node_subscriptions_sp = null;
 	private CallableStatement get_user_affiliations_sp = null;
@@ -278,7 +280,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				while ( rs.next() ) {
 					ids.add( rs.getString( 1 ) );
 				}
-				return ids.toArray( new String[ 0 ] );
+				return ids.toArray( new String[ ids.size() ] );
 			}
 		} catch ( SQLException e ) {
 			throw new RepositoryException( "Items list reading error", e );
@@ -287,6 +289,29 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		} // end of catch
 	}
 
+	@Override
+	public String[] getItemsIdsSince( BareJID serviceJid, long nodeId, Date since ) throws RepositoryException {
+		ResultSet rs = null;
+		try {
+			Timestamp sinceTs = new Timestamp(since.getTime());
+			checkConnection();
+			synchronized ( get_node_items_ids_since_sp ) {
+				get_node_items_ids_since_sp.setLong( 1, nodeId );
+				get_node_items_ids_since_sp.setTimestamp(2, sinceTs);
+				rs = get_node_items_ids_since_sp.executeQuery();
+				List<String> ids = new ArrayList<String>();
+				while ( rs.next() ) {
+					ids.add( rs.getString( 1 ) );
+				}
+				return ids.toArray( new String[ ids.size() ] );
+			}
+		} catch ( SQLException e ) {
+			throw new RepositoryException( "Items list reading error", e );
+		} finally {
+			release( null, rs );
+		} // end of catch
+	}
+	
 	@Override
 	public Date getItemUpdateDate( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
 		return getDateFromItem( serviceJid, nodeId, id, 4 );
@@ -507,6 +532,9 @@ public class PubSubDAOJDBC extends PubSubDAO {
 
 		query = "{ call TigPubSubGetNodeItemsIds(?) }";
 		get_node_items_ids_sp = conn.prepareCall( query );
+
+		query = "{ call TigPubSubGetNodeItemsIdsSince(?,?) }";
+		get_node_items_ids_since_sp = conn.prepareCall( query );
 
 		query = "{ call TigPubSubGetAllNodes(?) }";
 		get_all_nodes_sp = conn.prepareCall( query );

@@ -102,6 +102,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.script.Bindings;
+import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 
 /**
  * Class description
@@ -237,6 +238,8 @@ public class PubSubComponent
 				.directPubSubRepository, this.userRepository));
 		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.componentConfig, this
 				.directPubSubRepository, this.pubsubRepository));
+		this.adHocCommandsModule.register(new RetrieveItemsCommand(this.componentConfig, this
+				.pubsubRepository, this.userRepository));
 	}
 
 	protected IPubSubRepository createPubSubRepository(PubSubDAO directRepository) {

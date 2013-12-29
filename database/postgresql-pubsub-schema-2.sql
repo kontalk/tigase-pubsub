@@ -179,6 +179,10 @@ create or replace function TigPubSubGetNodeItemsIds(bigint) returns table (id va
 	select id from tig_pubsub_items where node_id = $1 order by creation_date
 $$ LANGUAGE SQL;
 
+create or replace function TigPubSubGetNodeItemsIdsSince(bigint,timestamp) returns table (id varchar(1024)) as $$
+	select id from tig_pubsub_items where node_id = $1 and creation_date >= $2 order by creation_date
+$$ LANGUAGE SQL;
+
 create or replace function TigPubSubGetAllNodes(varchar(2049)) returns table (name varchar(1024), node_id bigint) as $$
 	select n.name, n.node_id from tig_pubsub_nodes n 
 		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 

@@ -46,6 +46,11 @@ class Items implements IItems {
 	}
 
 	@Override
+	public String[] getItemsIdsSince(Date since) throws RepositoryException {
+		return this.dao.getItemsIdsSince(serviceJid, nodeId, since);
+	}
+	
+	@Override
 	public Date getItemUpdateDate(String id) throws RepositoryException {
 		return this.dao.getItemUpdateDate(serviceJid, nodeId, id);
 	}

@@ -120,6 +120,8 @@ public interface IPubSubDAO {
 
 	String[] getItemsIds(BareJID serviceJid, long nodeId) throws RepositoryException;
 
+	String[] getItemsIdsSince(BareJID serviceJid, long nodeId, Date since) throws RepositoryException;
+	
 	/**
 	 * Method description
 	 * 

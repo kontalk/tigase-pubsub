@@ -168,6 +168,21 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
+	public String[] getItemsIdsSince(BareJID serviceJid, long nodeId, Date since) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				return dao.getItemsIdsSince(serviceJid, nodeId, since);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+		}
+		return null;
+	}	
+	
+	@Override
 	public Date getItemUpdateDate(BareJID serviceJid, long nodeId, String id) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
