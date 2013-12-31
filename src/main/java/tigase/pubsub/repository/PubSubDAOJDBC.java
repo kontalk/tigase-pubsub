@@ -39,10 +39,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import tigase.db.DataRepository;
+import static tigase.db.DataRepository.dbTypes.derby;
+import static tigase.db.DataRepository.dbTypes.jtds;
+import static tigase.db.DataRepository.dbTypes.mysql;
+import static tigase.db.DataRepository.dbTypes.postgresql;
+import static tigase.db.DataRepository.dbTypes.sqlserver;
 
 import tigase.db.TigaseDBException;
 import tigase.db.UserRepository;
+import tigase.db.jdbc.DataRepositoryImpl;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
@@ -75,6 +82,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	/**
 	 * Database connection string.
 	 */
+	private DataRepository.dbTypes database = null;
 	private String db_conn = null;	
 	private CallableStatement delete_all_nodes_sp = null;
 	private CallableStatement delete_item_sp = null;
@@ -102,6 +110,18 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	public PubSubDAOJDBC( UserRepository repository, PubSubConfig pubSubConfig, final String connection_str ) {
 		super( repository );
 		this.db_conn = connection_str;
+
+		if (db_conn.startsWith("jdbc:postgresql")) {
+			database = DataRepository.dbTypes.postgresql;
+		} else if (db_conn.startsWith("jdbc:mysql")) {
+			database = DataRepository.dbTypes.mysql;
+		} else if (db_conn.startsWith("jdbc:derby")) {
+			database = DataRepository.dbTypes.derby;
+		} else if (db_conn.startsWith("jdbc:jtds:sqlserver")) {
+			database = DataRepository.dbTypes.jtds;
+		} else if (db_conn.startsWith("jdbc:sqlserver")) {
+			database = DataRepository.dbTypes.sqlserver;
+		}
 	}
 
 	@Override
@@ -580,17 +600,34 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	 */
 	private void initRepo() throws SQLException {
 		synchronized ( db_conn ) {
-//			if ( db_conn.startsWith( "jdbc:postgresql" ) ){
-//				database = DataRepository.dbTypes.postgresql;
-//			} else if ( db_conn.startsWith( "jdbc:mysql" ) ){
-//				database = DataRepository.dbTypes.mysql;
-//			} else if ( db_conn.startsWith( "jdbc:derby" ) ){
-//				database = DataRepository.dbTypes.derby;
-//			} else if ( db_conn.startsWith( "jdbc:jtds:sqlserver" ) ){
-//				database = DataRepository.dbTypes.jtds;
-//			} else if ( db_conn.startsWith( "jdbc:sqlserver" ) ){
-//				database = DataRepository.dbTypes.sqlserver;
-//			}			
+			String driverClass = null;
+			switch (database) {
+				case postgresql:
+					driverClass = "org.postgresql.Driver";
+					break;
+				case mysql:
+					driverClass = "com.mysql.jdbc.Driver";
+					break;
+				case derby:
+					driverClass = "org.apache.derby.jdbc.EmbeddedDriver";
+					break;
+				case jtds:
+					driverClass = "net.sourceforge.jtds.jdbc.Driver";
+					break;
+				case sqlserver:
+					driverClass = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+					break;
+				default:
+					driverClass = "net.sf.log4jdbc.sql.jdbcapi.DriverSpy";
+					break;
+			}
+			
+			try {
+				Class.forName( driverClass, true, this.getClass().getClassLoader() );
+			} catch ( ClassNotFoundException ex ) {
+				log.log( Level.SEVERE, null, ex );
+			}		
+			
 			conn = DriverManager.getConnection( db_conn );
 			initPreparedStatements();
 		}
