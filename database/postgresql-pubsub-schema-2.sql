@@ -33,6 +33,7 @@ create table tig_pubsub_nodes (
 	creator_id bigint references tig_pubsub_jids ( jid_id ),
 	creation_date timestamp,
 	configuration text,
+	collection_id bigint references tig_pubsub_nodes ( node_id ),
 	
 	primary key ( node_id )
 );
@@ -40,6 +41,7 @@ create table tig_pubsub_nodes (
 create index tig_pubsub_nodes_service_id on tig_pubsub_nodes ( service_id );
 create index tig_pubsub_nodes_name on tig_pubsub_nodes using hash ( name );
 create unique index tig_pubsub_nodes_service_id_name on tig_pubsub_nodes ( service_id, name );
+create index tig_pubsub_nodes_collection_id on tig_pubsub_nodes ( collection_id );
 
 -- Table to store user nodes affiliations
 create table tig_pubsub_affiliations (
@@ -112,21 +114,22 @@ begin
 end;
 ' LANGUAGE 'plpgsql';
 
-create or replace function TigPubSubCreateNode(varchar(2049),varchar(1024),int,varchar(2049),text) returns bigint as '
+create or replace function TigPubSubCreateNode(varchar(2049),varchar(1024),int,varchar(2049),text,bigint) returns bigint as '
 declare
 	_service_jid alias for $1;
 	_node_name alias for $2;
 	_node_type alias for $3;
 	_node_creator alias for $4;
 	_node_conf alias for $5;
+	_collection_id alias for $6;
 	_service_id bigint;
 	_node_creator_id bigint;
 	_node_id bigint;
 begin
 	select TigPubSubEnsureServiceJid(_service_jid) into _service_id;
 	select TigPubSubEnsureJid(_node_creator) into _node_creator_id;
-	insert into tig_pubsub_nodes (service_id,name,"type",creator_id,configuration)
-		values (_service_id, _node_name, _node_type, _node_creator_id, _node_conf);
+	insert into tig_pubsub_nodes (service_id,name,"type",creator_id,configuration,collection_id)
+		values (_service_id, _node_name, _node_type, _node_creator_id, _node_conf, _collection_id);
 	select currval(''tig_pubsub_nodes_node_id_seq'') into _node_id;
 	return _node_id;
 end;
@@ -195,6 +198,19 @@ create or replace function TigPubSubGetAllNodes(varchar(2049)) returns table (na
 		where sj.service_jid = $1
 $$ LANGUAGE SQL;
 
+create or replace function TigPubSubGetRootNodes(varchar(2049)) returns table (name varchar(1024), node_id bigint) as $$
+	select n.name, n.node_id from tig_pubsub_nodes n 
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 
+		where sj.service_jid = $1 and n.collection_id is null
+$$ LANGUAGE SQL;
+
+create or replace function TigPubSubGetChildNodes(varchar(2049),varchar(1024)) returns table (name varchar(1024), node_id bigint) as $$
+	select n.name, n.node_id from tig_pubsub_nodes n 
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
+		inner join tig_pubsub_nodes p on p.node_id = n.collection_id and p.service_id = sj.service_id
+		where sj.service_jid = $1 and p.name = $2
+$$ LANGUAGE SQL;
+
 create or replace function TigPubSubDeleteAllNodes(varchar(2049)) returns void as '
 	delete from tig_pubsub_items where node_id in (
 		select n.node_id from tig_pubsub_nodes n 
@@ -214,8 +230,8 @@ create or replace function TigPubSubDeleteAllNodes(varchar(2049)) returns void a
 			where sj.service_jid = $1);
 ' LANGUAGE SQL;
 
-create or replace function TigPubSubSetNodeConfiguration(bigint,text) returns void as $$
-	update tig_pubsub_nodes set configuration = $2 where node_id = $1
+create or replace function TigPubSubSetNodeConfiguration(bigint,text,bigint) returns void as $$
+	update tig_pubsub_nodes set configuration = $2, collection_id = $3 where node_id = $1
 $$ LANGUAGE SQL;
 
 create or replace function TigPubSubSetNodeAffiliation(bigint,varchar(2049),varchar(20)) returns void as '

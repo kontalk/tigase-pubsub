@@ -69,7 +69,7 @@ public interface IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	public abstract long createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
-			NodeType nodeType, String collection) throws RepositoryException;
+			NodeType nodeType, Long collectionId) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -98,6 +98,8 @@ public interface IPubSubDAO {
 	 */
 	public void destroy();
 
+	String[] getAllNodesList(BareJID serviceJid) throws RepositoryException;
+	
 	String[] getBuddyGroups(BareJID owner, BareJID bareJid) throws RepositoryException;
 
 	String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException;
@@ -170,7 +172,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract String[] getNodesList(BareJID serviceJid) throws RepositoryException;
+	public abstract String[] getNodesList(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, long nodeId) throws RepositoryException;
 
@@ -182,7 +184,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException;
+	public String[] getChildNodes(BareJID serviceJid, String nodeName) throws RepositoryException;
 
 	BareJID[] getUserRoster(BareJID owner) throws RepositoryException;
 
@@ -222,7 +224,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void updateNodeConfig(BareJID serviceJid, final long nodeId, final String serializedData)
+	public abstract void updateNodeConfig(BareJID serviceJid, final long nodeId, final String serializedData, Long collectionId)
 			throws RepositoryException;
 
 	/**

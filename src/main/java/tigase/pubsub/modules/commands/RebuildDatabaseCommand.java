@@ -85,7 +85,7 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 	}
 
 	private void startRebuild(BareJID serviceJid) throws RepositoryException {
-		final String[] allNodesId = dao.getNodesList(serviceJid);
+		final String[] allNodesId = dao.getAllNodesList(serviceJid);
 		final Set<String> rootCollection = new HashSet<String>();
 		final Map<String, AbstractNodeConfig> nodeConfigs = new HashMap<String, AbstractNodeConfig>();
 		for (String nodeName : allNodesId) {
@@ -123,7 +123,9 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 			final AbstractNodeConfig nodeConfig = entry.getValue();
 			final String nodeName = entry.getKey();
 			long nodeId = dao.getNodeId(serviceJid, nodeName);
-			dao.updateNodeConfig(serviceJid, nodeId, nodeConfig.getFormElement().toString());
+			long collectionId = dao.getNodeId(serviceJid, nodeConfig.getCollection());
+			dao.updateNodeConfig(serviceJid, nodeId, nodeConfig.getFormElement().toString(),
+					collectionId == 0 ? null : collectionId);
 		}
 
 		dao.removeAllFromRootCollection(serviceJid);

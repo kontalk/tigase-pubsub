@@ -36,7 +36,7 @@ public class Node {
 		this.name = nodeConfig.getNodeName();
 	}
 	
-	protected long getNodeId() {
+	public long getNodeId() {
 		return nodeId;
 	}
 

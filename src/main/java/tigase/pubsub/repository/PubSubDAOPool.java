@@ -76,11 +76,11 @@ public class PubSubDAOPool extends PubSubDAO {
 
 	@Override
 	public long createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
-			NodeType nodeType, String collection) throws RepositoryException {
+			NodeType nodeType, Long collectionId) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
+				return dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collectionId);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -122,6 +122,21 @@ public class PubSubDAOPool extends PubSubDAO {
 	public void destroy() {
 	}
 
+	@Override
+	public String[] getAllNodesList(BareJID serviceJid) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				return dao.getAllNodesList(serviceJid);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+		}
+		return null;
+	}
+	
 	@Override
 	public Element getItem(BareJID serviceJid, long nodeId, String id) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
@@ -243,11 +258,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public String[] getNodesList(BareJID serviceJid) throws RepositoryException {
+	public String[] getNodesList(BareJID serviceJid, String nodeName) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getNodesList(serviceJid);
+				return dao.getNodesList(serviceJid, nodeName);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -290,11 +305,11 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public String[] getRootNodes(BareJID serviceJid) throws RepositoryException {
+	public String[] getChildNodes(BareJID serviceJid, String nodeName) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				return dao.getRootNodes(serviceJid);
+				return dao.getChildNodes(serviceJid, nodeName);
 			} finally {
 				offerDao(serviceJid, dao);
 			}
@@ -427,12 +442,12 @@ public class PubSubDAOPool extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeConfig(final BareJID serviceJid, final long nodeId, final String serializedData)
+	public void updateNodeConfig(final BareJID serviceJid, final long nodeId, final String serializedData, final Long collectionId)
 			throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
 		if (dao != null) {
 			try {
-				dao.updateNodeConfig(serviceJid, nodeId, serializedData);
+				dao.updateNodeConfig(serviceJid, nodeId, serializedData, collectionId);
 			} finally {
 				offerDao(serviceJid, dao);
 			}

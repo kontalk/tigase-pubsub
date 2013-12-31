@@ -95,8 +95,17 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					}
 
 					if (node.configNeedsWriting()) {
+						String collection = node.getNodeConfig().getCollection();
+						Long collectionId = null;
+						if (collection != null && !collection.equals("")) {
+							collectionId = dao.getNodeId(node.getServiceJid(), collection);
+							if (collectionId == 0) {
+								throw new RepositoryException("Parent collection does not exists yet!");
+							}							
+						}						
 						dao.updateNodeConfig(node.getServiceJid(), node.getNodeId(),
-								node.getNodeConfig().getFormElement().toString());
+								node.getNodeConfig().getFormElement().toString(), 
+								collectionId);
 						node.configSaved();
 					}
 				} catch (Exception e) {
@@ -323,8 +332,15 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 		long start = System.currentTimeMillis();
-
-		long nodeId = this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
+		Long collectionId = null;
+		if (collection != null && !collection.equals("")) {
+			collectionId = this.dao.getNodeId(serviceJid, collection);
+			if (collectionId == 0) {
+				throw new RepositoryException("Parent collection does not exists yet!");
+			}
+		}
+		
+		long nodeId = this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collectionId);
 
 		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create((Queue<UsersAffiliation>) null);
 		NodeSubscriptions nodeSubscriptions = tigase.pubsub.repository.NodeSubscriptions.create();
@@ -461,7 +477,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		return node;
 	}
-
+	
 	/**
 	 * Method description
 	 * 
@@ -578,7 +594,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					rootCollection = oldRootCollection;
 				}
 			}
-			String[] x = dao.getRootNodes(serviceJid);
+			String[] x = dao.getChildNodes(serviceJid, null);
 
 			if (rootCollection == null) {
 				rootCollection = new HashSet<String>();

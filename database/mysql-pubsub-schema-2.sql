@@ -31,12 +31,14 @@ create table if not exists tig_pubsub_nodes (
 	creator_id bigint,
 	creation_date datetime,
 	configuration mediumtext,
-	
+	collection_id bigint,
+
 	primary key ( node_id ),
 	index using hash ( service_id ),
 	index using hash ( name(255) ),
 	index using hash ( service_id, name(255) ),
 	unique index using hash ( service_id, name_sha1(40) ),
+	index using hash ( collection_id ),
 
 	constraint
 		foreign key ( service_id )
@@ -46,6 +48,10 @@ create table if not exists tig_pubsub_nodes (
 	constraint
 		foreign key ( creator_id )
 		references tig_pubsub_jids ( jid_id )
+		match full,
+	constraint
+		foreign key ( collection_id )
+		references tig_pubsub_nodes ( node_id )
 		match full
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
@@ -161,7 +167,7 @@ end //
 
 drop procedure if exists TigPubSubCreateNode //
 create procedure TigPubSubCreateNode(_service_jid varchar(2049), _node_name varchar(1024), _node_type int, 
-	_node_creator varchar(2049), _node_conf text) 
+	_node_creator varchar(2049), _node_conf text, _collection_id bigint) 
 begin
 	declare _service_id bigint;
 	declare _node_creator_id bigint;
@@ -169,8 +175,8 @@ begin
 
 	select TigPubSubEnsureServiceJid(_service_jid) into _service_id;
 	select TigPubSubEnsureJid(_node_creator) into _node_creator_id;
-	insert into tig_pubsub_nodes (service_id,name,name_sha1,`type`,creator_id,configuration)
-		values (_service_id, _node_name, SHA1(_node_name), _node_type, _node_creator_id, _node_conf);
+	insert into tig_pubsub_nodes (service_id,name,name_sha1,`type`,creator_id,configuration,collection_id)
+		values (_service_id, _node_name, SHA1(_node_name), _node_type, _node_creator_id, _node_conf, _collection_id);
 	select LAST_INSERT_ID() into _node_id;	
 	select _node_id as node_id;
 end //
@@ -240,6 +246,25 @@ begin
 		where sj.service_jid_sha1 = SHA1(_service_jid) and sj.service_jid = _service_jid;
 end //
 
+drop procedure if exists TigPubSubGetRootNodes //
+create procedure TigPubSubGetRootNodes(_service_jid varchar(2049))
+begin
+	select n.name, n.node_id from tig_pubsub_nodes n 
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 
+		where sj.service_jid_sha1 = SHA1(_service_jid) and sj.service_jid = _service_jid
+			and n.collection_id is null;
+end //
+
+drop procedure if exists TigPubSubGetChildNodes //
+create procedure TigPubSubGetChildNodes(_service_jid varchar(2049),_node_name varchar(1024))
+begin
+	select n.name, n.node_id from tig_pubsub_nodes n 
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 
+		inner join tig_pubsub_nodes p on p.node_id = n.collection_id and p.service_id = sj.service_id
+		where sj.service_jid_sha1 = SHA1(_service_jid) and p.name_sha1 = SHA1(_node_name)
+			and sj.service_jid = _service_jid and p.name = _node_name;
+end //
+
 drop procedure if exists TigPubSubDeleteAllNodes //
 create procedure TigPubSubDeleteAllNodes(_service_jid varchar(2049))
 begin
@@ -264,9 +289,9 @@ begin
 end //
 
 drop procedure if exists TigPubSubSetNodeConfiguration //
-create procedure TigPubSubSetNodeConfiguration(_node_id bigint, _node_conf mediumtext)
+create procedure TigPubSubSetNodeConfiguration(_node_id bigint, _node_conf mediumtext, _collection_id bigint)
 begin
-	update tig_pubsub_nodes set configuration = _node_conf where node_id = _node_id;
+	update tig_pubsub_nodes set configuration = _node_conf, collection_id = _collection_id where node_id = _node_id;
 end //
 
 
