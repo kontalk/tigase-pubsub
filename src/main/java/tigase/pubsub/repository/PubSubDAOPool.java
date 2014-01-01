@@ -23,6 +23,7 @@ package tigase.pubsub.repository;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -196,6 +197,21 @@ public class PubSubDAOPool extends PubSubDAO {
 		}
 		return null;
 	}	
+	
+	@Override
+	public List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, long nodeId, String nodeName) throws RepositoryException {
+		PubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				return dao.getItemsMeta(serviceJid, nodeId, nodeName);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+		}
+		return null;
+	}
 	
 	@Override
 	public Date getItemUpdateDate(BareJID serviceJid, long nodeId, String id) throws RepositoryException {

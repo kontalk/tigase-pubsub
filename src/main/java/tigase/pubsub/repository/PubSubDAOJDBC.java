@@ -95,6 +95,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	private CallableStatement get_node_id_sp = null;
 	private CallableStatement get_node_items_ids_since_sp = null;
 	private CallableStatement get_node_items_ids_sp = null;
+	private CallableStatement get_node_items_meta_sp = null;
 	private CallableStatement get_node_subscriptions_sp = null;
 	private CallableStatement get_root_nodes_sp = null;
 	private CallableStatement get_user_affiliations_sp = null;
@@ -361,6 +362,30 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 	
 	@Override
+	public List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, long nodeId, String nodeName) 
+			throws RepositoryException {
+		ResultSet rs = null;
+		try {
+			checkConnection();
+			synchronized ( get_node_items_meta_sp ) {
+				get_node_items_meta_sp.setLong( 1, nodeId );
+				rs = get_node_items_meta_sp.executeQuery();
+				List<IItems.ItemMeta> results = new ArrayList<IItems.ItemMeta>();
+				while ( rs.next() ) {
+					String id = rs.getString(1);
+					Date creationDate = rs.getTimestamp(2);
+					results.add(new IItems.ItemMeta(nodeName, id, creationDate));
+				}
+				return results;
+			}
+		} catch ( SQLException e ) {
+			throw new RepositoryException( "Items list reading error", e );
+		} finally {
+			release( null, rs );
+		} // end of catch
+	}
+	
+	@Override
 	public Date getItemUpdateDate( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
 		return getDateFromItem( serviceJid, nodeId, id, 4 );
 	}
@@ -598,6 +623,9 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		query = "{ call TigPubSubGetNodeItemsIdsSince(?,?) }";
 		get_node_items_ids_since_sp = conn.prepareCall( query );
 
+		query = "{ call TigPubSubGetNodeItemsMeta(?) }";
+		get_node_items_meta_sp = conn.prepareCall( query );
+		
 		query = "{ call TigPubSubGetAllNodes(?) }";
 		get_all_nodes_sp = conn.prepareCall( query );
 		

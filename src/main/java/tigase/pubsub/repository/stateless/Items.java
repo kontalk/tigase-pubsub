@@ -1,6 +1,7 @@
 package tigase.pubsub.repository.stateless;
 
 import java.util.Date;
+import java.util.List;
 
 import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.IPubSubDAO;
@@ -48,6 +49,11 @@ class Items implements IItems {
 	@Override
 	public String[] getItemsIdsSince(Date since) throws RepositoryException {
 		return this.dao.getItemsIdsSince(serviceJid, nodeId, since);
+	}
+
+	@Override
+	public List<ItemMeta> getItemsMeta() throws RepositoryException {
+		return this.dao.getItemsMeta(serviceJid, nodeId, nodeName);
 	}
 	
 	@Override

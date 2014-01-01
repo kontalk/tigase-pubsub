@@ -331,3 +331,8 @@ create or replace function TigPubSubGetUserSubscriptions(varchar(2049),varchar(2
 		inner join tig_pubsub_jids pj on pj.jid_id = ps.jid_id
 		where pj.jid = $2 and sj.service_jid = $1
 $$ LANGUAGE SQL;
+
+create or replace function TigPubSubGetNodeItemsMeta(bigint)
+		returns table (id varchar(1024), creation_date timestamp) as $$
+	select id, creation_date from tig_pubsub_items where node_id = $1 order by creation_date
+$$ LANGUAGE SQL;

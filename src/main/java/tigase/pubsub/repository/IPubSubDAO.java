@@ -23,6 +23,7 @@
 package tigase.pubsub.repository;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import tigase.pubsub.AbstractNodeConfig;
@@ -123,6 +124,9 @@ public interface IPubSubDAO {
 	String[] getItemsIds(BareJID serviceJid, long nodeId) throws RepositoryException;
 
 	String[] getItemsIdsSince(BareJID serviceJid, long nodeId, Date since) throws RepositoryException;
+
+	List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, long nodeId, String nodeName)
+			throws RepositoryException;
 	
 	/**
 	 * Method description

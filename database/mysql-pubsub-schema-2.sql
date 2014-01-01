@@ -391,3 +391,9 @@ begin
 		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid) 
 			and pj.jid = _jid and sj.service_jid = _service_jid;
 end //
+
+drop procedure if exists TigPubSubGetNodeItemsMeta //
+create procedure TigPubSubGetNodeItemsMeta(_node_id bigint)
+begin
+	select id, creation_date from tig_pubsub_items where node_id = _node_id order by creation_date;	
+end //
