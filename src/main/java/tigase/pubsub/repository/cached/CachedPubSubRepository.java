@@ -368,8 +368,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
 		Node node = this.nodes.get(key);
-
-		this.dao.deleteNode(node.getServiceJid(), node.getNodeId());
+		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+		this.dao.deleteNode(serviceJid, nodeId);
 
 		if (node != null) {
 			node.setDeleted(true);
