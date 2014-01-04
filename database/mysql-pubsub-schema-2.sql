@@ -268,24 +268,17 @@ end //
 drop procedure if exists TigPubSubDeleteAllNodes //
 create procedure TigPubSubDeleteAllNodes(_service_jid varchar(2049))
 begin
-	declare _service_jid_sha1 char(40);
-	select SHA1(_service_jid) into _service_jid_sha1;
+	declare _service_id bigint;
+	select service_id into _service_id from tig_pubsub_service_jids 
+		where service_jid_sha1 = SHA1(_service_jid) and service_jid = _service_jid;
 	delete from tig_pubsub_items where node_id in (
-		select n.node_id from tig_pubsub_nodes n 
-			inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
-			where sj.service_jid_sha1 = _service_jid_sha1 and sj.service_jid = $1);
+		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
 	delete from tig_pubsub_affiliations where node_id in (
-		select n.node_id from tig_pubsub_nodes n 
-			inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
-			where sj.service_jid_sha1 = _service_jid_sha1 and sj.service_jid = $1);
+		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
 	delete from tig_pubsub_subscriptions where node_id in (
-		select n.node_id from tig_pubsub_nodes n 
-			inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
-			where sj.service_jid_sha1 = _service_jid_sha1 and sj.service_jid = $1);
+		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
 	delete from tig_pubsub_nodes where node_id in (
-		select n.node_id from tig_pubsub_nodes n 
-			inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
-			where sj.service_jid_sha1 = _service_jid_sha1 and sj.service_jid = $1);
+		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
 end //
 
 drop procedure if exists TigPubSubSetNodeConfiguration //
