@@ -264,7 +264,7 @@ begin
     UPDATE tig_pubsub_items
 		SET publisher_id = @_publisher_id, data = @_item_data, update_date = getdate()
 		WHERE tig_pubsub_items.node_id = @_node_id 
-			and tig_pubsub_items.id_index = CAST(@_item_id as nvarchar)
+			and tig_pubsub_items.id_index = CAST(@_item_id as nvarchar(255))
 			and tig_pubsub_items.id = @_item_id;
 	-- Insert the row if the UPDATE statement failed.	
 	IF (@@ROWCOUNT = 0 )
@@ -575,5 +575,34 @@ create procedure dbo.TigPubSubGetNodeItemsMeta
 AS
 begin
 	select id, creation_date from tig_pubsub_items where node_id = @_node_id order by creation_date;	
+end
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubFixNode')
+	DROP PROCEDURE TigPubSubFixNode
+GO
+
+create procedure dbo.TigPubSubFixNode
+	@_node_id bigint,
+	@_creation_date datetime
+AS
+begin
+	update tig_pubsub_nodes set creation_date = @_creation_date where node_id = @_node_id;
+end
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubFixItem')
+	DROP PROCEDURE TigPubSubFixItem
+GO
+
+create procedure dbo.TigPubSubFixitem
+	@_node_id bigint,
+	@_item_id nvarchar(1024),
+	@_creation_date datetime,
+	@_update_date datetime
+AS
+begin
+	update tig_pubsub_items set creation_date = @_creation_date, update_date = @_update_date
+		where node_id = @_node_id and id_index = CAST(@_item_id as NVARCHAR(255)) and item_id = @_item_id;
 end
 GO

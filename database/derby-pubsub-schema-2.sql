@@ -236,3 +236,17 @@ create procedure TigPubSubGetNodeItemsMeta(node_id bigint)
 	READS SQL DATA
 	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubGetNodeItemsMeta';
+
+create procedure TigPubSubFixNode(node_id bigint, creation_date timestamp)
+	PARAMETER STYLE JAVA
+	LANGUAGE JAVA
+	MODIFIES SQL DATA
+	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubFixNode';
+
+create procedure TigPubSubFixItem(node_id bigint, item_id varchar(1024),
+	creation_date timestamp, update_date timestamp)
+	PARAMETER STYLE JAVA
+	LANGUAGE JAVA
+	MODIFIES SQL DATA
+	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubFixItem';
+

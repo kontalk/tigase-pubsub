@@ -615,4 +615,57 @@ public class StoredProcedures {
 			conn.close();
 		}			
 	}		
+	
+	public static void tigPubSubFixNode(Long nodeId, java.sql.Timestamp creationDate) throws SQLException {
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+
+		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+
+		try {
+			PreparedStatement ps = conn.prepareStatement("update tig_pubsub_nodes set creation_date = ?"
+					+ " where node_id = ?");
+			if (creationDate == null)
+				ps.setNull(1, java.sql.Types.TIMESTAMP);
+			else
+				ps.setTimestamp(1, creationDate);
+			ps.setLong(2, nodeId);
+			ps.executeUpdate();
+		} catch (SQLException e) {
+			// e.printStackTrace();
+			// log.log(Level.SEVERE, "SP error", e);
+			throw e;
+		} finally {
+			conn.close();
+		}				
+	}
+	
+	public static void tigPubSubFixItem(Long nodeId, String itemId, java.sql.Timestamp creationDate, 
+			java.sql.Timestamp updateDate) throws SQLException {
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+
+		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+
+		try {
+			PreparedStatement ps = conn.prepareStatement("update tig_pubsub_items set creation_date = ?,"
+					+ " update_date = ? where node_id = ? and id = ?");
+			if (creationDate == null)
+				ps.setNull(1, java.sql.Types.TIMESTAMP);
+			else
+				ps.setTimestamp(1, creationDate);
+			if (updateDate == null)
+				ps.setNull(2, java.sql.Types.TIMESTAMP);
+			else
+				ps.setTimestamp(2, updateDate);
+			ps.setLong(3, nodeId);
+			ps.setString(4, itemId);
+			ps.executeUpdate();
+		} catch (SQLException e) {
+			// e.printStackTrace();
+			// log.log(Level.SEVERE, "SP error", e);
+			throw e;
+		} finally {
+			conn.close();
+		}						
+	}
+	
 }

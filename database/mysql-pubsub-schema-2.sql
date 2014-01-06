@@ -390,3 +390,17 @@ create procedure TigPubSubGetNodeItemsMeta(_node_id bigint)
 begin
 	select id, creation_date from tig_pubsub_items where node_id = _node_id order by creation_date;	
 end //
+
+drop procedure if exists TigPubSubFixNode //
+create procedure TigPubSubFixNode(_node_id bigint, _node_creation_date datetime)
+begin
+	update tig_pubsub_nodes set creation_date = _node_creation_date where node_id = _node_id;
+end //
+
+drop procedure if exists TigPubSubFixItem //
+create procedure TigPubSubFixItem(_node_id bigint, _item_id varchar(1024), 
+	_creation_date datetime, _update_date datetime)
+begin
+	update tig_pubsub_items set creation_date = _creation_date, update_date = _update_date
+		where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;
+end //

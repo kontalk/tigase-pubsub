@@ -47,17 +47,12 @@ import static tigase.db.DataRepository.dbTypes.mysql;
 import static tigase.db.DataRepository.dbTypes.postgresql;
 import static tigase.db.DataRepository.dbTypes.sqlserver;
 
-import tigase.db.TigaseDBException;
 import tigase.db.UserRepository;
-import tigase.db.jdbc.DataRepositoryImpl;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
-import tigase.pubsub.repository.NodeAffiliations;
-import tigase.pubsub.repository.NodeSubscriptions;
-import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.xml.Element;
@@ -68,7 +63,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	/**
 	 * Database active connection.
 	 */
-	private Connection conn = null;
+	protected Connection conn = null;
 	/**
 	 * Prepared statement for testing whether database connection is still
 	 * working. If not connection to database is recreated.
@@ -253,6 +248,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		super.destroy();
 	}
 
+	@Override
 	public String[] getAllNodesList( BareJID serviceJid) throws RepositoryException {
 		ResultSet rs = null;
 		try {

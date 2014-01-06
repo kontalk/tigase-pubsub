@@ -336,3 +336,11 @@ create or replace function TigPubSubGetNodeItemsMeta(bigint)
 		returns table (id varchar(1024), creation_date timestamp) as $$
 	select id, creation_date from tig_pubsub_items where node_id = $1 order by creation_date
 $$ LANGUAGE SQL;
+
+create or replace function TigPubSubFixNode(bigint,timestamp) returns void as $$
+	update tig_pubsub_nodes set creation_date = $2 where node_id = $1
+$$ LANGUAGE SQL;
+
+create or replace function TigPubSubFixItem(bigint,varchar(1024),timestamp,timestamp) returns void as $$
+	update tig_pubsub_items set creation_date = $3, update_date = $4 where node_id = $1 and id = $2
+$$ LANGUAGE SQL;
