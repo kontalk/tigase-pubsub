@@ -119,5 +119,5 @@ public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations 
 		}
 		
 		return changedAffs;
-	}
+	}	
 }

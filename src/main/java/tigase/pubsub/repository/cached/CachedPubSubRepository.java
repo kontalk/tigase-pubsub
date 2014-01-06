@@ -24,9 +24,6 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
-import tigase.pubsub.repository.cached.Node;
-import tigase.pubsub.repository.cached.NodeAffiliations;
-import tigase.pubsub.repository.cached.NodeSubscriptions;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
@@ -44,7 +41,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	private class NodeSaver {
 
-		public void save(Node node) {
+		public void save(Node node) throws RepositoryException {
 			long start = System.currentTimeMillis();
 
 			++repo_writes;
@@ -108,8 +105,15 @@ public class CachedPubSubRepository implements IPubSubRepository {
 								collectionId);
 						node.configSaved();
 					}
-				} catch (Exception e) {
+				} catch (Exception e) {					
 					log.log(Level.WARNING, "Problem saving pubsub data: ", e);
+					// if we receive an exception here, I think we should clear any unsaved
+					// changes (at least for affiliations and subscriptions) and propagate 
+					// this exception to higher layer to return proper error response 
+					//
+					// should we do the same for configuration?
+					node.resetChanges(); 
+					throw new RepositoryException("Problem saving pubsub data", e);
 				}
 
 				// If the node still needs writing to the database put

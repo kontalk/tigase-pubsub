@@ -162,4 +162,9 @@ public class Node {
 	// nodeSubscriptionsChangeTimestamp = System.currentTimeMillis();
 	// }
 
+	public void resetChanges() {
+		nodeAffiliations.resetChangedFlag();
+		nodeSubscriptions.resetChangedFlag();
+	}
+	
 }
