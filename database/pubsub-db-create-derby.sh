@@ -7,6 +7,6 @@
 java -Dij.protocol=jdbc:derby: -Dij.database="$1;create=true" \
 		-Dderby.system.home=`pwd` \
 		-cp jars/derby.jar:jars/derbytools.jar:jars/tigase-server.jar:jars/tigase-pubsub.jar \
-		org.apache.derby.tools.ij database/derby-pubsub-schema-2.sql &> derby-db-create.txt
+		org.apache.derby.tools.ij database/derby-pubsub-schema-3.0.0.sql &> derby-db-create.txt
 
 echo -e "\n\n\nconfiguration:\n\nJDBC URI: jdbc:derby:$1\n\n"
