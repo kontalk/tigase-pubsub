@@ -55,6 +55,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
+import tigase.server.XMPPServer;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 
@@ -105,6 +106,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	private CallableStatement set_node_subscriptions_sp = null;
 	private CallableStatement write_item_sp = null;
 
+	private boolean schemaOk = false;
+	
 	public PubSubDAOJDBC( UserRepository repository, PubSubConfig pubSubConfig, final String connection_str ) {
 		super( repository );
 		this.db_conn = connection_str;
@@ -573,6 +576,47 @@ public class PubSubDAOJDBC extends PubSubDAO {
 		}
 	}	
 
+	private void checkSchema() {
+		if (schemaOk)
+			return;
+		
+		try {
+			CallableStatement testCall = conn.prepareCall("{ call TigPubSubGetNodeId(?,?) }");
+			testCall.setString(1, "tigase-pubsub");
+			testCall.setString(2, "tigase-pubsub");
+			testCall.execute();
+			testCall.close();
+			schemaOk = true;
+		} catch (Exception ex) {
+			String[] msg = {
+				"",
+				"  ---------------------------------------------",
+				"  ERROR! Terminating the server process.",
+				"  PubSub Component is not compatible with",
+				"  database schema which exists in",
+				"  " + db_conn,
+				"  This component uses newer schema. To continue",
+				"  use of currently deployed schema, please use",
+				"  older version of PubSub Component.",
+				"  To convert database to new schema please see:",
+				"  https://projects.tigase.org/projects/tigase-pubsub/wiki/PubSub_database_schema_conversion"
+			};
+			if (XMPPServer.isOSGi()) {
+				// for some reason System.out.println is not working in OSGi
+				for (String line : msg) {
+					log.log(Level.SEVERE, line);
+				}
+			}
+			else {
+				for (String line : msg) {
+					System.out.println(msg);
+				}
+			}
+			
+			System.exit(1);
+		}		
+	}
+	
 	@Override
 	public void init() throws RepositoryException {
 		try {
@@ -700,6 +744,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 			}		
 			
 			conn = DriverManager.getConnection( db_conn );
+			checkSchema();			
 			initPreparedStatements();
 		}
 	}
