@@ -133,7 +133,9 @@
 			<resource>
 				<directory>database</directory>
 				<includes>
-					<include>**/*.sql</include>
+					<include>**/*3.0.0*.sql</include>
+					<include>**/*.sh</include>
+					<include>**/*.txt</include>
 				</includes>
 			</resource>
 			<resource>
