@@ -1,3 +1,84 @@
+-- QUERY START:
+drop function if exists TigPubSubEnsureServiceJid;
+-- QUERY END:
+-- QUERY START:
+drop function if exists TigPubSubEnsureJid;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubCreateNode;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubRemoveNode;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetItem;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubWriteItem;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubDeleteItem;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetNodeId;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetNodeItemsIdsSince;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetAllNodes;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetNodeItemsIds;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetRootNodes;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetChildNodes;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubDeleteAllNodes;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubSetNodeConfiguration;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubSetNodeAffiliation;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetNodeConfiguration;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetNodeAffiliations;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetNodeSubscriptions;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubSetNodeSubscription;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubDeleteNodeSubscription;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetUserAffiliations;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetUserSubscriptions;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubGetNodeItemsMeta;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubFixNode;
+-- QUERY END:
+-- QUERY START:
+drop procedure if exists TigPubSubFixItem;
+-- QUERY END:
+
+
+-- QUERY START:
 create table if not exists tig_pubsub_service_jids (
 	service_id bigint not null auto_increment,
 	service_jid varchar(2049) not null,
@@ -8,7 +89,9 @@ create table if not exists tig_pubsub_service_jids (
 	unique index using hash ( service_jid_sha1(40) )
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
+-- QUERY END:
 
+-- QUERY START:
 create table if not exists tig_pubsub_jids (
 	jid_id bigint not null auto_increment,
 	jid varchar(2049) not null,
@@ -19,7 +102,9 @@ create table if not exists tig_pubsub_jids (
 	unique index using hash ( jid_sha1(40) )
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
+-- QUERY END:
 
+-- QUERY START:
 create table if not exists tig_pubsub_nodes (
 	node_id bigint not null auto_increment,
 	service_id bigint not null,
@@ -55,7 +140,9 @@ create table if not exists tig_pubsub_nodes (
 		match full
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
+-- QUERY END:
 
+-- QUERY START:
 create table if not exists tig_pubsub_affiliations (
 	node_id bigint not null,
 	jid_id bigint not null,
@@ -78,7 +165,9 @@ create table if not exists tig_pubsub_affiliations (
 		on delete cascade
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
+-- QUERY END:
 
+-- QUERY START:
 create table if not exists tig_pubsub_subscriptions (
 	node_id bigint not null references tig_pubsub_nodes ( node_id ),
 	jid_id bigint not null references tig_pubsub_jids ( jid_id ),
@@ -102,7 +191,9 @@ create table if not exists tig_pubsub_subscriptions (
 		on delete cascade
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
+-- QUERY END:
 
+-- QUERY START:
 create table if not exists tig_pubsub_items (
 	node_id bigint not null,
 	id varchar(1024) not null,
@@ -128,10 +219,11 @@ create table if not exists tig_pubsub_items (
 		on delete cascade
 )
 ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
+-- QUERY END:
 
 delimiter //
 
-drop function if exists TigPubSubEnsureServiceJid //
+-- QUERY START:
 create function TigPubSubEnsureServiceJid(_service_jid varchar(2049)) returns bigint
 begin
 	declare _service_id bigint;
@@ -147,8 +239,9 @@ begin
 
 	return (_service_id);
 end //
+-- QUERY END:
 
-drop function if exists TigPubSubEnsureJid //
+-- QUERY START:
 create function TigPubSubEnsureJid(_jid varchar(2049)) returns bigint
 begin
 	declare _jid_id bigint;
@@ -164,8 +257,9 @@ begin
 
 	return (_jid_id);
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubCreateNode //
+-- QUERY START:
 create procedure TigPubSubCreateNode(_service_jid varchar(2049), _node_name varchar(1024), _node_type int, 
 	_node_creator varchar(2049), _node_conf text, _collection_id bigint) 
 begin
@@ -180,8 +274,9 @@ begin
 	select LAST_INSERT_ID() into _node_id;	
 	select _node_id as node_id;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubRemoveNode //
+-- QUERY START:
 create procedure TigPubSubRemoveNode(_node_id bigint)
 begin
 	delete from tig_pubsub_items where node_id = _node_id;
@@ -189,8 +284,9 @@ begin
 	delete from tig_pubsub_affiliations where node_id = _node_id;
 	delete from tig_pubsub_nodes where node_id = _node_id;	
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetItem //
+-- QUERY START:
 create procedure TigPubSubGetItem(_node_id bigint, _item_id varchar(1024))
 begin
 	select `data`, p.jid, creation_date, update_date 
@@ -198,8 +294,9 @@ begin
 		inner join tig_pubsub_jids p on p.jid_id = pi.publisher_id 
 		where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;	
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubWriteItem //
+-- QUERY START:
 create procedure TigPubSubWriteItem(_node_id bigint, _item_id varchar(1024), _publisher varchar(2049),
 	 _item_data mediumtext)
 begin
@@ -209,14 +306,16 @@ begin
 		values (_node_id, SHA1(_item_id), _item_id, now(), now(), _publisher_id, _item_data)
 		on duplicate key update publisher_id = _publisher_id, data = _item_data, update_date = now();	
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubDeleteItem //
+-- QUERY START:
 create procedure TigPubSubDeleteItem(_node_id bigint, _item_id varchar(1024))
 begin
 	delete from tig_pubsub_items where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetNodeId //
+-- QUERY START:
 create procedure TigPubSubGetNodeId(_service_jid varchar(2049), _node_name varchar(1024)) 
 begin
 	select n.node_id from tig_pubsub_nodes n 
@@ -224,29 +323,33 @@ begin
 		where sj.service_jid_sha1 = SHA1(_service_jid) and n.name_sha1 = SHA1(_node_name)
 			and sj.service_jid = _service_jid and n.name = _node_name;	
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetNodeItemsIds //
+-- QUERY START:
 create procedure TigPubSubGetNodeItemsIds(_node_id bigint)
 begin 
 	select id from tig_pubsub_items where node_id = _node_id order by creation_date;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetNodeItemsIdsSince //
+-- QUERY START:
 create procedure TigPubSubGetNodeItemsIdsSince(_node_id bigint,_since datetime)
 begin 
 	select id from tig_pubsub_items where node_id = _node_id 
 		and creation_date >= _since order by creation_date;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetAllNodes //
+-- QUERY START:
 create procedure TigPubSubGetAllNodes(_service_jid varchar(2049))
 begin
 	select n.name, n.node_id from tig_pubsub_nodes n 
 		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 
 		where sj.service_jid_sha1 = SHA1(_service_jid) and sj.service_jid = _service_jid;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetRootNodes //
+-- QUERY START:
 create procedure TigPubSubGetRootNodes(_service_jid varchar(2049))
 begin
 	select n.name, n.node_id from tig_pubsub_nodes n 
@@ -254,8 +357,9 @@ begin
 		where sj.service_jid_sha1 = SHA1(_service_jid) and sj.service_jid = _service_jid
 			and n.collection_id is null;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetChildNodes //
+-- QUERY START:
 create procedure TigPubSubGetChildNodes(_service_jid varchar(2049),_node_name varchar(1024))
 begin
 	select n.name, n.node_id from tig_pubsub_nodes n 
@@ -264,8 +368,9 @@ begin
 		where sj.service_jid_sha1 = SHA1(_service_jid) and p.name_sha1 = SHA1(_node_name)
 			and sj.service_jid = _service_jid and p.name = _node_name;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubDeleteAllNodes //
+-- QUERY START:
 create procedure TigPubSubDeleteAllNodes(_service_jid varchar(2049))
 begin
 	declare _service_id bigint;
@@ -280,15 +385,16 @@ begin
 	delete from tig_pubsub_nodes where node_id in (
 		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubSetNodeConfiguration //
+-- QUERY START:
 create procedure TigPubSubSetNodeConfiguration(_node_id bigint, _node_conf mediumtext, _collection_id bigint)
 begin
 	update tig_pubsub_nodes set configuration = _node_conf, collection_id = _collection_id where node_id = _node_id;
 end //
+-- QUERY END:
 
-
-drop procedure if exists TigPubSubSetNodeAffiliation //
+-- QUERY START:
 create procedure TigPubSubSetNodeAffiliation(_node_id bigint, _jid varchar(2049), _affil varchar(20))
 begin
 	declare _jid_id bigint;
@@ -314,22 +420,25 @@ begin
 		end if;
 	end if;	
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetNodeConfiguration //
+-- QUERY START:
 create procedure TigPubSubGetNodeConfiguration(_node_id bigint)
 begin
   select configuration from tig_pubsub_nodes where node_id = _node_id;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetNodeAffiliations //
+-- QUERY START:
 create procedure TigPubSubGetNodeAffiliations(_node_id bigint)
 begin
 	select pj.jid, pa.affiliation from tig_pubsub_affiliations pa 
 		inner join tig_pubsub_jids pj on pa.jid_id = pj.jid_id
 		where pa.node_id = _node_id;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetNodeSubscriptions //
+-- QUERY START:
 create procedure TigPubSubGetNodeSubscriptions(_node_id bigint)
 begin
 	select pj.jid, ps.subscription, ps.subscription_id 
@@ -337,8 +446,9 @@ begin
 		inner join tig_pubsub_jids pj on ps.jid_id = pj.jid_id
 		where ps.node_id = _node_id;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubSetNodeSubscription //
+-- QUERY START:
 create procedure TigPubSubSetNodeSubscription(_node_id bigint, _jid varchar(2049),
 	_subscr varchar(20), _subscr_id varchar(40))
 begin
@@ -354,16 +464,18 @@ begin
 			values (_node_id,_jid_id,_subscr,_subscr_id);
 	end if;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubDeleteNodeSubscription //
+-- QUERY START:
 create procedure TigPubSubDeleteNodeSubscription(_node_id bigint, _jid varchar(2049))
 begin
 	delete from tig_pubsub_subscriptions where node_id = _node_id and jid_id = (
 		select jid_id from tig_pubsub_jids where jid_sha1 = SHA1(_jid) and jid = _jid
 	);
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetUserAffiliations //
+-- QUERY START:
 create procedure TigPubSubGetUserAffiliations(_serviceJid varchar(2049), _jid varchar(2049))
 begin
 	select n.name, pa.affiliation from tig_pubsub_nodes n 
@@ -373,8 +485,9 @@ begin
 		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid) 
 			and pj.jid = _jid and sj.service_jid = _service_jid;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetUserSubscriptions //
+-- QUERY START:
 create procedure TigPubSubGetUserSubscriptions(_serviceJid varchar(2049), _jid varchar(2049))
 begin
 	select n.name, ps.subscription, ps.subscription_id from tig_pubsub_nodes n 
@@ -384,23 +497,27 @@ begin
 		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid) 
 			and pj.jid = _jid and sj.service_jid = _service_jid;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubGetNodeItemsMeta //
+-- QUERY START:
 create procedure TigPubSubGetNodeItemsMeta(_node_id bigint)
 begin
 	select id, creation_date from tig_pubsub_items where node_id = _node_id order by creation_date;	
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubFixNode //
+-- QUERY START:
 create procedure TigPubSubFixNode(_node_id bigint, _node_creation_date datetime)
 begin
 	update tig_pubsub_nodes set creation_date = _node_creation_date where node_id = _node_id;
 end //
+-- QUERY END:
 
-drop procedure if exists TigPubSubFixItem //
+-- QUERY START:
 create procedure TigPubSubFixItem(_node_id bigint, _item_id varchar(1024), 
 	_creation_date datetime, _update_date datetime)
 begin
 	update tig_pubsub_items set creation_date = _creation_date, update_date = _update_date
 		where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;
 end //
+-- QUERY END:

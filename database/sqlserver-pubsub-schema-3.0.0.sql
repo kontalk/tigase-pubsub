@@ -1,6 +1,9 @@
+-- QUERY START:
 SET QUOTED_IDENTIFIER ON
+-- QUERY END:
 GO
 
+-- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_service_jids' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_service_jids] (
 		[service_id] [bigint] IDENTITY(1,1) NOT NULL,
@@ -10,14 +13,20 @@ if not exists (select * from sysobjects where name='tig_pubsub_service_jids' and
 		PRIMARY KEY ( [service_id] ),
 		UNIQUE (service_jid_sha1)
 	);
+-- QUERY END:
 GO
-	
+
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_service_jids_service_jid ON [dbo].[tig_pubsub_service_jids](service_jid_index);
+-- QUERY END:
 GO
 
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_service_jids_service_jids_sha1 ON [dbo].[tig_pubsub_service_jids](service_jid_sha1);
+-- QUERY END:
 GO
 
+-- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_jids' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_jids] (
 		[jid_id] [bigint] IDENTITY(1,1) NOT NULL,
@@ -27,14 +36,20 @@ if not exists (select * from sysobjects where name='tig_pubsub_jids' and xtype='
 		PRIMARY KEY ( [jid_id] ),
 		UNIQUE (jid_sha1)
 	);
+-- QUERY END:
 GO
 
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_jids_jid ON [dbo].[tig_pubsub_jids](jid_index);
+-- QUERY END:
 GO
 
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_jids_jid_sha1 ON [dbo].[tig_pubsub_jids](jid_sha1);
+-- QUERY END:
 GO
 
+-- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_nodes' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_nodes] (
 		[node_id] [bigint] IDENTITY(1,1) NOT NULL,
@@ -60,17 +75,27 @@ if not exists (select * from sysobjects where name='tig_pubsub_nodes' and xtype=
 			REFERENCES [dbo].[tig_pubsub_nodes](node_id),
 		UNIQUE (service_id, name_sha1)
 	);
+-- QUERY END:
 GO
 
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_nodes_service_id ON [dbo].[tig_pubsub_nodes](service_id);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_nodes_name ON [dbo].[tig_pubsub_nodes](name_index);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_nodes_service_id_name ON [dbo].[tig_pubsub_nodes](service_id,name_index);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_nodes_collection_id ON [dbo].[tig_pubsub_nodes](collection_id);
+-- QUERY END:
 GO
 
+-- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_affiliations' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_affiliations] (
 		[node_id] [bigint] NOT NULL,
@@ -83,15 +108,23 @@ if not exists (select * from sysobjects where name='tig_pubsub_affiliations' and
 		CONSTRAINT [FK_tig_pubsub_affiliations_jid_id] FOREIGN KEY ([jid_id])
 			REFERENCES [dbo].[tig_pubsub_jids](jid_id)
 	);
+-- QUERY END:
 GO
 
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_affiliations_node_id ON [dbo].[tig_pubsub_affiliations](node_id);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_affiliations_jid_id ON [dbo].[tig_pubsub_affiliations](jid_id);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_affiliations_node_id_jid_id ON [dbo].[tig_pubsub_affiliations](node_id, jid_id);
+-- QUERY END:
 GO
 
+-- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_subscriptions' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_subscriptions] (
 		[node_id] [bigint] NOT NULL,
@@ -105,16 +138,24 @@ if not exists (select * from sysobjects where name='tig_pubsub_subscriptions' an
 		CONSTRAINT [FK_tig_pubsub_subscriptions_jid_id] FOREIGN KEY ([jid_id])
 			REFERENCES [dbo].[tig_pubsub_jids](jid_id)
 	);
+-- QUERY END:
 GO
 
 
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_subscriptions_node_id ON [dbo].[tig_pubsub_subscriptions](node_id);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_subscriptions_jid_id ON [dbo].[tig_pubsub_subscriptions](jid_id);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_subscription_node_id_jid_id ON [dbo].[tig_pubsub_subscriptions](node_id, jid_id);
+-- QUERY END:
 GO
 
+-- QUERY START:
 if not exists (select * from sysobjects where name='tig_pubsub_items' and xtype='U')
 	CREATE  TABLE [dbo].[tig_pubsub_items] (
 		[node_id] [bigint] NOT NULL,
@@ -132,19 +173,27 @@ if not exists (select * from sysobjects where name='tig_pubsub_items' and xtype=
 		CONSTRAINT [FK_tig_pubsub_items_publisher_id] FOREIGN KEY ([publisher_id])
 			REFERENCES [dbo].[tig_pubsub_jids](jid_id)
 	);
+-- QUERY END:
 GO
 
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_items_node_id ON [dbo].[tig_pubsub_items](node_id);
+-- QUERY END:
 GO
+-- QUERY START:
 CREATE INDEX IX_tig_pubsub_items_node_id_id ON [dbo].[tig_pubsub_items](node_id, id_index);
+-- QUERY END:
 GO
 
 -- PROCEDURES
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubEnsureServiceJid')
 	DROP PROCEDURE TigPubSubEnsureServiceJid
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubEnsureServiceJid
 	@_service_jid nvarchar(2049),
 	@_service_id bigint OUTPUT
@@ -162,12 +211,16 @@ begin
 		set @_service_id = @@IDENTITY
 	end
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubEnsureJid')
 	DROP PROCEDURE TigPubSubEnsureJid
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubEnsureJid
 	@_jid nvarchar(2049),
 	@_jid_id bigint OUTPUT
@@ -185,12 +238,16 @@ begin
 		set @_jid_id = @@IDENTITY
 	end
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubCreateNode')
 	DROP PROCEDURE TigPubSubCreateNode
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubCreateNode
 	@_service_jid nvarchar(2049), 
 	@_node_name nvarchar(1024),
@@ -211,13 +268,17 @@ begin
 
 	select @@IDENTITY as node_id;
 end
+-- QUERY END:
 GO
 
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubRemoveNode')
 	DROP PROCEDURE TigPubSubRemoveNode
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubRemoveNode
 	@_node_id bigint
 AS	
@@ -227,12 +288,16 @@ begin
   delete from dbo.tig_pubsub_affiliations where node_id = @_node_id;
   delete from dbo.tig_pubsub_nodes where node_id = @_node_id;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetItem')
 	DROP PROCEDURE TigPubSubGetItem
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetItem
 	@_node_id bigint,
 	@_item_id nvarchar(1024)
@@ -243,12 +308,16 @@ begin
 	inner join tig_pubsub_jids p on p.jid_id = pit.publisher_id
 	where node_id = @_node_id AND id = @_item_id;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubWriteItem')
 	DROP PROCEDURE TigPubSubWriteItem
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubWriteItem
 	@_node_id bigint,
 	@_item_id nvarchar(1024),
@@ -273,12 +342,16 @@ begin
 		values (@_node_id, @_item_id, HASHBYTES('SHA1',@_item_id), getdate(), getdate(), @_publisher_id, @_item_data)
 	END
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubDeleteItem')
 	DROP PROCEDURE TigPubSubDeleteItem
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubDeleteItem
 	@_node_id bigint,
 	@_item_id nvarchar(1024)
@@ -287,12 +360,16 @@ begin
 	delete from tig_pubsub_items where node_id = @_node_id 
 		and id_index = CAST(@_item_id as NVARCHAR(255)) AND id = @_item_id ;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeId')
 	DROP PROCEDURE TigPubSubGetNodeId
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetNodeId
 	@_service_jid nvarchar(2049),
 	@_node_name nvarchar(1024)
@@ -304,23 +381,32 @@ begin
 			and n.name_index = CAST(@_node_name as NVARCHAR(255))
 			and sj.service_jid = @_service_jid and n.name = @_node_name;
 end
-
-IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeItemsIds')
-	DROP PROCEDURE TigPubSubGetNodeItemsIds
+-- QUERY END:
 GO
 
+-- QUERY START:
+IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeItemsIds')
+	DROP PROCEDURE TigPubSubGetNodeItemsIds
+-- QUERY END:
+GO
+
+-- QUERY START:
 create procedure dbo.TigPubSubGetNodeItemsIds
 	@_node_id bigint
 AS	
 begin
 	select id from tig_pubsub_items where node_id = @_node_id order by creation_date;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeItemsIdsSince')
 	DROP PROCEDURE TigPubSubGetNodeItemsIdsSince
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetNodeItemsIdsSince
 	@_node_id bigint,
 	@_since datetime
@@ -329,12 +415,16 @@ begin
 	select id from tig_pubsub_items where node_id = @_node_id 
 		and creation_date >= @_since order by creation_date;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetAllNodes')
 	DROP PROCEDURE TigPubSubGetAllNodes
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetAllNodes
 	@_service_jid nvarchar(2049)
 AS	
@@ -343,12 +433,16 @@ begin
 		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
 		where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetRootNodes')
 	DROP PROCEDURE TigPubSubGetRootNodes
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetRootNodes
 	@_service_jid nvarchar(2049)
 AS	
@@ -358,12 +452,16 @@ begin
 		where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid)
 			and n.collection_id is null;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetChildNodes')
 	DROP PROCEDURE TigPubSubGetChildNodes
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetChildNodes
 	@_service_jid nvarchar(2049),
 	@_node_name nvarchar(1024)
@@ -375,12 +473,16 @@ begin
 		where sj.service_jid_sha1 = HASHBYTES('SHA1', @_service_jid) and p.name_index = CAST(@_node_name as NVARCHAR(255))
 			and sj.service_jid = @_service_jid and p.name = @_node_name;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubDeleteAllNodes')
 	DROP PROCEDURE TigPubSubDeleteAllNodes
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubDeleteAllNodes
 	@_service_jid nvarchar(2049)
 AS	
@@ -398,12 +500,16 @@ begin
 	delete from dbo.tig_pubsub_nodes where node_id in (
 		select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubSetNodeConfiguration')
 	DROP PROCEDURE TigPubSubSetNodeConfiguration
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubSetNodeConfiguration
 	@_node_id bigint,
 	@_node_conf ntext,
@@ -413,12 +519,16 @@ begin
 	update tig_pubsub_nodes set configuration = @_node_conf, collection_id = @_collection_id
 		where node_id = @_node_id;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubSetNodeAffiliation')
 	DROP PROCEDURE TigPubSubSetNodeAffiliation
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubSetNodeAffiliation
 	@_node_id bigint,
 	@_jid nvarchar(2049),
@@ -447,24 +557,32 @@ begin
 			delete from tig_pubsub_affiliations where node_id = @_node_id and jid_id = @_jid_id;
 	end
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeConfiguration')
 	DROP PROCEDURE TigPubSubGetNodeConfiguration
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetNodeConfiguration
 	@_node_id bigint
 AS
 begin
   select configuration from tig_pubsub_nodes where node_id = @_node_id;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeAffiliations')
 	DROP PROCEDURE TigPubSubGetNodeAffiliations
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetNodeAffiliations
 	@_node_id bigint
 AS
@@ -473,12 +591,16 @@ begin
 		inner join tig_pubsub_jids pj on pa.jid_id = pj.jid_id
 		where pa.node_id = @_node_id;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeSubscriptions')
 	DROP PROCEDURE TigPubSubGetNodeSubscriptions
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetNodeSubscriptions
 	@_node_id bigint
 AS
@@ -488,12 +610,16 @@ begin
 		inner join tig_pubsub_jids pj on ps.jid_id = pj.jid_id
 		where ps.node_id = @_node_id;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubSetNodeSubscription')
 	DROP PROCEDURE TigPubSubSetNodeSubscription
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubSetNodeSubscription
 	@_node_id bigint,
 	@_jid nvarchar(2049),
@@ -514,12 +640,16 @@ begin
 			values (@_node_id, @_jid_id, @_subscr, @_subscr_id);
 	END
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubDeleteNodeSubscription')
 	DROP PROCEDURE TigPubSubDeleteNodeSubscription
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubDeleteNodeSubscription
 	@_node_id bigint,
 	@_jid nvarchar(2049)
@@ -528,12 +658,16 @@ begin
 	delete from tig_pubsub_subscriptions where node_id = @_node_id and jid_id = (
 		select jid_id from tig_pubsub_jids where jid_sha1 = HASHBYTES('SHA1', @_jid) and jid = @_jid);
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetUserAffiliations')
 	DROP PROCEDURE TigPubSubGetUserAffiliations
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetUserAffiliations
 	@_service_jid nvarchar(2049),
 	@_jid nvarchar(2049)
@@ -546,12 +680,16 @@ begin
 		where pj.jid_sha1 = HASHBYTES('SHA1',@_jid) and sj.service_jid_sha1 = HASHBYTES('SHA1',@_service_jid)
 			and pj.jid = @_jid and sj.service_jid = @_service_jid;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetUserSubscriptions')
 	DROP PROCEDURE TigPubSubGetUserSubscriptions
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetUserSubscriptions
 	@_service_jid nvarchar(2049),
 	@_jid nvarchar(2049)
@@ -564,24 +702,32 @@ begin
 		where pj.jid_sha1 = HASHBYTES('SHA1',@_jid) and sj.service_jid_sha1 = HASHBYTES('SHA1',@_service_jid)
 			and pj.jid = @_jid and sj.service_jid = @_service_jid;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubGetNodeItemsMeta')
 	DROP PROCEDURE TigPubSubGetNodeItemsMeta
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubGetNodeItemsMeta
 	@_node_id bigint
 AS
 begin
 	select id, creation_date from tig_pubsub_items where node_id = @_node_id order by creation_date;	
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubFixNode')
 	DROP PROCEDURE TigPubSubFixNode
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubFixNode
 	@_node_id bigint,
 	@_creation_date datetime
@@ -589,12 +735,16 @@ AS
 begin
 	update tig_pubsub_nodes set creation_date = @_creation_date where node_id = @_node_id;
 end
+-- QUERY END:
 GO
 
+-- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubFixItem')
 	DROP PROCEDURE TigPubSubFixItem
+-- QUERY END:
 GO
 
+-- QUERY START:
 create procedure dbo.TigPubSubFixitem
 	@_node_id bigint,
 	@_item_id nvarchar(1024),
@@ -605,4 +755,5 @@ begin
 	update tig_pubsub_items set creation_date = @_creation_date, update_date = @_update_date
 		where node_id = @_node_id and id_index = CAST(@_item_id as NVARCHAR(255)) and item_id = @_item_id;
 end
+-- QUERY END:
 GO
