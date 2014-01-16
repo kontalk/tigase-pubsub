@@ -753,7 +753,7 @@ create procedure dbo.TigPubSubFixitem
 AS
 begin
 	update tig_pubsub_items set creation_date = @_creation_date, update_date = @_update_date
-		where node_id = @_node_id and id_index = CAST(@_item_id as NVARCHAR(255)) and item_id = @_item_id;
+		where node_id = @_node_id and id_index = CAST(@_item_id as NVARCHAR(255)) and id = @_item_id;
 end
 -- QUERY END:
 GO

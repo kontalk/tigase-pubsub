@@ -133,7 +133,7 @@ create procedure TigPubSubCreateNode(service_jid varchar(2049), node_name varcha
 -- QUERY END:
 
 -- QUERY START:
-create or replace function TigPubSubRemoveNode(node_id bigint)
+create procedure TigPubSubRemoveNode(node_id bigint)
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
@@ -151,7 +151,7 @@ create procedure TigPubSubGetItem(node_id bigint, item_id varchar(1024))
 
 -- QUERY START:
 create procedure TigPubSubWriteItem(node_id bigint, item_id varchar(1024),
-	publisher varchar(2049), item_data varchar(32762))
+	publisher varchar(2049), item_data varchar(32672))
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
@@ -229,7 +229,7 @@ create procedure TigPubSubDeleteAllNodes(service_jid varchar(2049))
 -- QUERY END:
 
 -- QUERY START:
-create procedure TigPubSubSetNodeConfiguration(node_id bigint, node_conf text, collection_id bigint)
+create procedure TigPubSubSetNodeConfiguration(node_id bigint, node_conf varchar(32672), collection_id bigint)
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
