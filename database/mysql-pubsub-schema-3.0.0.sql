@@ -382,8 +382,7 @@ begin
 		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
 	delete from tig_pubsub_subscriptions where node_id in (
 		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
-	delete from tig_pubsub_nodes where node_id in (
-		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
+	delete from tig_pubsub_nodes where service_id = _service_id;
 end //
 -- QUERY END:
 

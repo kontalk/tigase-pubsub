@@ -97,7 +97,7 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	public UsersSubscription[] getSubscriptions() {
 		final Set<UsersSubscription> result = new HashSet<UsersSubscription>();
 
-		result.addAll(this.subs.getAllValues());
+		result.addAll(this.subs.values());
 
 		result.addAll(this.changedSubs().values());
 

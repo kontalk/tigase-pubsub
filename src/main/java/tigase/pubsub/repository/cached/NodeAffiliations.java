@@ -97,12 +97,14 @@ public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations 
 
 	public void merge() {
 		Map<BareJID, UsersAffiliation> changedAffs = changedAffs();
-		for (Map.Entry<BareJID,UsersAffiliation> entry : changedAffs.entrySet()) {
-			if (entry.getValue().getAffiliation() == Affiliation.none)
+		for (Map.Entry<BareJID, UsersAffiliation> entry : changedAffs.entrySet()) {
+			if (entry.getValue().getAffiliation() == Affiliation.none) {
 				continue;
+			}
 			affs.put(entry.getKey(), entry.getValue());
 		}
 		changedAffs.clear();
+
 	}
 
 	@Override

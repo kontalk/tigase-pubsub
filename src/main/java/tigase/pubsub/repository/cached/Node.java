@@ -41,10 +41,7 @@ public class Node {
 	}
 
 	public void affiliationsMerge() {
-		synchronized (this) {
-			nodeAffiliations.merge();
-			//affNeedsWriting = true;
-		}
+		nodeAffiliations.merge();
 	}
 
 	public boolean affiliationsNeedsWriting() {
@@ -120,10 +117,7 @@ public class Node {
 	// }
 
 	public void subscriptionsMerge() {
-		synchronized (this) {
-			nodeSubscriptions.merge();
-			//subNeedsWriting = true;
-		}
+		nodeSubscriptions.merge();
 	}
 
 	// public void resetNodeAffiliationsChangeTimestamp() {

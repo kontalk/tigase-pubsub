@@ -47,7 +47,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			++repo_writes;
 
 			// Prevent node modifications while it is being written to DB
-			synchronized (node) {
+			// From 3.0.0 this should not be needed as we keep changes to the node per thread
+//			synchronized (node) {
 				try {
 					if (node.isDeleted()) {
 						return;
@@ -62,10 +63,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					}
 
 					if (node.subscriptionsNeedsWriting()) {
-						FragmentedMap<BareJID, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
-
-						fm.defragment();
-
 //						for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
 //							dao.removeSubscriptions(node.getServiceJid(), node.getName(), deletedIndex);
 //						}
@@ -86,8 +83,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 								dao.updateNodeSubscription(node.getServiceJid(), node.getNodeId(), subscription);
 							}
 						}
-
-						fm.cleanChangingLog();
 						node.subscriptionsSaved();
 					}
 
@@ -121,7 +116,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				if (node.needsWriting()) {
 					save(node);
 				}
-			}
+//			}
 
 			long end = System.currentTimeMillis();
 

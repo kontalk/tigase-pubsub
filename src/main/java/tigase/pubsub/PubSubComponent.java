@@ -424,6 +424,20 @@ public class PubSubComponent
 		return result;
 	}
 
+	@Override
+	public int hashCodeForPacket(Packet packet) {
+		if ((packet.getStanzaFrom() != null) && (packet.getPacketFrom() != null) 
+				&& !getComponentId().equals(packet.getPacketFrom())) {
+			return packet.getStanzaFrom().hashCode();
+		}
+		
+		if (packet.getStanzaTo() != null) {
+			return packet.getStanzaTo().hashCode();
+		}
+		
+		return 1;
+	}
+	
 	/**
 	 * Method description
 	 *
@@ -434,6 +448,33 @@ public class PubSubComponent
 	public boolean isSubdomain() {
 		return true;
 	}
+	
+	/**
+	 * Method description
+	 *
+	 *
+	 *
+	 *
+	 * @return a value of <code>int</code>
+	 */
+	@Override
+	public int processingInThreads() {
+		return Runtime.getRuntime().availableProcessors() * 4;
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
+	 *
+	 *
+	 * @return a value of <code>int</code>
+	 */
+	@Override
+	public int processingOutThreads() {
+		return Runtime.getRuntime().availableProcessors() * 4;
+	}
+	
 
 	//~--- set methods ----------------------------------------------------------
 
