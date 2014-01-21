@@ -244,8 +244,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				Element colE = new Element("collection", new String[] { "node" }, new String[] { collection });
 
 				colE.addChild(new Element("associate", new String[] { "node" }, new String[] { nodeName }));
-				packetWriter.write(publishModule.prepareNotification(colE, packet.getStanzaTo(), collection, nodeConfig,
-						colNodeAffiliations, colNodeSubscriptions));
+				publishModule.sendNotifications(colE, packet.getStanzaTo(), collection, nodeConfig,
+						colNodeAffiliations, colNodeSubscriptions);
 			}
 			if (instantNode) {
 				Element ps = new Element("pubsub", new String[] { "xmlns" },

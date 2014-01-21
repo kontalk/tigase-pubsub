@@ -130,10 +130,9 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 		Element item = new Element("item");
 		items.addChild(item);
 		item.addChild(itemToSend);
-
-		List<Packet> notifications = publishItemModule.prepareNotification(items, JID.jidInstance(serviceJID), nodeName,
+		
+		publishItemModule.sendNotifications(items, JID.jidInstance(serviceJID), nodeName,
 				nodeConfig, nodeAffiliations, nodeSubscriptions);
-		packetWriter.write(notifications);
 	}
 
 	protected void publishToOne(BareJID serviceJID, String nodeName, JID destinationJID) throws RepositoryException {
@@ -155,10 +154,8 @@ public class PresenceNotifierModule extends AbstractPubSubModule {
 			items.addChild(item);
 			item.addChild(createPresenceNotificationItem(serviceJID, nodeName, jid, p));
 
-			List<Packet> notifications = publishItemModule.prepareNotification(new JID[] { destinationJID }, items,
+			publishItemModule.sendNotifications(new JID[] { destinationJID }, items,
 					JID.jidInstance(serviceJID), nodeConfig, nodeName, null);
-			packetWriter.write(notifications);
-
 		}
 	}
 

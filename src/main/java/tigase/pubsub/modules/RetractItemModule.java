@@ -161,9 +161,7 @@ public class RetractItemModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.BAD_REQUEST, PubSubErrorCondition.ITEM_REQUIRED);
 			}
 
-			List<Packet> result = new ArrayList<Packet>();
-
-			result.add(packet.okResult((Element) null, 0));
+			Packet result = packet.okResult((Element) null, 0);
 
 			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
 			IItems nodeItems = this.getRepository().getNodeItems(toJid, nodeName);
@@ -174,8 +172,8 @@ public class RetractItemModule extends AbstractPubSubModule {
 				if (date != null) {
 					Element notification = createNotification(leafNodeConfig, itemsToDelete, nodeName);
 
-					result.addAll(publishModule.prepareNotification(notification, packet.getStanzaTo(), nodeName, nodeConfig,
-							nodeAffiliations, nodeSubscriptions));
+					publishModule.sendNotifications(notification, packet.getStanzaTo(), nodeName, nodeConfig,
+							nodeAffiliations, nodeSubscriptions);
 					nodeItems.deleteItem(id);
 				}
 			}

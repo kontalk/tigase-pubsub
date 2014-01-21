@@ -134,16 +134,14 @@ public class PurgeItemsModule extends AbstractPubSubModule {
 						"persistent-items"));
 			}
 
-			List<Packet> result = new ArrayList<Packet>();
-
-			result.add(packet.okResult((Element) null, 0));
+			Packet result = packet.okResult((Element) null, 0);
 
 			final IItems nodeItems = this.getRepository().getNodeItems(toJid, nodeName);
 			String[] itemsToDelete = nodeItems.getItemsIds();
 			ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
 
-			result.addAll(publishModule.prepareNotification(new Element("purge", new String[] { "node" },
-					new String[] { nodeName }), packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+			publishModule.sendNotifications(new Element("purge", new String[] { "node" },
+					new String[] { nodeName }), packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions);
 			log.info("Purging node " + nodeName);
 			if (itemsToDelete != null) {
 				for (String id : itemsToDelete) {

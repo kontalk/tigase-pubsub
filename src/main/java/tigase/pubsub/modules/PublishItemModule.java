@@ -234,14 +234,12 @@ public class PublishItemModule extends AbstractPubSubModule {
 		items.addChild(item);
 
 		JID[] subscribers = getValidBuddies(senderJid.getBareJID());
-		List<Packet> result = prepareNotification(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"),
+		sendNotifications(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"),
 				null);
 
-		result.add(packet.okResult((Element) null, 0));
-		result.addAll(prepareNotification(new JID[] { senderJid }, items, senderJid, null,
-				publish.getAttributeStaticStr("node"), null));
-
-		packetWriter.write(result);
+		packetWriter.write(packet.okResult((Element) null, 0));
+		sendNotifications(new JID[] { senderJid }, items, senderJid, null,
+				publish.getAttributeStaticStr("node"), null);
 	}
 
 	/**
@@ -259,10 +257,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public List<Packet> prepareNotification(Element itemToSend, final JID jidFrom, final String publisherNodeName,
+	public void sendNotifications(Element itemToSend, final JID jidFrom, final String publisherNodeName,
 			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
 			throws RepositoryException {
-		return prepareNotification(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations,
+		sendNotifications(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations,
 				nodesSubscriptions);
 	}
 
@@ -282,7 +280,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public List<Packet> prepareNotification(final Element itemToSend, final JID jidFrom, final String publisherNodeName,
+	public void sendNotifications(final Element itemToSend, final JID jidFrom, final String publisherNodeName,
 			final Map<String, String> headers, AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations,
 			ISubscriptions nodesSubscriptions) throws RepositoryException {
 		beforePrepareNotification(nodeConfig, nodesSubscriptions);
@@ -328,7 +326,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 			subscribers = s.toArray(new JID[] {});
 		}
 
-		return prepareNotification(subscribers, itemToSend, jidFrom, nodeConfig, publisherNodeName, headers);
+		sendNotifications(subscribers, itemToSend, jidFrom, nodeConfig, publisherNodeName, headers);
 	}
 
 	/**
@@ -344,9 +342,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public List<Packet> prepareNotification(final JID[] subscribers, final Element itemToSend, final JID jidFrom,
+	public void sendNotifications(final JID[] subscribers, final Element itemToSend, final JID jidFrom,
 			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
-		ArrayList<Packet> result = new ArrayList<Packet>();
 		List<Element> body = null;
 
 		if ((this.xslTransformer != null) && (nodeConfig != null)) {
@@ -382,10 +379,12 @@ public class PublishItemModule extends AbstractPubSubModule {
 				}
 				message.addChild(headElem);
 			}
-			result.add(packet);
+			
+			// we are adding notifications to outgoing queue instead temporary list
+			// of notifications to send, so before creating next packets other threads
+			// will be able to process first notifications and deliver them
+			packetWriter.write(packet);
 		}
-
-		return result;
 	}
 
 	/**
@@ -438,10 +437,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			LeafNodeConfig leafNodeConfig = (LeafNodeConfig) nodeConfig;
 			List<Element> itemsToSend = makeItemsToSend(publish);
-			List<Packet> result = new ArrayList<Packet>();
 			final Packet resultIq = packet.okResult((Element) null, 0);
 
-			result.add(resultIq);
 			if (leafNodeConfig.isPersistItem()) {
 
 				// checking ID
@@ -466,12 +463,13 @@ public class PublishItemModule extends AbstractPubSubModule {
 					resPublish.addChild(new Element("item", new String[] { "id" }, new String[] { id }));
 				}
 			}
+			packetWriter.write(resultIq);
 
 			final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
 
 			items.addChildren(itemsToSend);
-			result.addAll(prepareNotification(items, packet.getStanzaTo(), nodeName,
-					this.getRepository().getNodeConfig(toJid, nodeName), nodeAffiliations, nodeSubscriptions));
+			sendNotifications(items, packet.getStanzaTo(), nodeName,
+					this.getRepository().getNodeConfig(toJid, nodeName), nodeAffiliations, nodeSubscriptions);
 
 			List<String> parents = getParents(toJid, nodeName);
 
@@ -485,8 +483,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 					ISubscriptions colNodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, collection);
 					IAffiliations colNodeAffiliations = this.getRepository().getNodeAffiliations(toJid, collection);
 
-					result.addAll(prepareNotification(items, packet.getStanzaTo(), nodeName, headers, colNodeConfig,
-							colNodeAffiliations, colNodeSubscriptions));
+					sendNotifications(items, packet.getStanzaTo(), nodeName, headers, colNodeConfig,
+							colNodeAffiliations, colNodeSubscriptions);
 				}
 			}
 			if (leafNodeConfig.isPersistItem()) {
@@ -501,8 +499,6 @@ public class PublishItemModule extends AbstractPubSubModule {
 					trimItems(nodeItems, leafNodeConfig.getMaxItems());
 				}
 			}
-
-			packetWriter.write(result);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -528,9 +524,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 			items.addChild(item);
 			item.addChild(payload);
 
-			List<Packet> notifications = prepareNotification(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid),
+			sendNotifications(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid),
 					nodeConfig, nodeConfig.getNodeName(), null);
-			packetWriter.write(notifications);
 		}
 
 	}
