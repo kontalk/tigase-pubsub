@@ -28,6 +28,7 @@ import java.util.Map;
 import tigase.component2.AbstractComponent;
 import tigase.component2.ComponentConfig;
 import tigase.pubsub.repository.IPubSubRepository;
+import tigase.sys.TigaseRuntime;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
@@ -40,12 +41,21 @@ import tigase.xmpp.JID;
  */
 public class PubSubConfig extends ComponentConfig {
 
+	private static final String PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY = "pubsub-high-memory-usage-level";
+	private static final String PUBSUB_LOW_MEMORY_DELAY_KEY = "pubsub-low-memory-delay";
+	
+	private static final int DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL = 90;
+	private static final long DEF_PUBSUB_LOW_MEMORY_DELAY_VAL = 1000;
+	
 	protected String[] admins;
 
 	protected IPubSubRepository pubSubRepository;
 
 	protected BareJID serviceBareJID = BareJID.bareJIDInstanceNS("tigase-pubsub");
 
+	private long lowMemoryDelay = DEF_PUBSUB_LOW_MEMORY_DELAY_VAL;
+	private float highMemoryUsageLevel = DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL;
+	
 	public PubSubConfig(AbstractComponent<?> component) {
 		super(component);
 	}
@@ -63,9 +73,19 @@ public class PubSubConfig extends ComponentConfig {
 	@Override
 	public Map<String, Object> getDefaults(Map<String, Object> params) {
 		final HashMap<String, Object> props = new HashMap<String, Object>();
+		props.put(PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY, DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL);
+		props.put(PUBSUB_LOW_MEMORY_DELAY_KEY, DEF_PUBSUB_LOW_MEMORY_DELAY_VAL);
 		return props;
 	}
 
+	public long getDelayOnLowMemory() {
+		if (isHighMemoryUsage()) {
+			return lowMemoryDelay;
+		}
+		
+		return 0;
+	}
+	
 	public IPubSubRepository getPubSubRepository() {
 		return pubSubRepository;
 	}
@@ -118,12 +138,19 @@ public class PubSubConfig extends ComponentConfig {
 
 	@Override
 	public void setProperties(Map<String, Object> props) {
-		// TODO Auto-generated method stub
-
+		if (props.containsKey(PUBSUB_LOW_MEMORY_DELAY_KEY)) {
+			this.lowMemoryDelay = (Long) props.get(PUBSUB_LOW_MEMORY_DELAY_KEY);
+		}
+		if (props.containsKey(PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY)) {
+			this.highMemoryUsageLevel = ((Integer) props.get(PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY)).floatValue();
+		}
 	}
 
 	void setPubSubRepository(IPubSubRepository pubSubRepository) {
 		this.pubSubRepository = pubSubRepository;
 	}
-
+	
+	private boolean isHighMemoryUsage() {
+		return TigaseRuntime.getTigaseRuntime().getHeapMemUsage() > highMemoryUsageLevel;
+	}	
 }

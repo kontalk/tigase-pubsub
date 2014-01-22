@@ -56,6 +56,7 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.server.Message;
 import tigase.server.Packet;
+import tigase.sys.TigaseRuntime;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -355,6 +356,20 @@ public class PublishItemModule extends AbstractPubSubModule {
 			}
 		}
 		for (JID jid : subscribers) {
+			
+			// in case of low memory we should slow down creation of response to
+			// prevent OOM on high traffic node
+			// maybe we should drop some notifications if we can not get enough 
+			// memory for n-th time?
+			long lowMemoryDelay;
+			while ((lowMemoryDelay = config.getDelayOnLowMemory()) != 0) {
+				try {
+					System.gc();
+					Thread.sleep(lowMemoryDelay);
+				} catch (Exception e) {
+				}
+			}
+			
 			Packet packet = Message.getMessage(jidFrom, jid, null, null, null, null, String.valueOf(++this.idCounter));
 			Element message = packet.getElement();
 
