@@ -609,7 +609,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 			}
 			else {
 				for (String line : msg) {
-					System.out.println(msg);
+					System.out.println(line);
 				}
 			}
 			
