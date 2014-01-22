@@ -211,6 +211,11 @@ public class PubSubComponent
 		if (pubSubDAO != null) {
 			pubSubDAO.init();
 		}
+
+		// create pubsub user if it doesn't exist
+		if ( userRepository.getUserUID( componentConfig.getServiceBareJID() ) < 0 ){
+			userRepository.addUser( componentConfig.getServiceBareJID() );
+		}
 		this.directPubSubRepository = pubSubDAO;
 		this.pubsubRepository       = createPubSubRepository(pubSubDAO);
 		this.defaultNodeConfig      = defaultNodeConfig;
