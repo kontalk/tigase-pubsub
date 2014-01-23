@@ -612,7 +612,8 @@ public class PubSubDAOJDBC extends PubSubDAO {
 					System.out.println(line);
 				}
 			}
-			
+			log.log(Level.FINEST, "Exception during checkSchema: " + ex);
+
 			System.exit(1);
 		}		
 	}
