@@ -637,7 +637,15 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	 *                if an error occurs on database query.
 	 */
 	private void initPreparedStatements() throws SQLException {
-		String query = "select 1";
+		String query;
+		switch ( database ) {
+			case derby:
+				query = "VALUES 1";
+				break;
+			default:
+				query = "select 1";
+				break;
+		}
 		conn_valid_st = conn.prepareStatement( query );
 
 		query = "{ call TigPubSubCreateNode(?, ?, ?, ?, ?, ?) }";

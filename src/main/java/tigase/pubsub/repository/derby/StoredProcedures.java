@@ -56,7 +56,7 @@ public class StoredProcedures {
 
 		try {
 			PreparedStatement ps =
-				conn.prepareStatement("select service_id from tig_pubsub_jids where jid = ?");
+				conn.prepareStatement("select jid_id from tig_pubsub_jids where jid = ?");
 
 			ps.setString(1, jid);
 			ResultSet rs = ps.executeQuery();
@@ -92,8 +92,8 @@ public class StoredProcedures {
 			long serviceJidId = tigPubSubEnsureServiceJid(serviceJid);
 			long nodeCreatorId = tigPubSubEnsureJid(nodeCreator);
 			PreparedStatement ps =
-				conn.prepareStatement("insert into tig_pubsub_nodes (service_id,name,\"type\",creator_id,configuration,collection_id)" +
-				" values (?, ?, ?, ?, ?, ?);", Statement.RETURN_GENERATED_KEYS);
+				conn.prepareStatement("insert into tig_pubsub_nodes (service_id,name,type,creator_id,configuration,collection_id)" +
+				" values (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
 
 			ps.setLong(1, serviceJidId);
 			ps.setString(2, nodeName);
@@ -193,7 +193,7 @@ public class StoredProcedures {
 			else {
 				long publisherId = tigPubSubEnsureJid(publisher);
 				ps = conn.prepareStatement("insert into tig_pubsub_items (node_id, id, creation_date, "
-						+ "update_date, publisher_id, data) values (?, ?, ?, ?, ?, ?);");			
+						+ "update_date, publisher_id, data) values (?, ?, ?, ?, ?, ?)");			
 				ps.setLong(1, nodeId);
 				ps.setString(2, itemId);
 				java.sql.Timestamp ts = new java.sql.Timestamp(System.currentTimeMillis());
@@ -457,7 +457,7 @@ public class StoredProcedures {
 				
 				long jidId = tigPubSubEnsureJid(jid);	
 				ps = conn.prepareStatement("insert into tig_pubsub_affiliations (node_id, jid_id,"
-						+ " affiliation) values (?, ?, ?);");
+						+ " affiliation) values (?, ?, ?)");
 				ps.setLong(1, nodeId);
 				ps.setLong(2, jidId);
 				ps.setString(3, affil);
@@ -478,7 +478,10 @@ public class StoredProcedures {
 		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
 		try {
-			PreparedStatement ps = conn.prepareStatement("select configuration from tig_pubsub_nodes where node_id = ?");
+			PreparedStatement ps = conn.prepareStatement("select pj.jid, pa.affiliation"
+					+ " from tig_pubsub_affiliations pa"
+					+ " inner join tig_pubsub_jids pj on pa.jid_id = pj.jid_id"
+					+ " where pa.node_id = ?");
 			ps.setLong(1, nodeId);
 			data[0] = ps.executeQuery();
 		} catch (SQLException e) {
@@ -488,7 +491,46 @@ public class StoredProcedures {
 		} finally {
 			conn.close();
 		}			
-	}	
+	}
+
+	public static void tigPubSubGetNodeAffiliations(Long nodeId, ResultSet[] data) throws SQLException {
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+
+		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+
+		try {
+			PreparedStatement ps = conn.prepareStatement("select configuration from tig_pubsub_nodes where node_id = ?");
+			ps.setLong(1, nodeId);
+			data[0] = ps.executeQuery();
+		} catch (SQLException e) {
+			// e.printStackTrace();
+			// log.log(Level.SEVERE, "SP error", e);
+			throw e;
+		} finally {
+			conn.close();
+		}
+	}
+
+	public static void tigPubSubGetNodeSubscriptions(Long nodeId, ResultSet[] data) throws SQLException {
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+
+		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+
+		try {
+			PreparedStatement ps = conn.prepareStatement("select pj.jid, ps.subscription, ps.subscription_id"
+					+ " from tig_pubsub_subscriptions ps"
+					+ " inner join tig_pubsub_jids pj on ps.jid_id = pj.jid_id"
+					+ " where ps.node_id = ?");
+			ps.setLong(1, nodeId);
+			data[0] = ps.executeQuery();
+		} catch (SQLException e) {
+			// e.printStackTrace();
+			// log.log(Level.SEVERE, "SP error", e);
+			throw e;
+		} finally {
+			conn.close();
+		}
+	}
 	
 	public static void tigPubSubSetNodeSubscription(Long nodeId, String jid, String subscr,
 			String subscrId, ResultSet[] data) throws SQLException {	
@@ -513,7 +555,7 @@ public class StoredProcedures {
 			}
 			else {
 				ps = conn.prepareStatement("insert into tig_pubsub_subscriptions (node_id, jid_id,"
-						+ " subscription, subscription_id) values (?, ?, ?);");
+						+ " subscription, subscription_id) values (?, ?, ?, ?)");
 				ps.setLong(1, nodeId);
 				ps.setLong(2, jidId);
 				ps.setString(3, subscr);

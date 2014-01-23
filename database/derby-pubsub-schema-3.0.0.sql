@@ -137,6 +137,7 @@ create procedure TigPubSubRemoveNode(node_id bigint)
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubRemoveNode';
 -- QUERY END:
 
@@ -155,6 +156,7 @@ create procedure TigPubSubWriteItem(node_id bigint, item_id varchar(1024),
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubWriteItem';
 -- QUERY END:
 
@@ -163,6 +165,7 @@ create procedure TigPubSubDeleteItem(node_id bigint, item_id varchar(1024))
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubDeleteItem';
 -- QUERY END:
 
@@ -225,6 +228,7 @@ create procedure TigPubSubDeleteAllNodes(service_jid varchar(2049))
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubDeleteAllNodes';
 -- QUERY END:
 
@@ -233,6 +237,7 @@ create procedure TigPubSubSetNodeConfiguration(node_id bigint, node_conf varchar
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubSetNodeConfiguration';
 -- QUERY END:
 
@@ -241,6 +246,7 @@ create procedure TigPubSubSetNodeAffiliation(node_id bigint, jid varchar(2049), 
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubSetNodeAffiliation';
 -- QUERY END:
 
@@ -277,6 +283,7 @@ create procedure TigPubSubSetNodeSubscription(node_id bigint, jid varchar(2049),
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubSetNodeSubscription';
 -- QUERY END:
 
@@ -285,6 +292,7 @@ create procedure TigPubSubDeleteNodeSubscription(node_id bigint, jid varchar(204
 	PARAMETER STYLE JAVA
 	LANGUAGE JAVA
 	MODIFIES SQL DATA
+	DYNAMIC RESULT SETS 1
 	EXTERNAL NAME 'tigase.pubsub.repository.derby.StoredProcedures.tigPubSubDeleteNodeSubscription';
 -- QUERY END:
 
