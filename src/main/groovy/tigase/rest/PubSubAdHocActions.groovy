@@ -43,7 +43,7 @@ class PubSubActionsHandler extends tigase.http.rest.Handler {
     def DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
 
     public PubSubActionsHandler() {
-        regex = /\/([^@\/]+)@([^@\/]+)\/([^\/]+)/
+        regex = /\/([^@\/]+@)?\.?([^@\/]+)\/([^\/]+)/
         isAsync = true
 		decodeContent = false;
 
@@ -52,13 +52,16 @@ class PubSubActionsHandler extends tigase.http.rest.Handler {
         }
 
         execPost = { Service service, callback, content, localPart, domain, cmd ->
+			if (localPart) {
+				localPart = localPart.substring(0,localPart.length()-1);
+			}
 			
 			content = decodeContent(content ? content.getReader().getText() : null);
 			
             def compJid = BareJID.bareJIDInstance(localPart, domain);
 
             Element iq = new Element("iq");
-            iq.setAttribute("to", "$localPart@$domain");
+            iq.setAttribute("to", localPart ? "$localPart@$domain" : domain);
             iq.setAttribute("type", "set");
             iq.setAttribute("id", UUID.randomUUID().toString())
 
@@ -169,55 +172,73 @@ class PubSubActionsHandler extends tigase.http.rest.Handler {
 					results.addChild(noteEl);
                 }
 
-                fieldElems.each { fieldEl ->
-					def var = fieldEl.getAttribute("var");	
-					def varTmp = var.split("#");					
-					def elem = null;
-					if (varTmp.length > 1) {
-						elem = new Element(varTmp[1]);
-						Element wrap = results.getChild(varTmp[0]);
-						if (wrap == null) {
-							wrap = new Element(varTmp[0]);
-							wrap.setAttribute("prefix", "true");
-							results.addChild(wrap);
-						}
-						wrap.addChild(elem);
-					}
-					else {
-						elem = new Element(var);
-						results.addChild(elem);
-					}
-						
-						
-					["label", "type"].each { attr ->
-						if (fieldEl.getAttribute(attr)) {
-							elem.setAttribute(attr, fieldEl.getAttribute(attr));
-						}
-					}
-
-                    def valueElems = fieldEl.getChildren().findAll({ it.getName() == "value" });
-					if (valueElems != null) {
-						valueElems.each { val ->
-							elem.addChild(new Element("value", val.getCData()));							
-						}
-					}
-
-                    def optionElems = fieldEl.getChildren().findAll({ it.getName() == "option" });
-                    if (!optionElems.isEmpty()) {
-                        optionElems.each { optionEl ->
-							Element option = new Element("option", optionEl.getChild("value").getCData());
-							if (optionEl.getAttribute("label")) {
-								option.setAttribute("label", optionEl.getAttribute("label"));
-							}
-							elem.addChild(option);
-                        }
-                    }
-                }
+				convertFieldElements(fieldElems, results);
+				
+				def reportedElems = data.getChildren().findAll({ it.getName() == "reported"});
+				reportedElems.each { reportedEl ->
+					def reported = new Element("reported");
+					convertFieldElements(reportedEl.getChildren(), reported);
+					results.addChild(reported);
+				}
+					
+				def itemsElems = data.getChildren().findAll({ it.getName() == "item"});
+				itemsElems.each { itemEl ->
+					def items = new Element("item");				
+					convertFieldElements(itemEl.getChildren(), items);
+					results.addChild(items);
+				}
 
                 callback(results.toString())
             });
         }
     }
+	
+	def convertFieldElements = { fieldElems, results ->
+		fieldElems.each { fieldEl ->
+			def var = fieldEl.getAttribute("var");	
+			def varTmp = var.split("#");					
+			def elem = null;
+			if (varTmp.length > 1) {
+				elem = new Element(varTmp[1]);
+				Element wrap = results.getChild(varTmp[0]);
+				if (wrap == null) {
+					wrap = new Element(varTmp[0]);
+					wrap.setAttribute("prefix", "true");
+					results.addChild(wrap);
+				}
+				wrap.addChild(elem);
+			}
+			else {
+				elem = new Element(var);
+				results.addChild(elem);
+			}
+			
+			
+			["label", "type"].each { attr ->
+				if (fieldEl.getAttribute(attr)) {
+					elem.setAttribute(attr, fieldEl.getAttribute(attr));
+				}
+			}
+			
+			def valueElems = fieldEl.getChildren().findAll({ it.getName() == "value" });
+			if (valueElems != null) {
+				valueElems.each { val ->
+					elem.addChild(new Element("value", val.getCData()));							
+				}
+			}
+			
+			def optionElems = fieldEl.getChildren().findAll({ it.getName() == "option" });
+			if (!optionElems.isEmpty()) {
+				optionElems.each { optionEl ->
+					Element option = new Element("option", optionEl.getChild("value").getCData());
+					if (optionEl.getAttribute("label")) {
+						option.setAttribute("label", optionEl.getAttribute("label"));
+					}
+					elem.addChild(option);
+				}
+			}
+		}		
+	}
 	
 	Element decodeContent(String input) {
 		if (!input) return null;
