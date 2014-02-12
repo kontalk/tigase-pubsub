@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -14,6 +15,7 @@ import java.util.logging.Logger;
 
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
+import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
@@ -22,6 +24,7 @@ import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
 import tigase.stats.StatisticsList;
@@ -36,96 +39,76 @@ import tigase.xmpp.BareJID;
  */
 public class CachedPubSubRepository implements IPubSubRepository {
 
-	private class LazyWriteThread implements Runnable {
-		private boolean stop = false;
+	private class NodeSaver {
 
-		/**
-		 * Constructs ...
-		 * 
-		 */
-		public LazyWriteThread() {
-		}
-
-		/**
-		 * Method description
-		 * 
-		 */
-		@Override
-		public void run() {
-			log.info("Started new LazyWriteThread.");
-
-			while (!stop || (nodesToSave.size() > 0)) {
-				Node node = nodesToSave.pollFirst();
-
-				if (node != null) {
-					doSave(node);
-				} else {
-					if (!stop) {
-						try {
-							synchronized (nodesToSave) {
-								nodesToSave.wait();
-							}
-
-							// After awaking sleep for 1 more second to allow
-							// for building
-							// up the buffer for saving. This improved
-							// performance.
-							Thread.sleep(1000);
-						} catch (InterruptedException ex) {
-						}
-					}
-				}
-			}
-
-			log.info("Stopped LazyWriteThread...");
-		}
-
-		public void doSave(Node node) {
+		public void save(Node node) throws RepositoryException {
 			long start = System.currentTimeMillis();
 
 			++repo_writes;
 
-			// Prevent node modifications while it is being written to
-			// DB
-			synchronized (node) {
+			// Prevent node modifications while it is being written to DB
+			// From 3.0.0 this should not be needed as we keep changes to the node per thread
+//			synchronized (node) {
 				try {
 					if (node.isDeleted()) {
 						return;
 					}
 
 					if (node.affiliationsNeedsWriting()) {
-						dao.updateAffiliations(node.getServiceJid(), node.getName(),
-								node.getNodeAffiliations().serialize());
+						Map<BareJID,UsersAffiliation> changedAffiliations = node.getNodeAffiliations().getChanged();
+						for (Map.Entry<BareJID,UsersAffiliation> entry : changedAffiliations.entrySet()) {
+							dao.updateNodeAffiliation(node.getServiceJid(), node.getNodeId(), entry.getValue());
+						}
 						node.affiliationsSaved();
 					}
 
 					if (node.subscriptionsNeedsWriting()) {
-						FragmentedMap<BareJID, UsersSubscription> fm = node.getNodeSubscriptions().getFragmentedMap();
-
-						fm.defragment();
-
-						for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
-							dao.removeSubscriptions(node.getServiceJid(), node.getName(), deletedIndex);
+//						for (Integer deletedIndex : fm.getRemovedFragmentIndexes()) {
+//							dao.removeSubscriptions(node.getServiceJid(), node.getName(), deletedIndex);
+//						}
+//
+//						for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
+//							Map<BareJID, UsersSubscription> ft = fm.getFragment(changedIndex);
+//
+//							dao.updateSubscriptions(node.getServiceJid(), node.getName(), changedIndex,
+//									node.getNodeSubscriptions().serialize(ft));
+//						}
+						Map<BareJID,UsersSubscription> changedSubscriptions = node.getNodeSubscriptions().getChanged();
+						for (Map.Entry<BareJID,UsersSubscription> entry : changedSubscriptions.entrySet()) {
+							UsersSubscription subscription = entry.getValue();
+							if (subscription.getSubscription() == Subscription.none) {
+								dao.removeNodeSubscription(node.getServiceJid(), node.getNodeId(), subscription.getJid());
+							}
+							else {
+								dao.updateNodeSubscription(node.getServiceJid(), node.getNodeId(), subscription);
+							}
 						}
-
-						for (Integer changedIndex : fm.getChangedFragmentIndexes()) {
-							Map<BareJID, UsersSubscription> ft = fm.getFragment(changedIndex);
-
-							dao.updateSubscriptions(node.getServiceJid(), node.getName(), changedIndex,
-									node.getNodeSubscriptions().serialize(ft));
-						}
-
-						fm.cleanChangingLog();
 						node.subscriptionsSaved();
 					}
 
 					if (node.configNeedsWriting()) {
-						dao.updateNodeConfig(node.getServiceJid(), node.getName(),
-								node.getNodeConfig().getFormElement().toString());
+						String collection = node.getNodeConfig().getCollection();
+						Long collectionId = null;
+						if (collection != null && !collection.equals("")) {
+							collectionId = dao.getNodeId(node.getServiceJid(), collection);
+							if (collectionId == 0) {
+								throw new RepositoryException("Parent collection does not exists yet!");
+							}							
+						}						
+						dao.updateNodeConfig(node.getServiceJid(), node.getNodeId(),
+								node.getNodeConfig().getFormElement().toString(), 
+								collectionId);
 						node.configSaved();
 					}
-				} catch (Exception e) {
+				} catch (Exception e) {					
 					log.log(Level.WARNING, "Problem saving pubsub data: ", e);
+					// if we receive an exception here, I think we should clear any unsaved
+					// changes (at least for affiliations and subscriptions) and propagate 
+					// this exception to higher layer to return proper error response 
+					//
+					// should we do the same for configuration?
+					node.resetChanges(); 
+					throw new RepositoryException("Problem saving pubsub data", e);
 				}
 
 				// If the node still needs writing to the database put
@@ -133,36 +116,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				if (node.needsWriting()) {
 					save(node);
 				}
-			}
+//			}
 
 			long end = System.currentTimeMillis();
 
 			writingTime += (end - start);						
-		}
-		
-		public void save(Node node) {
-			nodesToSave.add(node);
-			wakeup();
-		}
-		
-		/**
-		 * Method description
-		 * 
-		 */
-		public void stop() {
-			log.info("Stopping LazyWriteThread...");
-			stop = true;
-			wakeup();
-		}
-
-		/**
-		 * Method description
-		 * 
-		 */
-		public void wakeup() {
-			synchronized (nodesToSave) {
-				nodesToSave.notify();
-			}
 		}
 	}
 
@@ -215,7 +173,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	/** Field description */
 	public final static long MAX_WRITE_DELAY = 1000l * 15l;
-	protected final PubSubDAO dao;
+	protected final IPubSubDAO dao;
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final Integer maxCacheSize;
 	// private final Object mutex = new Object();
@@ -226,7 +184,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private long repo_writes = 0;
 
 	private final ConcurrentHashMap<BareJID,Set<String>> rootCollection = new ConcurrentHashMap<BareJID,Set<String>>();
-	private LazyWriteThread tlazyWriteThread;
+	private NodeSaver nodeSaver;
 
 	// private final Object writeThreadMutex = new Object();
 
@@ -241,18 +199,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 * @param dao
 	 * @param maxCacheSize
 	 */
-	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {
-		this(dao, maxCacheSize, true);
-	}
-
-	/**
-	 * Constructs ...
-	 * 
-	 * 
-	 * @param dao
-	 * @param maxCacheSize
-	 */
-	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize, boolean lazyWrite) {	
+	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {	
 		this.dao = dao;
 		this.maxCacheSize = maxCacheSize;
 		nodes = Collections.synchronizedMap(new SizedCache(this.maxCacheSize));
@@ -260,14 +207,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		// Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
 		log.config("Initializing Cached Repository with cache size = " + ((maxCacheSize == null) ? "OFF" : maxCacheSize));
 		
- 		tlazyWriteThread = makeLazyWriteThread(lazyWrite);
-		if (lazyWrite) {
-			Thread x = new Thread(tlazyWriteThread);
-
-			x.setName("PubSub-DataWriter");
-			x.setDaemon(true);
-			x.start();
-		}
+ 		nodeSaver = new NodeSaver();
 
 		// Thread.dumpStack();
 	}
@@ -374,17 +314,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		return serviceJid.toString() + "/" + nodeName;
 	}
 
-	// public void doLazyWrite() {
-	// synchronized (writeThreadMutex) {
-	// if (tlazyWriteThread == null) {
-	// tlazyWriteThread = makeLazyWriteThread(false);
-	// Thread x = new Thread(tlazyWriteThread);
-	// x.setName("PubSub-DataWriter");
-	// x.start();
-	// }
-	// }
-	// }
-
 	/**
 	 * Method description
 	 * 
@@ -402,12 +331,19 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 		long start = System.currentTimeMillis();
+		Long collectionId = null;
+		if (collection != null && !collection.equals("")) {
+			collectionId = this.dao.getNodeId(serviceJid, collection);
+			if (collectionId == 0) {
+				throw new RepositoryException("Parent collection does not exists yet!");
+			}
+		}
+		
+		long nodeId = this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collectionId);
 
-		this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection);
-
-		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create(null);
+		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create((Queue<UsersAffiliation>) null);
 		NodeSubscriptions nodeSubscriptions = tigase.pubsub.repository.NodeSubscriptions.create();
-		Node node = new Node(serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
+		Node node = new Node(nodeId, serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
 		String key = createKey(serviceJid, nodeName);
 		this.nodes.put(key, node);
@@ -431,8 +367,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
 		Node node = this.nodes.get(key);
-
-		this.dao.deleteNode(serviceJid, nodeName);
+		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+		this.dao.deleteNode(serviceJid, nodeId);
 
 		if (node != null) {
 			node.setDeleted(true);
@@ -450,7 +386,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		// No resources have been allocated by the init, but some resources
 		// have been allocated in the contructor....
-		tlazyWriteThread.stop();
 	}
 
 	/**
@@ -509,16 +444,18 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		Node node = this.nodes.get(key);
 
 		if (node == null) {
-			AbstractNodeConfig nodeConfig = this.dao.getNodeConfig(serviceJid, nodeName);
+			long nodeId = this.dao.getNodeId(serviceJid, nodeName);
+			String cfgData = this.dao.getNodeConfig(serviceJid, nodeId);
+			AbstractNodeConfig nodeConfig = this.dao.parseConfig(nodeName, cfgData);
 
 			if (nodeConfig == null) {
 				return null;
 			}
 
-			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(serviceJid, nodeName));
-			NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(this.dao.getNodeSubscriptions(serviceJid, nodeName));
+			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(serviceJid, nodeId));
+			NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(this.dao.getNodeSubscriptions(serviceJid, nodeId));
 
-			node = new Node(serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
+			node = new Node(nodeId, serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
 			// if (maxCacheSize != null && this.nodes.size() > maxCacheSize) {
 			// Iterator<Entry<String, Node>> it =
@@ -539,7 +476,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 		return node;
 	}
-
+	
 	/**
 	 * Method description
 	 * 
@@ -595,7 +532,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException {
-		return new Items(serviceJid, nodeName, this.dao);
+		String key = createKey(serviceJid, nodeName);
+		Node node = this.nodes.get(key);		
+		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+		return new Items(nodeId, serviceJid, nodeName, this.dao);
 	}
 
 	/**
@@ -653,7 +593,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					rootCollection = oldRootCollection;
 				}
 			}
-			String[] x = dao.getRootNodes(serviceJid);
+			String[] x = dao.getChildNodes(serviceJid, null);
 
 			if (rootCollection == null) {
 				rootCollection = new HashSet<String>();
@@ -691,24 +631,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		log.config("Cached PubSubRepository initialising...");
 	}
 
-	private LazyWriteThread makeLazyWriteThread(final boolean lazyWrite) {
-
-		// Thread.dumpStack();
-		if (lazyWrite) {
-			return new LazyWriteThread();
-		}
-		else {
-			return new LazyWriteThread() {
-			
-				@Override
-				public void save(Node node) {
-					doSave(node);
-				}
-				
-			};
-		}
-	}
-
 	/**
 	 * Method description
 	 * 
@@ -720,7 +642,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	 */
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
-		dao.removeFromRootCollection(serviceJid, nodeName);
+		String key = createKey(serviceJid, nodeName);
+		Node node = this.nodes.get(key);		
+		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);		
+		dao.removeFromRootCollection(serviceJid, nodeId);
 		rootCollection.remove(nodeName);
 	}
 
@@ -744,7 +669,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			// node.setNodeConfigChangeTimestamp();
 			// synchronized (mutex) {
 			log.finest("Node '" + nodeName + "' added to lazy write queue (config)");
-			tlazyWriteThread.save(node);
+			nodeSaver.save(node);
 			// }
 		}
 	}
@@ -769,12 +694,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					throw new RuntimeException("INCORRECT");
 				}
 
-				node.affiliationsMerge();
-
 				// node.setNodeAffiliationsChangeTimestamp();
 				// synchronized (mutex) {
 				log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations)");
-				tlazyWriteThread.save(node);
+				nodeSaver.save(node);
 
 				// }
 			}
@@ -799,13 +722,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		Node node = getNode(serviceJid, nodeName);
 
 		if (node != null) {
-			node.subscriptionsMerge();
-
 			// node.setNodeSubscriptionsChangeTimestamp();
 			// synchronized (mutex) {
 			log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
-			nodesToSave.add(node);
-			tlazyWriteThread.wakeup();
+			nodeSaver.save(node);
 			// }
 		}
 	}

@@ -166,14 +166,14 @@ public class NodeDeleteModule extends AbstractPubSubModule {
 				}
 			}
 
-			List<Packet> resultArray = makeArray(packet.okResult((Element) null, 0));
+			Packet result = packet.okResult((Element) null, 0);
 
 			if (nodeConfig.isNotify_config()) {
 				ISubscriptions nodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, nodeName);
 				Element del = new Element("delete", new String[] { "node" }, new String[] { nodeName });
 
-				resultArray.addAll(this.publishModule.prepareNotification(del, packet.getStanzaTo(), nodeName, nodeConfig,
-						nodeAffiliations, nodeSubscriptions));
+				this.publishModule.sendNotifications(del, packet.getStanzaTo(), nodeName, nodeConfig,
+						nodeAffiliations, nodeSubscriptions);
 			}
 
 			final String parentNodeName = nodeConfig.getCollection();
@@ -216,7 +216,7 @@ public class NodeDeleteModule extends AbstractPubSubModule {
 			NodeDeleteEvent event = new NodeDeleteEvent(packet, nodeName);
 			getEventBus().fire(event);
 
-			packetWriter.write(resultArray);
+			packetWriter.write(result);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

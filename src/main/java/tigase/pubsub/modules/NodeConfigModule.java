@@ -269,7 +269,6 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 			// final Element result = createResultIQ(element);
 			final Packet result = packet.okResult((Element) null, 0);
-			final List<Packet> resultArray = makeArray(result);
 			ISubscriptions nodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, nodeName);
 
 			if (type == StanzaType.get) {
@@ -280,7 +279,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 				rConfigure.addChild(f);
 				rPubSub.addChild(rConfigure);
-				result.getElement().addChild(rPubSub);
+				result.getElement().addChild(rPubSub);				
 			} else if (type == StanzaType.set) {
 				String[] children = (nodeConfig.getChildren() == null) ? new String[] {} : Arrays.copyOf(
 						nodeConfig.getChildren(), nodeConfig.getChildren().length);
@@ -302,15 +301,15 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						((CollectionNodeConfig) colNodeConfig).addChildren(nodeName);
 						getRepository().update(toJid, colNodeConfig.getNodeName(), colNodeConfig);
 						getRepository().removeFromRootCollection(toJid, nodeName);
-
+						
 						IAffiliations colNodeAffiliations = getRepository().getNodeAffiliations(toJid,
 								colNodeConfig.getNodeName());
 						ISubscriptions colNodeSubscriptions = getRepository().getNodeSubscriptions(toJid,
 								colNodeConfig.getNodeName());
 						Element associateNotification = createAssociateNotification(colNodeConfig.getNodeName(), nodeName);
 
-						resultArray.addAll(publishModule.prepareNotification(associateNotification, packet.getStanzaTo(),
-								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
+						publishModule.sendNotifications(associateNotification, packet.getStanzaTo(),
+								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions);
 					}
 					if (nodeConfig.getCollection().equals("")) {
 						AbstractNodeConfig colNodeConfig = getRepository().getNodeConfig(toJid, collectionOld);
@@ -327,8 +326,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 								colNodeConfig.getNodeName());
 						Element disassociateNotification = createDisassociateNotification(collectionOld, nodeName);
 
-						resultArray.addAll(publishModule.prepareNotification(disassociateNotification, packet.getStanzaTo(),
-								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions));
+						publishModule.sendNotifications(disassociateNotification, packet.getStanzaTo(),
+								nodeName, nodeConfig, colNodeAffiliations, colNodeSubscriptions);
 					}
 				}
 				if (nodeConfig instanceof CollectionNodeConfig) {
@@ -345,7 +344,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 							throw new PubSubException(Authorization.ITEM_NOT_FOUND, "(#2) Node '" + ann + "' doesn't exists");
 						}
 						if (nc.getCollection().equals("")) {
-							getRepository().removeFromRootCollection(toJid, nc.getNodeName());
+							getRepository().removeFromRootCollection(toJid, nc.getNodeName());						
 						} else {
 							AbstractNodeConfig cnc = getRepository().getNodeConfig(toJid, nc.getCollection());
 
@@ -365,8 +364,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 
 						Element associateNotification = createAssociateNotification(nodeName, ann);
 
-						resultArray.addAll(publishModule.prepareNotification(associateNotification, packet.getStanzaTo(),
-								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+						publishModule.sendNotifications(associateNotification, packet.getStanzaTo(),
+								nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions);
 					}
 					for (String rnn : removedChildNodes) {
 						AbstractNodeConfig nc = getRepository().getNodeConfig(toJid, rnn);
@@ -378,8 +377,8 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						if ((rnn != null) && (rnn.length() != 0)) {
 							Element disassociateNotification = createDisassociateNotification(nodeName, rnn);
 
-							resultArray.addAll(publishModule.prepareNotification(disassociateNotification,
-									packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions));
+							publishModule.sendNotifications(disassociateNotification,
+									packet.getStanzaTo(), nodeName, nodeConfig, nodeAffiliations, nodeSubscriptions);
 						}
 					}
 				}
@@ -391,14 +390,16 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				if (nodeConfig.isNotify_config()) {
 					Element configuration = new Element("configuration", new String[] { "node" }, new String[] { nodeName });
 
-					resultArray.addAll(this.publishModule.prepareNotification(configuration, packet.getStanzaTo(), nodeName,
-							nodeConfig, nodeAffiliations, nodeSubscriptions));
+					this.publishModule.sendNotifications(configuration, packet.getStanzaTo(), nodeName,
+							nodeConfig, nodeAffiliations, nodeSubscriptions);
 				}
 			} else {
 				throw new PubSubException(element, Authorization.BAD_REQUEST);
 			}
-
-			packetWriter.write(resultArray);
+			
+			// we are sending ok result after applying all changes and after 
+			// sending notifications, is it ok? XEP-0060 is not specific about this
+			packetWriter.write(result);			
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {

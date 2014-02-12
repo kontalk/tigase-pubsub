@@ -12,7 +12,7 @@ import tigase.xmpp.BareJID;
 
 public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscriptions {
 
-	protected final Map<BareJID, UsersSubscription> changedSubs = new HashMap<BareJID, UsersSubscription>();
+	protected final ThreadLocal<Map<BareJID, UsersSubscription>> changedSubs = new ThreadLocal<Map<BareJID, UsersSubscription>>();
 
 	public NodeSubscriptions() {
 	}
@@ -41,9 +41,7 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 		final String subid = Utils.createUID(bareJid);
 		UsersSubscription s = new UsersSubscription(bareJid, subid, subscription);
 
-		synchronized (changedSubs) {
-			changedSubs.put(bareJid, s);
-		}
+		changedSubs().put(bareJid, s);
 
 		return subid;
 	}
@@ -62,9 +60,7 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 		if (s != null) {
 			s.setSubscription(subscription);
 
-			synchronized (changedSubs) {
-				changedSubs.put(s.getJid(), s);
-			}
+			changedSubs().put(s.getJid(), s);
 		}
 	}
 
@@ -72,9 +68,7 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	protected UsersSubscription get(final BareJID bareJid) {
 		UsersSubscription us = null;
 
-		synchronized (changedSubs) {
-			us = changedSubs.get(bareJid);
-		}
+		us = changedSubs().get(bareJid);
 
 		if (us == null) {
 			us = subs.get(bareJid);
@@ -103,11 +97,9 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	public UsersSubscription[] getSubscriptions() {
 		final Set<UsersSubscription> result = new HashSet<UsersSubscription>();
 
-		result.addAll(this.subs.getAllValues());
+		result.addAll(this.subs.values());
 
-		synchronized (changedSubs) {
-			result.addAll(this.changedSubs.values());
-		}
+		result.addAll(this.changedSubs().values());
 
 		return result.toArray(new UsersSubscription[] {});
 	}
@@ -120,9 +112,7 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	 */
 	@Override
 	public boolean isChanged() {
-		synchronized (changedSubs) {
-			return this.changedSubs.size() > 0;
-		}
+		return this.changedSubs().size() > 0;
 	}
 
 	/**
@@ -130,20 +120,37 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	 * 
 	 */
 	public void merge() {
-		synchronized (changedSubs) {
-			subs.putAll(changedSubs);
-			changedSubs.clear();
+		Map<BareJID, UsersSubscription> changedSubs = changedSubs();
+		for (Map.Entry<BareJID, UsersSubscription> entry : changedSubs.entrySet()) {
+			if (entry.getValue().getSubscription() == Subscription.none) {
+				continue;
+			}
+
+			subs.put(entry.getKey(), entry.getValue());
 		}
+		//subs.putAll(changedSubs);
+		changedSubs.clear();
 	}
 
+	public Map<BareJID,UsersSubscription> getChanged() {
+		return changedSubs();
+	}
+	
 	/**
 	 * Method description
 	 * 
 	 */
 	@Override
 	public void resetChangedFlag() {
-		synchronized (changedSubs) {
-			this.changedSubs.clear();
+		changedSubs().clear();
+	}
+	
+	private Map<BareJID, UsersSubscription> changedSubs() {
+		Map<BareJID, UsersSubscription> changedSubs = this.changedSubs.get();
+		if (changedSubs == null) {
+			changedSubs = new HashMap<BareJID, UsersSubscription>();
+			this.changedSubs.set(changedSubs);
 		}
+		return changedSubs;
 	}
 }

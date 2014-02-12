@@ -96,16 +96,13 @@ public class RetrieveItemsCommand implements AdHocCommand {
 						f.addChild(reported);
 
 						IItems nodeItems = repository.getNodeItems(request.getIq().getTo().getBareJID(), nodeName);
-						String[] allItems = nodeItems.getItemsIds();
+						String[] allItems = nodeItems.getItemsIdsSince(timestamp.getTime());
 						for (String id : allItems) {
-							Date dt = nodeItems.getItemCreationDate(id);
-							if (!dt.before(timestamp.getTime())) {
-								Element i = new Element("item");
-								Element fi = new Element("field", new String[] { "var" }, new String[] { "id" });
-								fi.addChild(new Element("value", id));
-								i.addChild(fi);
-								f.addChild(i);
-							}
+							Element i = new Element("item");
+							Element fi = new Element("field", new String[]{"var"}, new String[]{"id"});
+							fi.addChild(new Element("value", id));
+							i.addChild(fi);
+							f.addChild(i);
 						}
 						// ==================
 						response.getElements().add(f);

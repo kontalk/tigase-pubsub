@@ -2,6 +2,9 @@ package tigase.pubsub.repository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -20,8 +23,17 @@ public abstract class NodeAffiliations implements IAffiliations {
 			return new tigase.pubsub.repository.cached.NodeAffiliations();
 		}
 	}
+	
+	public static tigase.pubsub.repository.cached.NodeAffiliations create(Queue<UsersAffiliation> data) {
+		tigase.pubsub.repository.cached.NodeAffiliations a = new tigase.pubsub.repository.cached.NodeAffiliations();
+		if (data == null)
+			return a;
+		
+		a.init(data);
+		return a;
+	}
 
-	protected final Map<BareJID, UsersAffiliation> affs = new HashMap<BareJID, UsersAffiliation>();
+	protected final ConcurrentMap<BareJID, UsersAffiliation> affs = new ConcurrentHashMap<BareJID, UsersAffiliation>(16, 0.9f, 8);
 
 	private boolean changed = false;
 
@@ -31,9 +43,7 @@ public abstract class NodeAffiliations implements IAffiliations {
 	@Override
 	public void addAffiliation(BareJID bareJid, Affiliation affiliation) {
 		UsersAffiliation a = new UsersAffiliation(bareJid, affiliation);
-		synchronized (this.affs) {
-			affs.put(bareJid, a);
-		}
+		affs.put(bareJid, a);
 		changed = true;
 	}
 
@@ -45,37 +55,28 @@ public abstract class NodeAffiliations implements IAffiliations {
 			changed = true;
 		} else {
 			a = new UsersAffiliation(bareJid, affiliation);
-			synchronized (this.affs) {
-				affs.put(bareJid, a);
-			}
+			affs.put(bareJid, a);
 			changed = true;
 		}
 	}
 
 	@Override
 	public NodeAffiliations clone() throws CloneNotSupportedException {
-		synchronized (this.affs) {
-			NodeAffiliations clone = new tigase.pubsub.repository.cached.NodeAffiliations();
-			for (UsersAffiliation a : this.affs.values()) {
-				clone.affs.put(a.getJid(), a.clone());
-			}
-			clone.changed = changed;
-			return clone;
+		NodeAffiliations clone = new tigase.pubsub.repository.cached.NodeAffiliations();
+		for (UsersAffiliation a : this.affs.values()) {
+			clone.affs.put(a.getJid(), a.clone());
 		}
+		clone.changed = changed;
+		return clone;
 	}
 
 	protected UsersAffiliation get(final BareJID bareJid) {
-		synchronized (this.affs) {
-			UsersAffiliation s = this.affs.get(bareJid);
-			return s;
-		}
+		return this.affs.get(bareJid);
 	}
 
 	@Override
 	public UsersAffiliation[] getAffiliations() {
-		synchronized (this.affs) {
-			return this.affs.values().toArray(new UsersAffiliation[] {});
-		}
+		return this.affs.values().toArray(new UsersAffiliation[] {});
 	}
 
 	public Map<BareJID, UsersAffiliation> getAffiliationsMap() {
@@ -97,27 +98,25 @@ public abstract class NodeAffiliations implements IAffiliations {
 	}
 
 	public void parse(String data) {
-		synchronized (this.affs) {
-			String[] tokens = data.split(DELIMITER);
-			affs.clear();
-			int c = 0;
-			BareJID jid = null;
-			String state = null;
-			for (String t : tokens) {
-				if (c == 1) {
-					state = t;
-					++c;
-				} else if (c == 0) {
-					jid = BareJID.bareJIDInstanceNS(t);
-					++c;
-				}
-				if (c == 2) {
-					UsersAffiliation b = new UsersAffiliation(jid, Affiliation.valueOf(state));
-					affs.put(jid, b);
-					jid = null;
-					state = null;
-					c = 0;
-				}
+		String[] tokens = data.split(DELIMITER);
+		affs.clear();
+		int c = 0;
+		BareJID jid = null;
+		String state = null;
+		for (String t : tokens) {
+			if (c == 1) {
+				state = t;
+				++c;
+			} else if (c == 0) {
+				jid = BareJID.bareJIDInstanceNS(t);
+				++c;
+			}
+			if (c == 2) {
+				UsersAffiliation b = new UsersAffiliation(jid, Affiliation.valueOf(state));
+				affs.put(jid, b);
+				jid = null;
+				state = null;
+				c = 0;
 			}
 		}
 	}

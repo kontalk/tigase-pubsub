@@ -221,6 +221,11 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 				log.log(Level.FINEST, e.getMessageWithPosition() + " when processing " + packet.toString());
 			}
 			sendException(packet, e);
+		} catch (Exception e) {
+			if (log.isLoggable(Level.SEVERE)) {
+				log.log(Level.SEVERE, e.getMessage() + " when processing " + packet.toString(), e);
+			}
+			sendException(packet, new ComponentException(Authorization.INTERNAL_SERVER_ERROR));			
 		}
 	}
 

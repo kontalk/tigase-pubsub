@@ -2,6 +2,9 @@ package tigase.pubsub.repository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -21,7 +24,7 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 	protected final static String DELIMITER = ";";
 
 	/** Field description */
-	public final static int MAX_FRAGMENT_SIZE = 10000;
+//	public final static int MAX_FRAGMENT_SIZE = 10000;
 
 	/**
 	 * Method description
@@ -37,8 +40,9 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 
 	private boolean changed = false;
 
-	protected final FragmentedMap<BareJID, UsersSubscription> subs = new FragmentedMap<BareJID, UsersSubscription>(
-			MAX_FRAGMENT_SIZE);
+//	protected final FragmentedMap<BareJID, UsersSubscription> subs = new FragmentedMap<BareJID, UsersSubscription>(
+//			MAX_FRAGMENT_SIZE);
+	protected final ConcurrentMap<BareJID, UsersSubscription> subs = new ConcurrentHashMap<BareJID, UsersSubscription>();
 
 	protected NodeSubscriptions() {
 	}
@@ -57,9 +61,7 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 		final String subid = Utils.createUID(bareJid);
 		UsersSubscription s = new UsersSubscription(bareJid, subid, subscription);
 
-		synchronized (this.subs) {
-			subs.put(bareJid, s);
-		}
+		subs.put(bareJid, s);
 
 		changed = true;
 
@@ -84,21 +86,7 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 	}
 
 	protected UsersSubscription get(final BareJID bareJid) {
-		synchronized (this.subs) {
-			UsersSubscription s = this.subs.get(bareJid);
-
-			return s;
-		}
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @return
-	 */
-	public FragmentedMap<BareJID, UsersSubscription> getFragmentedMap() {
-		return subs;
+		return this.subs.get(bareJid);
 	}
 
 	/**
@@ -148,7 +136,7 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 	@Override
 	public UsersSubscription[] getSubscriptions() {
 		synchronized (this.subs) {
-			return this.subs.getAllValues().toArray(new UsersSubscription[] {});
+			return this.subs.values().toArray(new UsersSubscription[] {});
 		}
 	}
 
@@ -159,9 +147,16 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 	 * @return
 	 */
 	public Map<BareJID, UsersSubscription> getSubscriptionsMap() {
-		return subs.getMap();
+		return subs;
 	}
 
+	public void init(Queue<UsersSubscription> data) {
+		UsersSubscription s = null;
+		while ((s = data.poll()) != null) {
+			subs.put(s.getJid(), s);
+		}
+	}
+	
 	/**
 	 * Method description
 	 * 
@@ -203,19 +198,15 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 				}
 			}
 
-			if (c == 3) {
+			if (c == 3) {				
 				UsersSubscription b = new UsersSubscription(jid, subid, Subscription.valueOf(state));
 
-				parsed.put(jid, b);
+				subs.put(jid, b);
 				jid = null;
 				subid = null;
 				state = null;
 				c = 0;
 			}
-		}
-
-		synchronized (subs) {
-			subs.addFragment(parsed);
 		}
 	}
 
@@ -233,7 +224,7 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 				this.changed = true;
 				subs.clear();
 
-				for (UsersSubscription a : ns.subs.getAllValues()) {
+				for (UsersSubscription a : ns.subs.values()) {
 					subs.put(a.getJid(), a);
 				}
 			} else {

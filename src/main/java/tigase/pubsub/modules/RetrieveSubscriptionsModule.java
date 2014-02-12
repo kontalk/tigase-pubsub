@@ -22,6 +22,7 @@
 
 package tigase.pubsub.modules;
 
+import java.util.Map;
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
@@ -108,25 +109,13 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 			pubsubResult.addChild(subscriptionsResult);
 			if (nodeName == null) {
 				IPubSubDAO directRepo = this.getRepository().getPubSubDAO();
-				String[] nodes = directRepo.getNodesList(serviceJid);
+				Map<String, UsersSubscription> usersSubscriptions = directRepo.getUserSubscriptions(serviceJid, senderBareJid);
+				for (Map.Entry<String, UsersSubscription> entry : usersSubscriptions.entrySet()) {
+					UsersSubscription subscription = entry.getValue();
+					Element a = new Element("subscription", new String[] { "node", "jid", "subscription" },
+						new String[] { entry.getKey(), senderBareJid.toString(), subscription.getSubscription().name() });
 
-				if (nodes != null) {
-					for (String node : nodes) {
-						final ISubscriptions subscribers = directRepo.getNodeSubscriptions(serviceJid, node);
-
-						if (subscribers != null) {
-							for (UsersSubscription usersSubscription : subscribers.getSubscriptions()) {
-								if (senderBareJid.equals(usersSubscription.getJid())) {
-									ISubscriptions ns = directRepo.getNodeSubscriptions(serviceJid, nodeName);
-									Subscription subscription = ns.getSubscription(usersSubscription.getJid());
-									Element a = new Element("subscription", new String[] { "node", "jid", "subscription" },
-											new String[] { node, usersSubscription.getJid().toString(), subscription.name() });
-
-									subscriptionsResult.addChild(a);
-								}
-							}
-						}
-					}
+					subscriptionsResult.addChild(a);					
 				}
 			} else {
 				ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(serviceJid, nodeName);

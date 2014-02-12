@@ -85,11 +85,13 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 	}
 
 	private void startRebuild(BareJID serviceJid) throws RepositoryException {
-		final String[] allNodesId = dao.getNodesList(serviceJid);
+		final String[] allNodesId = dao.getAllNodesList(serviceJid);
 		final Set<String> rootCollection = new HashSet<String>();
 		final Map<String, AbstractNodeConfig> nodeConfigs = new HashMap<String, AbstractNodeConfig>();
 		for (String nodeName : allNodesId) {
-			AbstractNodeConfig nodeConfig = dao.getNodeConfig(serviceJid, nodeName);
+			long nodeId = dao.getNodeId(serviceJid, nodeName);
+			String nodeConfigData = dao.getNodeConfig(serviceJid, nodeId);
+			AbstractNodeConfig nodeConfig = dao.parseConfig(nodeName, nodeConfigData);
 			nodeConfigs.put(nodeName, nodeConfig);
 			if (nodeConfig instanceof CollectionNodeConfig) {
 				CollectionNodeConfig collectionNodeConfig = (CollectionNodeConfig) nodeConfig;
@@ -120,7 +122,10 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 		for (Entry<String, AbstractNodeConfig> entry : nodeConfigs.entrySet()) {
 			final AbstractNodeConfig nodeConfig = entry.getValue();
 			final String nodeName = entry.getKey();
-			dao.update(serviceJid, nodeName, nodeConfig);
+			long nodeId = dao.getNodeId(serviceJid, nodeName);
+			long collectionId = dao.getNodeId(serviceJid, nodeConfig.getCollection());
+			dao.updateNodeConfig(serviceJid, nodeId, nodeConfig.getFormElement().toString(),
+					collectionId == 0 ? null : collectionId);
 		}
 
 		dao.removeAllFromRootCollection(serviceJid);
