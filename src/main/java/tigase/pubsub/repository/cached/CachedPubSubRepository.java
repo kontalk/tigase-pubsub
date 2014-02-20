@@ -42,6 +42,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	private class NodeSaver {
 
 		public void save(Node node) throws RepositoryException {
+			save(node, 0);
+		}
+		
+		public void save(Node node, int iteration) throws RepositoryException {
 			long start = System.currentTimeMillis();
 
 			++repo_writes;
@@ -54,6 +58,21 @@ public class CachedPubSubRepository implements IPubSubRepository {
 						return;
 					}
 
+					if (node.configNeedsWriting()) {
+						String collection = node.getNodeConfig().getCollection();
+						Long collectionId = null;
+						if (collection != null && !collection.equals("")) {
+							collectionId = dao.getNodeId(node.getServiceJid(), collection);
+							if (collectionId == 0) {
+								throw new RepositoryException("Parent collection does not exists yet!");
+							}							
+						}						
+						dao.updateNodeConfig(node.getServiceJid(), node.getNodeId(),
+								node.getNodeConfig().getFormElement().toString(), 
+								collectionId);
+						node.configSaved();
+					}
+					
 					if (node.affiliationsNeedsWriting()) {
 						Map<BareJID,UsersAffiliation> changedAffiliations = node.getNodeAffiliations().getChanged();
 						for (Map.Entry<BareJID,UsersAffiliation> entry : changedAffiliations.entrySet()) {
@@ -85,21 +104,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 						}
 						node.subscriptionsSaved();
 					}
-
-					if (node.configNeedsWriting()) {
-						String collection = node.getNodeConfig().getCollection();
-						Long collectionId = null;
-						if (collection != null && !collection.equals("")) {
-							collectionId = dao.getNodeId(node.getServiceJid(), collection);
-							if (collectionId == 0) {
-								throw new RepositoryException("Parent collection does not exists yet!");
-							}							
-						}						
-						dao.updateNodeConfig(node.getServiceJid(), node.getNodeId(),
-								node.getNodeConfig().getFormElement().toString(), 
-								collectionId);
-						node.configSaved();
-					}
 				} catch (Exception e) {					
 					log.log(Level.WARNING, "Problem saving pubsub data: ", e);
 					// if we receive an exception here, I think we should clear any unsaved
@@ -114,7 +118,16 @@ public class CachedPubSubRepository implements IPubSubRepository {
 				// If the node still needs writing to the database put
 				// it back to the collection
 				if (node.needsWriting()) {
-					save(node);
+					if (iteration >= 10) {
+						String msg = "Was not able to save data for node " + node.getName() 
+								+ " on " + iteration + " iteration"
+								+ ", config saved = " + (!node.configNeedsWriting())
+								+ ", affiliations saved = " + (!node.affiliationsNeedsWriting())
+								+ ", subscriptions saved = " + (!node.subscriptionsNeedsWriting());
+						log.log(Level.WARNING, msg);
+						throw new RepositoryException("Problem saving pubsub data");
+					}
+					save(node, iteration++);
 				}
 //			}
 
@@ -588,7 +601,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		Set<String> rootCollection = this.rootCollection.get(serviceJid);
 		if (rootCollection == null || rootCollection.isEmpty()) {
 			if (rootCollection == null) {
-				Set<String> oldRootCollection = this.rootCollection.putIfAbsent(serviceJid, new HashSet<String>());				
+				Set<String> oldRootCollection = this.rootCollection.putIfAbsent(serviceJid, Collections.synchronizedSet(new HashSet<String>()));				
 				if (oldRootCollection != null) {
 					rootCollection = oldRootCollection;
 				}
@@ -596,7 +609,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 			String[] x = dao.getChildNodes(serviceJid, null);
 
 			if (rootCollection == null) {
-				rootCollection = new HashSet<String>();
+				rootCollection = Collections.synchronizedSet(new HashSet<String>());
 			}
 			if (x != null) {
 				for (String string : x) {
