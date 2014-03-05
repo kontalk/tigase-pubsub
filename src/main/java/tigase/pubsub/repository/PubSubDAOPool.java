@@ -23,8 +23,10 @@ package tigase.pubsub.repository;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -367,6 +369,15 @@ public class PubSubDAOPool extends PubSubDAO {
 	
 	@Override
 	public void init() throws RepositoryException {
+		Set<BareJID> keys = new HashSet<BareJID>(pools.keySet());
+		for (BareJID serviceJid : keys) {
+			PubSubDAO dao = takeDao(serviceJid);
+			try {
+				dao.init();
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		}
 	}
 
 	protected void offerDao(BareJID serviceJid, PubSubDAO dao) {

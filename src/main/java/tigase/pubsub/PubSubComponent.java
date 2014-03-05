@@ -585,7 +585,7 @@ public class PubSubComponent
 	 *
 	 * @return a value of <code>PubSubDAO</code>
 	 */
-	protected PubSubDAO createDAO(Map<String, Object> props) {
+	protected PubSubDAO createDAO(Map<String, Object> props) throws RepositoryException {
 		final Map<String, Object> classNames = getProperties(PUBSUB_REPO_CLASS_PROP_KEY,
 				props);
 		final Map<String, Object> resUris = getProperties(PUBSUB_REPO_URL_PROP_KEY, props);
@@ -633,6 +633,8 @@ public class PubSubComponent
 			}
 		}
 
+		dao_pool.init();
+		
 		return dao_pool;
 //		} else {
 //			String domain    = null;
