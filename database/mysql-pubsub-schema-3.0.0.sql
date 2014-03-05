@@ -224,7 +224,7 @@ ENGINE=InnoDB default character set utf8 ROW_FORMAT=DYNAMIC;
 delimiter //
 
 -- QUERY START:
-create function TigPubSubEnsureServiceJid(_service_jid varchar(2049)) returns bigint
+create function TigPubSubEnsureServiceJid(_service_jid varchar(2049)) returns bigint DETERMINISTIC
 begin
 	declare _service_id bigint;
 	declare _service_jid_sha1 char(40);
@@ -242,7 +242,7 @@ end //
 -- QUERY END:
 
 -- QUERY START:
-create function TigPubSubEnsureJid(_jid varchar(2049)) returns bigint
+create function TigPubSubEnsureJid(_jid varchar(2049)) returns bigint DETERMINISTIC
 begin
 	declare _jid_id bigint;
 	declare _jid_sha1 char(40);
