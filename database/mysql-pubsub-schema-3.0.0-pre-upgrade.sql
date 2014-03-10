@@ -1,6 +1,6 @@
 -- renaming tables by adding suffix _1
 alter table tig_pubsub_items rename to tig_pubsub_items_1;
-alter table tig_pubsub_subscriptions to tig_pubsub_subscriptions_1;
+alter table tig_pubsub_subscriptions rename to tig_pubsub_subscriptions_1;
 alter table tig_pubsub_nodes rename to tig_pubsub_nodes_1;
 
 -- droping procedures and functions
