@@ -1,8 +1,10 @@
 package tigase.pubsub.repository;
 
+import java.util.Map;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.impl.roster.RosterElement;
 
 public class PubSubRepositoryWrapper implements IPubSubRepository {
 
@@ -79,7 +81,7 @@ public class PubSubRepositoryWrapper implements IPubSubRepository {
 	}
 
 	@Override
-	public BareJID[] getUserRoster(BareJID owner) throws RepositoryException {
+	public Map<BareJID,RosterElement> getUserRoster(BareJID owner) throws RepositoryException {
 		return repo.getUserRoster(owner);
 	}
 

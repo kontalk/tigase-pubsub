@@ -5,6 +5,8 @@
 package tigase.pubsub.repository;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.logging.Logger;
 import tigase.db.UserRepository;
@@ -18,6 +20,8 @@ import tigase.xml.Element;
 import tigase.xml.SimpleParser;
 import tigase.xml.SingletonFactory;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.impl.roster.RosterElement;
+import tigase.xmpp.impl.roster.RosterFlat;
 
 /**
  *
@@ -90,14 +94,12 @@ public abstract class PubSubDAO implements IPubSubDAO {
 	 * @throws RepositoryException
 	 */
 	@Override
-	public BareJID[] getUserRoster(BareJID owner) throws RepositoryException {
+	public Map<BareJID,RosterElement> getUserRoster(BareJID owner) throws RepositoryException {
 		try {
-			String[] tmp = this.repository.getSubnodes(owner, "roster");
-			BareJID[] result = new BareJID[tmp.length];
-			for (int i = 0; i < tmp.length; i++) {
-				result[i] = BareJID.bareJIDInstanceNS(tmp[i]);
-			}
-			return result;
+			String tmp = this.repository.getData(owner, "roster");
+			Map<BareJID,RosterElement> roster = new HashMap<BareJID,RosterElement>();
+			RosterFlat.parseRosterUtil(tmp, roster, null);
+			return roster;
 		} catch (Exception e) {
 			throw new RepositoryException("Getting user roster error", e);
 		}

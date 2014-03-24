@@ -28,9 +28,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
-
 import tigase.component2.PacketWriter;
 import tigase.component2.eventbus.EventBus;
 import tigase.component2.modules.Module;
@@ -44,6 +44,9 @@ import tigase.server.Packet;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.impl.roster.RosterAbstract;
+import tigase.xmpp.impl.roster.RosterAbstract.SubscriptionType;
+import tigase.xmpp.impl.roster.RosterElement;
 
 /**
  * Class description
@@ -279,16 +282,12 @@ public abstract class AbstractPubSubModule implements Module {
 				return true;
 			}
 
-			BareJID[] buddies = getRepository().getUserRoster(owner.getJid());
-
-			for (BareJID buddy : buddies) {
-				if (bareJid.equals(buddy)) {
-					String s = getRepository().getBuddySubscription(owner.getJid(), bareJid);
-
-					if ((s != null) && ("from".equals(s) || "both".equals(s))) {
-						return true;
-					}
-				}
+			Map<BareJID,RosterElement> buddies = getRepository().getUserRoster(owner.getJid());
+			RosterElement re = buddies.get(bareJid);
+			if (re != null) {
+				if (re.getSubscription() == SubscriptionType.both || re.getSubscription() == SubscriptionType.from
+						|| re.getSubscription() == SubscriptionType.from_pending_out)
+					return true;
 			}
 		}
 
@@ -316,6 +315,8 @@ public abstract class AbstractPubSubModule implements Module {
 		if ((groupsAllowed == null) || (groupsAllowed.length == 0)) {
 			return true;
 		}
+		
+		// @TODO - is there a way to optimize this?
 		for (UsersSubscription owner : subscribers) {
 			UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(owner.getJid());
 
@@ -326,19 +327,15 @@ public abstract class AbstractPubSubModule implements Module {
 				return true;
 			}
 
-			BareJID[] buddies = getRepository().getUserRoster(owner.getJid());
-
-			for (BareJID buddy : buddies) {
-				if (bareJid.equals(buddy)) {
-					String[] groups = getRepository().getBuddyGroups(owner.getJid(), bareJid);
-
-					for (String group : groups) {
-						if (Utils.contain(group, groupsAllowed)) {
-							return true;
-						}
-					}
+			Map<BareJID,RosterElement> buddies = getRepository().getUserRoster(owner.getJid());
+			RosterElement re = buddies.get(bareJid);
+			if (re != null && re.getGroups() != null) {
+				for (String group : groupsAllowed) {
+					if (Utils.contain(group, groupsAllowed)) {
+						return true;
+					}				
 				}
-			}
+			}			
 		}
 
 		return false;

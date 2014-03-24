@@ -1,8 +1,10 @@
 package tigase.pubsub.repository;
 
+import java.util.Map;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.impl.roster.RosterElement;
 
 /**
  * Interface description
@@ -75,6 +77,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
+	@Deprecated
 	public abstract String[] getBuddyGroups(BareJID owner, BareJID buddy) throws RepositoryException;
 
 	/**
@@ -88,6 +91,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
+	@Deprecated
 	public abstract String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException;
 
 	/**
@@ -166,7 +170,7 @@ public interface IPubSubRepository {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract BareJID[] getUserRoster(BareJID owner) throws RepositoryException;
+	public abstract Map<BareJID,RosterElement> getUserRoster(BareJID owner) throws RepositoryException;
 
 	/**
 	 * Method description

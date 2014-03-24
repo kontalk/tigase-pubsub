@@ -25,7 +25,6 @@ package tigase.pubsub.repository;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.Subscription;
@@ -37,6 +36,7 @@ import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.impl.roster.RosterElement;
 
 /**
  * Interface description
@@ -101,8 +101,9 @@ public interface IPubSubDAO {
 
 	String[] getAllNodesList(BareJID serviceJid) throws RepositoryException;
 	
+	@Deprecated
 	String[] getBuddyGroups(BareJID owner, BareJID bareJid) throws RepositoryException;
-
+	@Deprecated
 	String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException;
 
 	Element getItem(BareJID serviceJid, long nodeId, String id) throws RepositoryException;
@@ -190,7 +191,7 @@ public interface IPubSubDAO {
 	 */
 	public String[] getChildNodes(BareJID serviceJid, String nodeName) throws RepositoryException;
 
-	BareJID[] getUserRoster(BareJID owner) throws RepositoryException;
+	Map<BareJID, RosterElement> getUserRoster(BareJID owner) throws RepositoryException;
 
 	Map<String, UsersAffiliation> getUserAffiliations(BareJID serviceJid, BareJID jid) throws RepositoryException;
 	Map<String, UsersSubscription> getUserSubscriptions(BareJID serviceJid, BareJID jid) throws RepositoryException;

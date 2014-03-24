@@ -43,6 +43,7 @@ public class PubSubConfig extends ComponentConfig {
 
 	private static final String PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY = "pubsub-high-memory-usage-level";
 	private static final String PUBSUB_LOW_MEMORY_DELAY_KEY = "pubsub-low-memory-delay";
+	private static final String PUBSUB_PERSISTENT_PEP_KEY = "persistent-pep";
 	
 	private static final int DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL = 90;
 	private static final long DEF_PUBSUB_LOW_MEMORY_DELAY_VAL = 1000;
@@ -55,9 +56,10 @@ public class PubSubConfig extends ComponentConfig {
 
 	private long lowMemoryDelay = DEF_PUBSUB_LOW_MEMORY_DELAY_VAL;
 	private float highMemoryUsageLevel = DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL;
+	private boolean persistentPep = false;
 	
 	public PubSubConfig(AbstractComponent<?> component) {
-		super(component);
+		super(component);		
 	}
 
 	/**
@@ -144,6 +146,9 @@ public class PubSubConfig extends ComponentConfig {
 		if (props.containsKey(PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY)) {
 			this.highMemoryUsageLevel = ((Integer) props.get(PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY)).floatValue();
 		}
+		if (props.containsKey(PUBSUB_PERSISTENT_PEP_KEY)) {
+			this.persistentPep = Boolean.parseBoolean((String) props.get(PUBSUB_PERSISTENT_PEP_KEY));
+		}
 	}
 
 	void setPubSubRepository(IPubSubRepository pubSubRepository) {
@@ -153,4 +158,8 @@ public class PubSubConfig extends ComponentConfig {
 	private boolean isHighMemoryUsage() {
 		return TigaseRuntime.getTigaseRuntime().getHeapMemUsage() > highMemoryUsageLevel;
 	}	
+	
+	public boolean isPepPeristent() {
+		return persistentPep;
+	}
 }

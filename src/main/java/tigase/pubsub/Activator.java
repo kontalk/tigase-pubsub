@@ -14,6 +14,7 @@ public class Activator implements BundleActivator, ServiceListener {
 
 	private static final Logger log = Logger.getLogger(Activator.class.getCanonicalName());
 	private BundleContext context = null;
+	private Class<PepPlugin> pepPluginClass = null;
 	private Class<PubSubComponent> pubsubComponentClass = null;
 	private ModulesManager serviceManager = null;
 	private ServiceReference serviceReference = null;
@@ -21,6 +22,7 @@ public class Activator implements BundleActivator, ServiceListener {
 	private void registerAddons() {
 		if (serviceManager != null) {
 			serviceManager.registerServerComponentClass(pubsubComponentClass);
+			serviceManager.registerPluginClass(pepPluginClass);
 			serviceManager.update();
 		}
 	}
@@ -47,6 +49,7 @@ public class Activator implements BundleActivator, ServiceListener {
 	public void start(BundleContext bc) throws Exception {
 		synchronized (this) {
 			context = bc;
+			pepPluginClass = PepPlugin.class;
 			pubsubComponentClass = PubSubComponent.class;
 			bc.addServiceListener(this, "(&(objectClass=" + ModulesManager.class.getName() + "))");
 			serviceReference = bc.getServiceReference(ModulesManager.class.getName());
@@ -73,6 +76,7 @@ public class Activator implements BundleActivator, ServiceListener {
 
 	private void unregisterAddons() {
 		if (serviceManager != null) {
+			serviceManager.unregisterPluginClass(pepPluginClass);
 			serviceManager.unregisterServerComponentClass(pubsubComponentClass);
 			serviceManager.update();
 		}

@@ -34,12 +34,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
-
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.AbstractPubSubModule;
+import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
@@ -61,6 +61,8 @@ import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
+import tigase.xmpp.impl.roster.RosterAbstract.SubscriptionType;
+import tigase.xmpp.impl.roster.RosterElement;
 
 /**
  * Class description
@@ -94,6 +96,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	private final XsltTool xslTransformer;
 
+	private final LeafNodeConfig defaultPepNodeConfig;
+	
 	/**
 	 * Constructs ...
 	 * 
@@ -111,6 +115,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 		for (String xmlns : SUPPORTED_PEP_XMLNS) {
 			pepNodes.add(xmlns);
 		}
+		// creating default config for autocreate PEP nodes
+		this.defaultPepNodeConfig = new LeafNodeConfig("default-pep");
+		defaultPepNodeConfig.setValue("pubsub#access_model", AccessModel.presence.name());
+		defaultPepNodeConfig.setValue("pubsub#presence_based_delivery", true);
 	}
 
 	/**
@@ -169,7 +177,6 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			cn = nc.getCollection();
 		}
-		;
 
 		return result;
 	}
@@ -186,14 +193,14 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 */
 	protected JID[] getValidBuddies(BareJID id) throws RepositoryException {
 		ArrayList<JID> result = new ArrayList<JID>();
-		BareJID[] rosterJids = this.getRepository().getUserRoster(id);
+		Map<BareJID,RosterElement> rosterJids = this.getRepository().getUserRoster(id);
 
 		if (rosterJids != null) {
-			for (BareJID j : rosterJids) {
-				String sub = this.getRepository().getBuddySubscription(id, j);
+			for (Entry<BareJID,RosterElement> e : rosterJids.entrySet()) {
+				SubscriptionType sub = e.getValue().getSubscription();
 
-				if ((sub != null) && (sub.equals("both") || sub.equals("from"))) {
-					result.add(JID.jidInstance(j));
+				if (sub == SubscriptionType.both || sub == SubscriptionType.from || sub == SubscriptionType.from_pending_out) {
+					result.add(JID.jidInstance(e.getKey()));
 				}
 			}
 		}
@@ -210,6 +217,9 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 * @return
 	 */
 	public boolean isPEPNodeName(String nodeName) {
+		if (config.isPepPeristent())
+			return false;
+		
 		return this.pepNodes.contains(nodeName);
 	}
 
@@ -428,7 +438,21 @@ public class PublishItemModule extends AbstractPubSubModule {
 			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
-				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+				if (packet.getStanzaTo().getLocalpart() == null || !config.isPepPeristent()) {
+					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+				} else {
+					// this is PubSub service for particular user - we should autocreate node
+					try {
+						nodeConfig = new LeafNodeConfig(nodeName, defaultPepNodeConfig);
+						getRepository().createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, nodeConfig.getNodeType(), "");
+						IAffiliations nodeaAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
+						nodeaAffiliations.addAffiliation(packet.getStanzaFrom().getBareJID(), Affiliation.owner);
+						getRepository().update(toJid, nodeName, nodeaAffiliations);
+						getRepository().addToRootCollection(toJid, nodeName);
+					} catch (RepositoryException ex) {
+						throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
+					}
+				}
 			} else {
 				if (nodeConfig.getNodeType() == NodeType.collection) {
 					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",

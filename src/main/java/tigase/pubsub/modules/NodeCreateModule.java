@@ -32,6 +32,7 @@ import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.form.Form;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.AccessModel;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
@@ -85,6 +86,8 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 	private final PublishItemModule publishModule;
 
+	private final LeafNodeConfig defaultPepNodeConfig;
+	
 	/**
 	 * Constructs ...
 	 * 
@@ -98,6 +101,10 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 			PublishItemModule publishItemModule) {
 		super(config, defaultNodeConfig, packetWriter);
 		this.publishModule = publishItemModule;
+		// creating default config for autocreate PEP nodes
+		this.defaultPepNodeConfig = new LeafNodeConfig("default-pep");
+		defaultPepNodeConfig.setValue("pubsub#access_model", AccessModel.presence.name());
+		defaultPepNodeConfig.setValue("pubsub#presence_based_delivery", true);
 	}
 
 	/**
@@ -168,6 +175,9 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 
 			NodeType nodeType = NodeType.leaf;
 			String collection = null;
+			AbstractNodeConfig defaultNodeConfig = this.defaultNodeConfig;
+			if (toJid.getLocalpart() != null) defaultNodeConfig = this.defaultPepNodeConfig;
+			
 			AbstractNodeConfig nodeConfig = new LeafNodeConfig(nodeName, defaultNodeConfig);
 
 			if (configure != null) {
