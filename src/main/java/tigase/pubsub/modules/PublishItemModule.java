@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
@@ -46,15 +47,21 @@ import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.PublisherModel;
+import tigase.pubsub.SendLastPublishedItem;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
+import tigase.pubsub.modules.PresenceCollectorModule.CapsChangeHandler;
+import tigase.pubsub.modules.PresenceCollectorModule.CapsChangeHandler.CapsChangeEvent;
+import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler;
+import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler.PresenceChangeEvent;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.server.Message;
 import tigase.server.Packet;
 import tigase.sys.TigaseRuntime;
@@ -62,6 +69,7 @@ import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 import tigase.xmpp.impl.roster.RosterAbstract.SubscriptionType;
 import tigase.xmpp.impl.roster.RosterElement;
 
@@ -90,9 +98,72 @@ public class PublishItemModule extends AbstractPubSubModule {
 	/** Field description */
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
 			"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
-	private long idCounter = 0;
+	
+	private final CapsChangeHandler capsChangeHandler = new CapsChangeHandler() {
+
+			@Override
+			public void onCapsChange(BareJID serviceJid, JID buddyJid, String[] newCaps, String[] oldCaps, Set<String> newFeatures) {
+				if (newFeatures == null || newFeatures.isEmpty() || !config.isSendLastPublishedItemOnPresence())
+					return;
+				
+				// if we have new features we need to check if there are nodes for which 
+				// we need to send notifications due to +notify feature
+				for (String feature : newFeatures) {
+					if (!feature.endsWith("+notify"))
+						continue;
+					String nodeName = feature.substring(0, feature.length() - "+notify".length());
+					
+					try {
+						AbstractNodeConfig nodeConfig = config.getPubSubRepository().getNodeConfig(serviceJid, nodeName);
+						if (nodeConfig != null && nodeConfig.getSendLastPublishedItem() == SendLastPublishedItem.on_sub_and_presence) {
+							publishLastItem(serviceJid, nodeConfig, buddyJid);
+						}
+					}
+					catch (RepositoryException ex) {
+						log.log(Level.WARNING, "Exception while sending last published item on on_sub_and_presence with CAPS filtering");
+					}
+				}
+			}
+			
+		};
+	
+	private long idCounter = 0;	
 	private final Set<String> pepNodes = new HashSet<String>();
 
+	private final PresenceChangeHandler presenceChangeHandler = new PresenceChangeHandler() {
+		
+		@Override
+		public void onPresenceChange(Packet packet) {
+			// PEP services are using CapsChangeEvent - but we should process this here as well
+			// as on PEP service we can have some nodes which have there types of subscription
+			if (packet.getStanzaTo() == null) // || packet.getStanzaTo().getLocalpart() != null)
+				return;
+			if (!config.isSendLastPublishedItemOnPresence())
+				return;
+			if (packet.getType() == null || packet.getType() == StanzaType.available) {
+				BareJID serviceJid = packet.getStanzaTo().getBareJID();
+				JID userJid = packet.getStanzaFrom();
+				try {
+					// sending last published items for subscribed nodes
+					Map<String,UsersSubscription> subscrs = config.getPubSubRepository().getUserSubscriptions(serviceJid, userJid.getBareJID());
+					for (Map.Entry<String,UsersSubscription> e : subscrs.entrySet()) {
+						if (e.getValue().getSubscription() != Subscription.subscribed)
+							continue;
+						String nodeName = e.getKey();
+						AbstractNodeConfig nodeConfig = config.getPubSubRepository().getNodeConfig(serviceJid, nodeName);
+						if (nodeConfig.getSendLastPublishedItem() != SendLastPublishedItem.on_sub_and_presence)
+							continue;
+						publishLastItem(serviceJid, nodeConfig, userJid);
+					}
+				} catch (RepositoryException ex) {
+					Logger.getLogger(PublishItemModule.class.getName()).log(Level.SEVERE, null, ex);
+				}
+				
+			}				
+		}
+		
+	};
+	
 	private final PresenceCollectorModule presenceCollector;
 
 	private final XsltTool xslTransformer;
@@ -120,6 +191,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 		this.defaultPepNodeConfig = new LeafNodeConfig("default-pep");
 		defaultPepNodeConfig.setValue("pubsub#access_model", AccessModel.presence.name());
 		defaultPepNodeConfig.setValue("pubsub#presence_based_delivery", true);
+		defaultPepNodeConfig.setValue("pubsub#send_last_published_item", "on_sub_and_presence");
+		
+		this.config.getEventBus().addHandler(CapsChangeEvent.TYPE, capsChangeHandler);
+		this.config.getEventBus().addHandler(PresenceChangeEvent.TYPE, presenceChangeHandler);
 	}
 
 	/**
@@ -474,7 +549,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
-				if (packet.getStanzaTo().getLocalpart() == null || !config.isPepPeristent()) {
+				if (packet.getStanzaTo().getLocalpart() == null || !config.isPepPeristent() 
+						|| !toJid.equals(packet.getStanzaFrom().getBareJID())) {
 					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 				} else {
 					// this is PubSub service for particular user - we should autocreate node
@@ -594,10 +670,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			Element items = new Element("items");
 			items.addAttribute("node", nodeConfig.getNodeName());
-			Element item = new Element("item");
-			item.addAttribute("id", lastID);
-			items.addChild(item);
-			item.addChild(payload);
+//			Element item = new Element("item");
+//			item.addAttribute("id", lastID);
+//			items.addChild(item);
+			items.addChild(payload);
 
 			sendNotifications(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid),
 					nodeConfig, nodeConfig.getNodeName(), null);

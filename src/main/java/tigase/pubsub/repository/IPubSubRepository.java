@@ -3,6 +3,7 @@ package tigase.pubsub.repository;
 import java.util.Map;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
+import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.impl.roster.RosterElement;
 
@@ -172,6 +173,8 @@ public interface IPubSubRepository {
 	 */
 	public abstract Map<BareJID,RosterElement> getUserRoster(BareJID owner) throws RepositoryException;
 
+	public abstract Map<String,UsersSubscription> getUserSubscriptions(BareJID serviceJid, BareJID userJid) throws RepositoryException;
+	
 	/**
 	 * Method description
 	 * 

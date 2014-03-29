@@ -106,7 +106,7 @@ public class DefaultConfigCommand implements AdHocCommand {
 					LeafNodeConfig nodeConfig = new LeafNodeConfig("default");
 					nodeConfig.read(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 
-					NodeConfigModule.parseConf(nodeConfig, request.getCommand());
+					NodeConfigModule.parseConf(nodeConfig, request.getCommand(), config);
 
 					nodeConfig.write(userRepository, config, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 					DefaultNodeConfigurationChangedEvent event = new DefaultNodeConfigurationChangedEvent(request.getIq(),

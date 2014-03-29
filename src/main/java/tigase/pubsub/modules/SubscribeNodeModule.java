@@ -251,7 +251,8 @@ public class SubscribeNodeModule extends AbstractPubSubModule {
 					results.addAll(this.pendingSubscriptionModule.sendAuthorizationRequest(nodeName, packet.getStanzaTo(),
 							subid, jid, nodeAffiliations));
 				}
-				sendLastPublishedItem = nodeConfig.getSendLastPublishedItem() == SendLastPublishedItem.on_sub;
+				sendLastPublishedItem = nodeConfig.getSendLastPublishedItem() == SendLastPublishedItem.on_sub
+						|| nodeConfig.getSendLastPublishedItem() == SendLastPublishedItem.on_sub_and_presence;
 			} else {
 				nodeSubscriptions.changeSubscription(jid, newSubscription);
 				nodeAffiliations.changeAffiliation(jid, affiliation);

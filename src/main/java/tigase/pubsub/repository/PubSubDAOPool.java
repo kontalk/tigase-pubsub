@@ -21,6 +21,7 @@
  */
 package tigase.pubsub.repository;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -123,6 +124,16 @@ public class PubSubDAOPool extends PubSubDAO {
 
 	@Override
 	public void destroy() {
+		Set<BareJID> keys = new HashSet<BareJID>(pools.keySet());
+		for (BareJID serviceJid : keys) {
+			List<PubSubDAO> list = new ArrayList<PubSubDAO>(pools.get(serviceJid));
+			for (PubSubDAO dao : list) {
+				try {
+					dao.destroy();
+				} finally {
+				}				
+			}
+		}		
 	}
 
 	@Override
@@ -371,11 +382,12 @@ public class PubSubDAOPool extends PubSubDAO {
 	public void init() throws RepositoryException {
 		Set<BareJID> keys = new HashSet<BareJID>(pools.keySet());
 		for (BareJID serviceJid : keys) {
-			PubSubDAO dao = takeDao(serviceJid);
-			try {
-				dao.init();
-			} finally {
-				offerDao(serviceJid, dao);
+			List<PubSubDAO> list = new ArrayList<PubSubDAO>(pools.get(serviceJid));
+			for (PubSubDAO dao : list) {
+				try {
+					dao.init();
+				} finally {
+				}				
 			}
 		}
 	}

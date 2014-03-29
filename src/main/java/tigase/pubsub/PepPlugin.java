@@ -22,8 +22,11 @@
 
 package tigase.pubsub;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import tigase.db.NonAuthUserRepository;
@@ -73,12 +76,26 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	
 	private JID pubsubJid = null;
 	
+	private boolean simplePepEnabled = false;
+	private final Set<String> simpleNodes = new HashSet<String>();
+	
 	@Override
 	public void init(Map<String, Object> settings) throws TigaseDBException {
 		super.init(settings);
 
+		this.simpleNodes.add("http://jabber.org/protocol/tune");
+		this.simpleNodes.add("http://jabber.org/protocol/mood");
+		this.simpleNodes.add("http://jabber.org/protocol/activity");
+		this.simpleNodes.add("http://jabber.org/protocol/geoloc");
+		this.simpleNodes.add("urn:xmpp:avatar:data");
+		this.simpleNodes.add("urn:xmpp:avatar:metadata");
+		
 		String defHost = DNSResolver.getDefaultHostname();
 		pubsubJid = JID.jidInstanceNS("pubsub", defHost, null);
+		
+		if (settings.containsKey("simplePepEnabled")) {
+			this.simplePepEnabled = (Boolean) settings.get("simple-pep-enabled");
+		}
 	}
 	
 	@Override
@@ -116,9 +133,24 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 			return;
 		}
 		
+		Element pubsubEl = packet.getElement().findChildStaticStr(Iq.IQ_PUBSUB_PATH);
+		if (pubsubEl != null && simplePepEnabled) {
+			List<Element> children = pubsubEl.getChildren();
+			boolean simple = false;
+			for (Element child : children) {
+				String node = child.getAttributeStaticStr("node");
+				simple |= simpleNodes.contains(node);
+			}
+			if (simple) {
+				// if simple and simple support is enabled we are leaving support
+				// for this node to default pep plugin (not presistent pep)
+				return;
+			}
+		}
+		
 		// forwarding packet to particular resource
 		if (packet.getStanzaTo() != null && packet.getStanzaTo().getResource() != null) {	
-			if (packet.getAttributeStaticStr(Iq.IQ_PUBSUB_PATH, "xmlns") == PUBSUB_XMLNS) {
+			if (pubsubEl != null && pubsubEl.getXMLNS() == PUBSUB_XMLNS) {
 				Packet result = packet.copyElementOnly();
 				if (session != null) {
 					XMPPResourceConnection con = session.getParentSession().getResourceForResource(
@@ -143,7 +175,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		if (packet.getStanzaTo() == null) {
 			// we should not forward disco#info or disco#items with no "to" set as they 
 			// need to be processed only by server
-			if (packet.getAttributeStaticStr(Iq.IQ_PUBSUB_PATH, "xmlns") != PUBSUB_XMLNS) {
+			if (pubsubEl == null || pubsubEl.getXMLNS() != PUBSUB_XMLNS) {
 				// ignoring - disco#info or disco#items to server
 				log.log(Level.FINEST, "got <iq/> packet with no 'to' attribute = {0}", packet);
 				return;
@@ -152,7 +184,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 			// we are dropping packet of type error if they are sent in from user
 			return;
 		}
-		
+				
 		// this packet is to local user (offline or not) - forwarding to PubSub component
 		Packet result = packet.copyElementOnly();
 		if (packet.getStanzaTo() == null && session != null) {

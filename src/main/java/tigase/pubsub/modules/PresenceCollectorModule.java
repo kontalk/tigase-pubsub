@@ -44,6 +44,7 @@ import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.PresenceCollectorModule.BuddyVisibilityHandler.BuddyVisibilityEvent;
+import tigase.pubsub.modules.PresenceCollectorModule.CapsChangeHandler.CapsChangeEvent;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler.PresenceChangeEvent;
 import tigase.server.Packet;
 import tigase.server.Presence;
@@ -85,6 +86,38 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		void onBuddyVisibilityChange(BareJID buddyJID, boolean becomeOnline);
 	}
 
+	public interface CapsChangeHandler extends EventHandler {
+		
+		public static class CapsChangeEvent extends Event<CapsChangeHandler> {
+
+			public static final EventType<CapsChangeHandler> TYPE = new EventType<CapsChangeHandler>();
+			
+			private final BareJID serviceJid;
+			private final JID buddyJid;
+			private final String[] newCaps;
+			private final String[] oldCaps;
+			private final Set<String> newFeatures;
+			
+			public CapsChangeEvent(BareJID serviceJid, JID buddyJid, String[] newCaps, String[] oldCaps, Set<String> newFeatures) {
+				super(TYPE);
+				
+				this.serviceJid = serviceJid;
+				this.buddyJid = buddyJid;
+				this.newCaps = newCaps;
+				this.oldCaps = oldCaps;
+				this.newFeatures = newFeatures;
+			}
+			
+			@Override
+			protected void dispatch(CapsChangeHandler handler) {
+				handler.onCapsChange(serviceJid, buddyJid, newCaps, oldCaps, newFeatures);
+			}
+			
+		}
+		
+		void onCapsChange(BareJID serviceJid, JID buddyJid, String[] newCaps, String[] oldCaps, Set<String> newFeatures);	
+	}
+	
 	public interface PresenceChangeHandler extends EventHandler {
 
 		public static class PresenceChangeEvent extends Event<PresenceChangeHandler> {
@@ -182,10 +215,48 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 					resources = tmp;
 			}
 			
+			String[] oldCaps;
 			synchronized (resources) {
-				added = resources.put(resource, caps) == null;
+				oldCaps = resources.put(resource, caps);
+				added = oldCaps == null;
 			}
-			log.finest("Contact " + jid + " is collected.");
+			log.finest("for service " + serviceJid + " - Contact " + jid + " is collected.");
+			
+			// we are firing CapsChangeEvent only for PEP services
+			if (this.config.isPepPeristent() && this.config.isSendLastPublishedItemOnPresence()
+					&& serviceJid.getLocalpart() != null && oldCaps != caps && caps != null) {
+				// calculating new features and firing event
+				Set<String> newFeatures = new HashSet<String>();
+				for (String node : caps) {
+					// ignore searching for features if same node exists in old caps
+					if (oldCaps != null && Arrays.binarySearch(oldCaps, node) >= 0)
+						continue;
+					
+					String[] features = PresenceCapabilitiesManager.getNodeFeatures(node);
+					if (features != null) {
+						for (String feature : features) {
+							newFeatures.add(feature);
+						}
+					}
+				}
+				if (oldCaps != null) {
+					for (String node : oldCaps) {
+						// ignore searching for features if same node exists in new caps
+						if (Arrays.binarySearch(caps, node) >= 0)
+							continue;
+						String[] features = PresenceCapabilitiesManager.getNodeFeatures(node);
+						if (features != null) {
+							for (String feature : features) {
+								newFeatures.remove(feature);
+							}
+						}
+					}
+				}
+
+				if (!newFeatures.isEmpty()) {
+					this.config.getEventBus().fire(new CapsChangeEvent(serviceJid, jid, caps, oldCaps, newFeatures));
+				}
+			}
 		}
 
 		// onlineUsers.add(jid);
@@ -356,9 +427,9 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		final StanzaType type = packet.getType();
 		final JID jid = packet.getStanzaFrom();
 		final JID toJid = packet.getStanzaTo();
-
-		PresenceChangeEvent event = new PresenceChangeEvent( packet );
-		config.getEventBus().fire( event, this );
+		// why it is here if it is also below?
+//		PresenceChangeEvent event = new PresenceChangeEvent( packet );
+//		config.getEventBus().fire( event, this );
 
 		if ( type == null || type == StanzaType.available ){
 			String[] caps = config.isPepPeristent() ? capsModule.processPresence(packet) : null;
@@ -444,7 +515,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 			if (resources != null) {
 				synchronized (resources) {
 					removed = resources.remove(resource) != null;
-					log.finest("Contact " + jid + " is removed from collection.");
+					log.finest("for service " + serviceJid + " - Contact " + jid + " is removed from collection.");
 					if (resources.isEmpty()) {
 						presenceByUser.remove(bareJid);
 						BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);

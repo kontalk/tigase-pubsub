@@ -455,7 +455,6 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	protected Node getNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
 		Node node = this.nodes.get(key);
-
 		if (node == null) {
 			long nodeId = this.dao.getNodeId(serviceJid, nodeName);
 			String cfgData = this.dao.getNodeConfig(serviceJid, nodeId);
@@ -635,6 +634,11 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		return this.dao.getUserRoster(owner);
 	}
 
+	@Override
+	public Map<String,UsersSubscription> getUserSubscriptions(BareJID serviceJid, BareJID userJid) throws RepositoryException {
+		return this.dao.getUserSubscriptions(serviceJid, userJid);
+	}
+	
 	/**
 	 * Method description
 	 * 

@@ -39,6 +39,7 @@ import tigase.pubsub.Affiliation;
 import tigase.pubsub.CollectionNodeConfig;
 import tigase.pubsub.LeafNodeConfig;
 import tigase.pubsub.PubSubConfig;
+import tigase.pubsub.SendLastPublishedItem;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.NodeConfigModule.NodeConfigurationChangedHandler.NodeConfigurationChangedEvent;
@@ -121,7 +122,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 	 * 
 	 * @throws PubSubException
 	 */
-	public static void parseConf(final AbstractNodeConfig conf, final Element configure) throws PubSubException {
+	public static void parseConf(final AbstractNodeConfig conf, final Element configure, final PubSubConfig config) throws PubSubException {
 		Element x = configure.getChild("x", "jabber:x:data");
 		Form foo = new Form(x);
 
@@ -129,6 +130,12 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 			for (Field field : conf.getForm().getAllFields()) {
 				final String var = field.getVar();
 				Field cf = foo.get(var);
+				
+				if (!config.isSendLastPublishedItemOnPresence() && "pubsub#send_last_published_item".equals(var)){
+					if (SendLastPublishedItem.on_sub_and_presence.name().equals(cf.getValue())) {
+						throw new PubSubException(Authorization.NOT_ACCEPTABLE, "Requested on_sub_and_presence mode for sending last published item is disabled.");
+					}
+				}
 
 				if (cf != null) {
 					field.setValues(cf.getValues());
@@ -285,7 +292,7 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 						nodeConfig.getChildren(), nodeConfig.getChildren().length);
 				final String collectionOld = (nodeConfig.getCollection() == null) ? "" : nodeConfig.getCollection();
 
-				parseConf(nodeConfig, configure);
+				parseConf(nodeConfig, configure, config);
 				if (!collectionOld.equals(nodeConfig.getCollection())) {
 					if (collectionOld.equals("")) {
 						AbstractNodeConfig colNodeConfig = getRepository().getNodeConfig(toJid, nodeConfig.getCollection());

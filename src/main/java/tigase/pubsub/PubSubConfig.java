@@ -44,6 +44,7 @@ public class PubSubConfig extends ComponentConfig {
 	private static final String PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY = "pubsub-high-memory-usage-level";
 	private static final String PUBSUB_LOW_MEMORY_DELAY_KEY = "pubsub-low-memory-delay";
 	private static final String PUBSUB_PERSISTENT_PEP_KEY = "persistent-pep";
+	private static final String PUBSUB_SEND_LAST_PUBLISHED_ITEM_ON_PRESECE_KEY = "send-last-published-item-on-presence";
 	
 	private static final int DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL = 90;
 	private static final long DEF_PUBSUB_LOW_MEMORY_DELAY_VAL = 1000;
@@ -57,6 +58,7 @@ public class PubSubConfig extends ComponentConfig {
 	private long lowMemoryDelay = DEF_PUBSUB_LOW_MEMORY_DELAY_VAL;
 	private float highMemoryUsageLevel = DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL;
 	private boolean persistentPep = false;
+	private boolean sendLastPublishedItemOnPresence = false;
 	
 	public PubSubConfig(AbstractComponent<?> component) {
 		super(component);		
@@ -151,7 +153,10 @@ public class PubSubConfig extends ComponentConfig {
 			this.highMemoryUsageLevel = ((Integer) props.get(PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY)).floatValue();
 		}
 		if (props.containsKey(PUBSUB_PERSISTENT_PEP_KEY)) {
-			this.persistentPep = Boolean.parseBoolean((String) props.get(PUBSUB_PERSISTENT_PEP_KEY));
+			this.persistentPep = (Boolean) props.get(PUBSUB_PERSISTENT_PEP_KEY);
+		}
+		if (props.containsKey(PUBSUB_SEND_LAST_PUBLISHED_ITEM_ON_PRESECE_KEY)) {
+			this.sendLastPublishedItemOnPresence = (Boolean) props.get(PUBSUB_SEND_LAST_PUBLISHED_ITEM_ON_PRESECE_KEY);
 		}
 	}
 
@@ -165,5 +170,9 @@ public class PubSubConfig extends ComponentConfig {
 	
 	public boolean isPepPeristent() {
 		return persistentPep;
+	}
+	
+	public boolean isSendLastPublishedItemOnPresence() {
+		return sendLastPublishedItemOnPresence;
 	}
 }

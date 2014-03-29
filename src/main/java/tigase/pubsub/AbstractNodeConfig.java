@@ -331,7 +331,7 @@ public abstract class AbstractNodeConfig {
 		form.addField(Field.fieldListSingle(PUBSUB + "publish_model", PublisherModel.publishers.name(),
 				"Specify the publisher model", null, asStrinTable(PublisherModel.values())));
 		form.addField(Field.fieldListSingle(PUBSUB + "send_last_published_item", SendLastPublishedItem.on_sub.name(),
-				"When to send the last published item", null, asStrinTable(PublisherModel.values())));
+				"When to send the last published item", null, asStrinTable(SendLastPublishedItem.values())));
 		form.addField(Field.fieldTextMulti(PUBSUB + "domains", new String[] {},
 				"The domains allowed to access this node (blank for any)"));
 		form.addField(Field.fieldBoolean(PUBSUB + "presence_based_delivery", false,
