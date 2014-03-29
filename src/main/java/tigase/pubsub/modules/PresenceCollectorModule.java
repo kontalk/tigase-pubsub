@@ -22,14 +22,18 @@
 
 package tigase.pubsub.modules;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
-
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import tigase.component2.PacketWriter;
 import tigase.component2.eventbus.Event;
 import tigase.component2.eventbus.EventHandler;
@@ -47,6 +51,7 @@ import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 import tigase.xmpp.StanzaType;
+import tigase.xmpp.impl.PresenceCapabilitiesManager;
 
 /**
  * Class description
@@ -105,10 +110,18 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 	private static final Criteria CRIT = ElementCriteria.name("presence");
 
-	private final Map<BareJID, Set<String>> resources = new HashMap<BareJID, Set<String>>();
+	private static final String[] EMPTY_CAPS = {};
 
-	public PresenceCollectorModule(PubSubConfig config, PacketWriter packetWriter) {
+	private static final ConcurrentMap<String,String[]> CAPS_MAP = new ConcurrentHashMap<String,String[]>();
+	
+//	private final Map<BareJID, Set<String>> resources = new HashMap<BareJID, Set<String>>();
+
+	private final ConcurrentMap<BareJID, ConcurrentMap<BareJID, Map<String,String[]>>> presenceByService = new ConcurrentHashMap<>();
+	private final CapsModule capsModule;
+	
+	public PresenceCollectorModule(PubSubConfig config, PacketWriter packetWriter, CapsModule capsModule) {
 		super(config, packetWriter);
+		this.capsModule = capsModule;
 	}
 
 	public void addBuddyVisibilityHandler(BuddyVisibilityHandler handler) {
@@ -119,27 +132,59 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * Method description
 	 * 
 	 * 
+	 * @param serviceJid
 	 * @param jid
+	 * @param caps
 	 * 
 	 * @return
 	 */
-	public synchronized boolean addJid(final JID jid) {
+	public boolean addJid(final BareJID serviceJid, final JID jid, String[] caps) {
 		if (jid == null) {
 			return false;
 		}
 
+		// here we are using CAPS_MAP to cache instances of CAPS to reduce memory footprint
+		if (caps == null || caps.length == 0) {
+			caps = EMPTY_CAPS;
+		}
+		else {
+			StringBuilder sb = new StringBuilder();
+			for (String item : caps) {
+				sb.append(item);
+			}
+			String key = sb.toString();
+			String[] cachedCaps = CAPS_MAP.putIfAbsent(key, caps);
+			if (cachedCaps != null) {
+				caps = cachedCaps;
+			}
+		}
+		
 		boolean added = false;
 		final BareJID bareJid = jid.getBareJID();
 		final String resource = jid.getResource();
 
+		ConcurrentMap<BareJID, Map<String,String[]>> presenceByUser = presenceByService.get(serviceJid);
+		if (presenceByUser == null) {
+			ConcurrentMap<BareJID, Map<String,String[]>> tmp = new ConcurrentHashMap<>();
+			presenceByUser = presenceByService.putIfAbsent(serviceJid, tmp);
+			if (presenceByUser == null) {
+				presenceByUser = tmp;
+			}
+		}
+		
 		if (resource != null) {
-			Set<String> resources = this.resources.get(bareJid);
+			Map<String,String[]> resources = presenceByUser.get(bareJid);
 
 			if (resources == null) {
-				resources = new HashSet<String>();
-				this.resources.put(bareJid, resources);
+				Map<String,String[]> tmp = new HashMap<>();				
+				resources = presenceByUser.putIfAbsent(bareJid, tmp);
+				if (resources == null)
+					resources = tmp;
 			}
-			added = resources.add(resource);
+			
+			synchronized (resources) {
+				added = resources.put(resource, caps) == null;
+			}
 			log.finest("Contact " + jid + " is collected.");
 		}
 
@@ -162,15 +207,18 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	public List<JID> getAllAvailableJids() {
+	public List<JID> getAllAvailableJids(final BareJID serviceJid) {
 		ArrayList<JID> result = new ArrayList<JID>();
 
-		for (Entry<BareJID, Set<String>> entry : this.resources.entrySet()) {
-			for (String reource : entry.getValue()) {
-				result.add(JID.jidInstanceNS(entry.getKey(), reource));
-			}
+		ConcurrentMap<BareJID,Map<String,String[]>> presenceByUser = presenceByService.get(serviceJid);
+		if (presenceByUser != null) {
+			for (Entry<BareJID, Map<String,String[]>> entry : presenceByUser.entrySet()) {
+				for (String reource : entry.getValue().keySet()) {
+					result.add(JID.jidInstanceNS(entry.getKey(), reource));
+				}
+			}			
 		}
-
+	
 		return result;
 	}
 
@@ -181,12 +229,17 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * @param bareJid
 	 * @return
 	 */
-	public List<JID> getAllAvailableResources(final BareJID bareJid) {
+	public List<JID> getAllAvailableResources(final BareJID serviceJid, final BareJID bareJid) {
 		final List<JID> result = new ArrayList<JID>();
-		final Set<String> jid_resources = this.resources.get(bareJid);
+		ConcurrentMap<BareJID,Map<String,String[]>> presenceByUser = presenceByService.get(serviceJid);
+		if (presenceByUser == null) {
+			return result;
+		}
+		
+		final Map<String,String[]> jid_resources = presenceByUser.get(bareJid);
 
 		if (jid_resources != null) {
-			for (String reource : jid_resources) {
+			for (String reource : jid_resources.keySet()) {
 				result.add(JID.jidInstanceNS(bareJid, reource));
 			}
 		}
@@ -194,6 +247,44 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		return result;
 	}
 
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param serviceJid
+	 * @param bareJid
+	 * @param feature
+	 * @return
+	 */
+	public List<JID> getAllAvailableJidsWithFeature(final BareJID serviceJid, final String feature) {
+		final List<JID> result = new ArrayList<>();
+		ConcurrentMap<BareJID,Map<String,String[]>> presenceByUser = presenceByService.get(serviceJid);
+		if (presenceByUser == null) {
+			return result;
+		}
+			
+		Set<String> nodesWithFeature = PresenceCapabilitiesManager.getNodesWithFeature(feature);
+		for (Map.Entry<BareJID,Map<String,String[]>> pe : presenceByUser.entrySet()) {
+			Map<String,String[]> jid_resources = pe.getValue();
+			if (jid_resources != null) {
+				synchronized (jid_resources) {
+					for (Map.Entry<String, String[]> e : jid_resources.entrySet()) {
+						String[] caps = e.getValue();
+						boolean match = false;
+						for (String node : caps) {
+							match |= nodesWithFeature.contains(node);
+						}
+						if (match) {
+							result.add(JID.jidInstanceNS(pe.getKey(), e.getKey()));
+						}
+					}
+				}
+			}	
+		}
+
+		return result;
+	}
+	
 	/**
 	 * Method description
 	 * 
@@ -223,8 +314,12 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * @param bareJid 
 	 * @return
 	 */
-	public boolean isJidAvailable(final BareJID bareJid) {
-		final Set<String> resources = this.resources.get(bareJid);
+	public boolean isJidAvailable(final BareJID serviceJid, final BareJID bareJid) {
+		ConcurrentMap<BareJID,Map<String,String[]>> presenceByUser = presenceByService.get(serviceJid);
+		if (presenceByUser == null) {
+			return false;
+		}		
+		final Map<String,String[]> resources = presenceByUser.get(bareJid);
 
 		return (resources != null) && (resources.size() > 0);
 	}
@@ -266,9 +361,10 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		config.getEventBus().fire( event, this );
 
 		if ( type == null || type == StanzaType.available ){
-			boolean added = addJid( jid );
+			String[] caps = config.isPepPeristent() ? capsModule.processPresence(packet) : null;
+			boolean added = addJid( toJid.getBareJID(), jid, caps );
 			firePresenceChangeEvent( packet );
-			if ( added ){
+			if ( added && packet.getStanzaTo().getLocalpart() == null ){
 				Packet p = new Presence( new Element( "presence", new String[] { "to", "from" },
 																							new String[] { jid.toString(), toJid.toString() } ),
 																 toJid, jid );
@@ -276,12 +372,14 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 				packetWriter.write( p );
 			}
 		} else if ( StanzaType.unavailable == type ){
-			removeJid( jid );
+			removeJid( toJid.getBareJID(), jid );
 			firePresenceChangeEvent( packet );
-			Packet p = new Presence( new Element( "presence", new String[] { "to", "from", "type" }, new String[] {
-				jid.toString(), toJid.toString(), StanzaType.unavailable.toString() } ), toJid, jid );
+			if (packet.getStanzaTo().getLocalpart() == null) {
+				Packet p = new Presence( new Element( "presence", new String[] { "to", "from", "type" }, new String[] {
+					jid.toString(), toJid.toString(), StanzaType.unavailable.toString() } ), toJid, jid );
 
-			packetWriter.write( p );
+				packetWriter.write( p );
+			}
 		} else if ( StanzaType.subscribe == type ){
 			log.finest( "Contact " + jid + " wants to subscribe PubSub" );
 
@@ -322,7 +420,7 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 	 * 
 	 * @return
 	 */
-	protected synchronized boolean removeJid(final JID jid) {
+	protected boolean removeJid(final BareJID serviceJid, final JID jid) {
 		if (jid == null) {
 			return false;
 		}
@@ -331,21 +429,27 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		final String resource = jid.getResource();
 		boolean removed = false;
 
+		ConcurrentMap<BareJID,Map<String,String[]>> presenceByUser = presenceByService.get(serviceJid);
+		if (presenceByUser == null)
+			return false;
+		
 		// onlineUsers.remove(jid);
 		if (resource == null) {
-			resources.remove(bareJid);
+			presenceByUser.remove(bareJid);
 			BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);
 			config.getEventBus().fire(event);
 		} else {
-			Set<String> resources = this.resources.get(bareJid);
+			Map<String,String[]> resources = presenceByUser.get(bareJid);
 
 			if (resources != null) {
-				removed = resources.remove(resource);
-				log.finest("Contact " + jid + " is removed from collection.");
-				if (resources.size() == 0) {
-					this.resources.remove(bareJid);
-					BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);
-					config.getEventBus().fire(event);
+				synchronized (resources) {
+					removed = resources.remove(resource) != null;
+					log.finest("Contact " + jid + " is removed from collection.");
+					if (resources.isEmpty()) {
+						presenceByUser.remove(bareJid);
+						BuddyVisibilityEvent event = new BuddyVisibilityEvent(bareJid, false);
+						config.getEventBus().fire(event);
+					}
 				}
 			}
 		}

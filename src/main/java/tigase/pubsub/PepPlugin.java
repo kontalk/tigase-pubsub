@@ -117,18 +117,20 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		}
 		
 		// forwarding packet to particular resource
-		if (packet.getStanzaTo() != null && packet.getStanzaTo().getResource() != null) {
-			Packet result = packet.copyElementOnly();
-			if (session != null) {
-				XMPPResourceConnection con = session.getParentSession().getResourceForResource(
+		if (packet.getStanzaTo() != null && packet.getStanzaTo().getResource() != null) {	
+			if (packet.getAttributeStaticStr(Iq.IQ_PUBSUB_PATH, "xmlns") == PUBSUB_XMLNS) {
+				Packet result = packet.copyElementOnly();
+				if (session != null) {
+					XMPPResourceConnection con = session.getParentSession().getResourceForResource(
 							packet.getStanzaTo().getResource());
-				try {
-					result.setPacketTo(con.getConnectionId());
-				} catch (NoConnectionIdException ex) {
-					return;
+					try {
+						result.setPacketTo(con.getConnectionId());
+					} catch (NoConnectionIdException ex) {
+						return;
+					}
 				}
+				results.offer(result);
 			}
-			results.offer(result);
 			return;
 		}
 		
@@ -156,7 +158,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		if (packet.getStanzaTo() == null && session != null) {
 			// in case if packet is from local user without from/to
 			JID userJid = JID.jidInstance(session.getBareJID());
-			result.initVars(userJid, userJid);
+			result.initVars(packet.getStanzaFrom() != null ? packet.getStanzaFrom() : session.getJID(), userJid);
 		}
 		result.setPacketTo(pubsubJid);
 		
@@ -176,7 +178,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 			if (packet.getStanzaTo() == null && session != null) {
 				// in case if packet is from local user without from/to
 				JID userJid = JID.jidInstance(session.getBareJID());
-				result.initVars(userJid, userJid);
+				result.initVars(session.getJID(), userJid);
 			}			
 			result.setPacketTo(pubsubJid);
 			results.offer(result);

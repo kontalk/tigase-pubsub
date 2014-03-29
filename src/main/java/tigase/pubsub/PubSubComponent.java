@@ -26,6 +26,18 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.script
+		.Bindings;
 import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
@@ -34,14 +46,8 @@ import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
-
 import tigase.pubsub.modules.AdHocConfigCommandModule;
-import tigase.pubsub.modules.commands.DefaultConfigCommand;
-import tigase.pubsub.modules.commands.DefaultConfigCommand
-		.DefaultNodeConfigurationChangedHandler;
-import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
-import tigase.pubsub.modules.commands.ReadAllNodesCommand;
-import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.modules.CapsModule;
 import tigase.pubsub.modules.DefaultConfigModule;
 import tigase.pubsub.modules.DiscoverInfoModule;
 import tigase.pubsub.modules.DiscoverItemsModule;
@@ -63,12 +69,12 @@ import tigase.pubsub.modules.SubscribeNodeModule;
 import tigase.pubsub.modules.UnsubscribeNodeModule;
 import tigase.pubsub.modules.XmppPingModule;
 import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.pubsub.modules.commands.DefaultConfigCommand;
 import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurationChangedHandler;
 import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 import tigase.pubsub.modules.ext.presence.PresenceNodeSubscriptions;
 import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -78,31 +84,13 @@ import tigase.pubsub.repository.PubSubDAOJDBC;
 import tigase.pubsub.repository.PubSubDAOPool;
 import tigase.pubsub.repository.PubSubRepositoryWrapper;
 import tigase.pubsub.repository.RepositoryException;
-
+import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
-
 import tigase.xml.Element;
-
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.script.Bindings;
-import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 
 /**
  * Class description
@@ -152,6 +140,7 @@ public class PubSubComponent
 	/** Field description */
 	protected UserRepository          userRepository;
 	private AdHocConfigCommandModule  adHocCommandsModule;
+	private CapsModule                capsModule;
 	private PubSubDAO                 directPubSubRepository;
 	private PendingSubscriptionModule pendingSubscriptionModule;
 	private PresenceCollectorModule   presenceCollectorModule;
@@ -344,8 +333,10 @@ public class PubSubComponent
 		this.xslTransformer = new XsltTool();
 		// this.modulesManager.reset();
 		// this.eventBus.reset();
+		if (!isRegistered(CapsModule.class))
+			this.capsModule = registerModule(new CapsModule(componentConfig, writer));
 		if (!isRegistered(PresenceCollectorModule.class))
-			this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer));
+			this.presenceCollectorModule = registerModule(new PresenceCollectorModule(componentConfig, writer, capsModule));
 		if (!isRegistered(PublishItemModule.class))
 			this.publishNodeModule = registerModule(new PublishItemModule(componentConfig, writer, this.xslTransformer,
 					this.presenceCollectorModule));

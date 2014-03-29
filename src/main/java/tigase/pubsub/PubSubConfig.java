@@ -102,6 +102,10 @@ public class PubSubConfig extends ComponentConfig {
 		return serviceBareJID;
 	}
 
+	public JID getComponentJID() {
+		return this.component.getComponentId();
+	}
+	
 	/**
 	 * Method description
 	 * 

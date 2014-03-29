@@ -23,6 +23,7 @@
 package tigase.pubsub.modules;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -307,7 +308,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			while (it.hasNext()) {
 				final JID jid = it.next();
-				boolean available = this.presenceCollector.isJidAvailable(jid.getBareJID());
+				boolean available = this.presenceCollector.isJidAvailable(jidFrom.getBareJID(), jid.getBareJID());
 				final UsersAffiliation afi = nodeAffiliations.getSubscriberAffiliation(jid.getBareJID());
 
 				if ((afi == null) || (!available && (afi.getAffiliation() == Affiliation.member))) {
@@ -330,8 +331,43 @@ public class PublishItemModule extends AbstractPubSubModule {
 			HashSet<JID> s = new HashSet<JID>();
 
 			for (JID jid : subscribers) {
-				for (JID subjid : this.presenceCollector.getAllAvailableResources(jid.getBareJID())) {
-					s.add(subjid);
+				s.addAll(this.presenceCollector.getAllAvailableResources(jidFrom.getBareJID(), jid.getBareJID()));
+			}
+
+			// for pubsub service for user accounts we need dynamic subscriptions based on presence
+			if (jidFrom.getLocalpart() != null) {
+				switch (nodeConfig.getNodeAccessModel()) {
+					case open:
+					case presence:
+						s.addAll(this.presenceCollector.getAllAvailableJidsWithFeature(jidFrom.getBareJID(), nodeConfig.getNodeName() + "+notify"));
+						break;
+					case roster:
+						String[] allowedGroups = nodeConfig.getRosterGroupsAllowed();
+						Arrays.sort(allowedGroups);
+						List<JID> jids = this.presenceCollector.getAllAvailableJidsWithFeature(jidFrom.getBareJID(), nodeConfig.getNodeName() + "+notify");
+						if (!jids.isEmpty() && (allowedGroups != null && allowedGroups.length > 0)) {
+							Map<BareJID, RosterElement> roster = this.getRepository().getUserRoster(jidFrom.getBareJID());
+							Iterator<JID> it = jids.iterator();
+							for (JID jid : jids) {
+								RosterElement re = roster.get(jid.getBareJID());
+								if (re == null) {
+									it.remove();
+									continue;
+								}
+								boolean notInGroups = true;
+								String[] groups = re.getGroups();
+								if (groups != null) {
+									for (String group : groups) {
+										notInGroups &= Arrays.binarySearch(allowedGroups, group) < 0;
+									}
+								}
+								if (notInGroups)
+									it.remove();
+							}
+						}
+						break;
+					default:
+						break;
 				}
 			}
 			subscribers = s.toArray(new JID[] {});
@@ -444,7 +480,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 					// this is PubSub service for particular user - we should autocreate node
 					try {
 						nodeConfig = new LeafNodeConfig(nodeName, defaultPepNodeConfig);
-						getRepository().createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, nodeConfig.getNodeType(), "");
+						getRepository().createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, NodeType.leaf, "");
 						IAffiliations nodeaAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 						nodeaAffiliations.addAffiliation(packet.getStanzaFrom().getBareJID(), Affiliation.owner);
 						getRepository().update(toJid, nodeName, nodeaAffiliations);
