@@ -237,7 +237,7 @@ $$ LANGUAGE SQL;
 -- QUERY START:
 create or replace function TigPubSubGetNodeId(varchar(2049),varchar(1024)) returns table (node_id bigint) as $$
 	select n.node_id from tig_pubsub_nodes n 
-		inner join tig_pubsub_service_jids sj on n.service_id = n.service_id
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
 		where sj.service_jid = $1 and n.name = $2
 $$ LANGUAGE SQL;
 -- QUERY END:

@@ -238,7 +238,7 @@ public class StoredProcedures {
 
 		try {
 			PreparedStatement ps = conn.prepareStatement("select n.node_id from tig_pubsub_nodes n "
-					+ "inner join tig_pubsub_service_jids sj on n.service_id = n.service_id "
+					+ "inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id "
 					+ "where sj.service_jid = ? and n.name = ?");
 			ps.setString(1, serviceJid);
 			ps.setString(2, nodeName);

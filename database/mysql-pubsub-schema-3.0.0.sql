@@ -320,7 +320,7 @@ end //
 create procedure TigPubSubGetNodeId(_service_jid varchar(2049), _node_name varchar(1024)) 
 begin
 	select n.node_id from tig_pubsub_nodes n 
-		inner join tig_pubsub_service_jids sj on n.service_id = n.service_id
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
 		where sj.service_jid_sha1 = SHA1(_service_jid) and n.name_sha1 = SHA1(_node_name)
 			and sj.service_jid = _service_jid and n.name = _node_name;	
 end //
