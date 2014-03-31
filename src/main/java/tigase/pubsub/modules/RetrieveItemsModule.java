@@ -323,6 +323,8 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 			Integer maxItems = asInteger(items.getAttributeStaticStr("max_items"));
 			Integer offset = 0;
 			Calendar dtAfter = null;
+			String afterId = null;
+			String beforeId = null;
 
 			final Element rsmGet = pubsub.getChild("set", "http://jabber.org/protocol/rsm");
 			if (rsmGet != null) {
@@ -332,6 +334,12 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 				m = rsmGet.getChild("index");
 				if (m != null)
 					offset = asInteger(m.getCData());
+				m = rsmGet.getChild("before");
+				if (m != null)
+					beforeId = m.getCData();
+				m = rsmGet.getChild("adter");
+				if (m != null)
+					afterId = m.getCData();
 				m = rsmGet.getChild("dt_after", "http://tigase.org/pubsub");
 				if (m != null)
 					dtAfter = dtf.parseDateTime(m.getCData());
@@ -362,9 +370,11 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 
 				String lastId = null;
 				int c = 0;
+				boolean allow = false;
 				for (int i = 0; i < requestedId.size(); i++) {
 					if (i + offset >= requestedId.size())
 						continue;
+
 					if (c > maxItems)
 						break;
 					String id = requestedId.get(i + offset);
@@ -372,6 +382,15 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 					Date cd = nodeItems.getItemCreationDate(id);
 					if (dtAfter != null && !cd.after(dtAfter.getTime()))
 						continue;
+
+					if (afterId != null && !allow && afterId.equals(id)) {
+						allow = true;
+						continue;
+					} else if (afterId != null && !allow)
+						continue;
+
+					if (beforeId != null && beforeId.equals(id))
+						break;
 
 					if (c == 0) {
 						rsmResponse.addChild(new Element("first", id, new String[] { "index" }, new String[] { ""
