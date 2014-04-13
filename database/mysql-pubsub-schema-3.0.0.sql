@@ -252,7 +252,7 @@ begin
 	if _jid_id is null then
 		insert into tig_pubsub_jids (jid, jid_sha1)
 			values (_jid, _jid_sha1)
-			on duplicate key update _jid_id = LAST_INSERT_ID(jid_id);
+			on duplicate key update jid_id = LAST_INSERT_ID(jid_id);
 		select LAST_INSERT_ID() into _jid_id;
 	end if;
 
