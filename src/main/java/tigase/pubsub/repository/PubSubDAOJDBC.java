@@ -189,12 +189,16 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				}
 
 				if ( db_conn != null ){
-//					if ( db_conn.contains( "mysql" ) ){
-					rs = create_node_sp.executeQuery();
-//					}
-//					if ( db_conn.contains( "sqlserver" ) ){
-//						create_node_sp.executeUpdate();
-//					}
+					switch (this.database) {
+						case sqlserver:
+							create_node_sp.executeUpdate();
+							return getNodeId(serviceJid, nodeName);
+
+						default:
+							rs = create_node_sp.executeQuery();
+							break;
+					}
+
 					if (rs.next()) {
 						nodeId = rs.getLong(1);
 					}
