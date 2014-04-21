@@ -659,7 +659,10 @@ public class CachedPubSubRepository implements IPubSubRepository {
 		Node node = this.nodes.get(key);		
 		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);		
 		dao.removeFromRootCollection(serviceJid, nodeId);
-		rootCollection.remove(nodeName);
+		Set<String> nodes = rootCollection.get(serviceJid);
+		if (nodes != null) {
+			nodes.remove(nodeName);
+		}
 	}
 
 	/**
