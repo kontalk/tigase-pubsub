@@ -152,6 +152,13 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 		return writer;
 	}
 
+	/**
+	 * Is this component discoverable by disco#items for domain by non admin users
+	 * 
+	 * @return true - if yes
+	 */	
+	public abstract boolean isDiscoNonAdmin();
+	
 	public boolean isRegistered(final Class<? extends Module> moduleClass) {
 		return this.modulesManager.isRegistered(moduleClass);
 	}
@@ -282,4 +289,11 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 		super.setProperties(props);
 		componentConfig.setProperties(props);
 	}
+	
+	@Override
+	public void updateServiceEntity() {
+		super.updateServiceEntity();
+		this.updateServiceDiscoveryItem(getName(), null, getDiscoDescription(), !isDiscoNonAdmin());
+	}
+
 }
