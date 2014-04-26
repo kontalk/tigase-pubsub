@@ -375,7 +375,7 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 					if (i + offset >= requestedId.size())
 						continue;
 
-					if (c > maxItems)
+					if (c >= maxItems)
 						break;
 					String id = requestedId.get(i + offset);
 
