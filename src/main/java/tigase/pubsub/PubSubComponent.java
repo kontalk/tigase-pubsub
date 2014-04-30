@@ -98,11 +98,14 @@ import java.util.logging.Level;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.script.Bindings;
 import tigase.pubsub.modules.commands.RetrieveItemsCommand;
+import tigase.xmpp.Authorization;
+import tigase.xmpp.PacketErrorTypeException;
 
 /**
  * Class description
@@ -485,7 +488,22 @@ public class PubSubComponent
 		return Runtime.getRuntime().availableProcessors() * 4;
 	}
 	
-
+	@Override
+	public void processPacket(Packet packet) {
+		// if stanza is addressed to getName()@domain then we need to return SERVICE_UNAVAILABLE error
+		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart())) {
+			try {
+				Packet result = Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, true);
+				addOutPacket(result);
+			} catch (PacketErrorTypeException ex) {
+				log.log(Level.FINE, "Packet already of type=error, while preparing error response", ex);
+			}
+			return;
+		}
+			
+		super.processPacket(packet);
+	}
+		
 	//~--- set methods ----------------------------------------------------------
 
 	/**
