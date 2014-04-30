@@ -131,9 +131,9 @@ public class PubSubDAOPool extends PubSubDAO {
 				try {
 					dao.destroy();
 				} finally {
-				}				
+				}
 			}
-		}		
+		}
 	}
 
 	@Override
@@ -150,7 +150,7 @@ public class PubSubDAOPool extends PubSubDAO {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public Element getItem(BareJID serviceJid, long nodeId, String id) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
@@ -209,8 +209,8 @@ public class PubSubDAOPool extends PubSubDAO {
 			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
 		return null;
-	}	
-	
+	}
+
 	@Override
 	public List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, long nodeId, String nodeName) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
@@ -225,7 +225,7 @@ public class PubSubDAOPool extends PubSubDAO {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public Date getItemUpdateDate(BareJID serviceJid, long nodeId, String id) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
@@ -255,7 +255,7 @@ public class PubSubDAOPool extends PubSubDAO {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public String getNodeConfig(BareJID serviceJid, long nodeId) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
@@ -268,9 +268,9 @@ public class PubSubDAOPool extends PubSubDAO {
 		} else {
 			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 			return null;
-		}		
-	}	
-	
+		}
+	}
+
 	@Override
 	public long getNodeId(BareJID serviceJid, String nodeName) throws RepositoryException {
 		PubSubDAO dao = takeDao(serviceJid);
@@ -283,7 +283,7 @@ public class PubSubDAOPool extends PubSubDAO {
 		} else {
 			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 			return 0;
-		}		
+		}
 	}
 
 	@Override
@@ -360,7 +360,7 @@ public class PubSubDAOPool extends PubSubDAO {
 		} else {
 			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
 		}
-		return null;		
+		return null;
 	}
 
 	@Override
@@ -377,7 +377,7 @@ public class PubSubDAOPool extends PubSubDAO {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public void init() throws RepositoryException {
 		Set<BareJID> keys = new HashSet<BareJID>(pools.keySet());
@@ -387,7 +387,7 @@ public class PubSubDAOPool extends PubSubDAO {
 				try {
 					dao.init();
 				} finally {
-				}				
+				}
 			}
 		}
 	}
