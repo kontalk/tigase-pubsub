@@ -124,6 +124,7 @@
 						<Implementation-Build>${gitVersion}/${buildNumber} (${maven.build.timestamp})</Implementation-Build>
 						<Bundle-Activator>tigase.pubsub.Activator</Bundle-Activator>
 						<DynamicImport-Package>*</DynamicImport-Package>
+						<Export-Package>tigase.pubsub.*</Export-Package>
 					</instructions>
 				</configuration>
 			</plugin>

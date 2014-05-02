@@ -103,6 +103,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.script.Bindings;
+import tigase.conf.ConfigurationException;
 import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
@@ -513,8 +514,8 @@ public class PubSubComponent
 	 * @param props
 	 */
 	@Override
-	public void setProperties(Map<String, Object> props) {
-		super.setProperties(props);
+	public void setProperties(Map<String, Object> props) throws ConfigurationException {
+			super.setProperties(props);
 		if (props.size() == 1) {
 
 			// If props.size() == 1, it means this is a single property update
