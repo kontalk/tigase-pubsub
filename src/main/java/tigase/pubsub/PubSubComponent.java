@@ -26,18 +26,6 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.script
-		.Bindings;
 import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
@@ -74,7 +62,6 @@ import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurat
 import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
-import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 import tigase.pubsub.modules.ext.presence.PresenceNodeSubscriptions;
 import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
 import tigase.pubsub.repository.IPubSubRepository;
@@ -91,6 +78,24 @@ import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
+
+//~--- JDK imports ------------------------------------------------------------
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.script.Bindings;
+import tigase.pubsub.modules.commands.RetrieveItemsCommand;
+import tigase.xmpp.Authorization;
+import tigase.xmpp.PacketErrorTypeException;
 
 /**
  * Class description
@@ -476,7 +481,22 @@ public class PubSubComponent
 		return Runtime.getRuntime().availableProcessors() * 4;
 	}
 	
-
+	@Override
+	public void processPacket(Packet packet) {
+		// if stanza is addressed to getName()@domain then we need to return SERVICE_UNAVAILABLE error
+		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart())) {
+			try {
+				Packet result = Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, true);
+				addOutPacket(result);
+			} catch (PacketErrorTypeException ex) {
+				log.log(Level.FINE, "Packet already of type=error, while preparing error response", ex);
+			}
+			return;
+		}
+			
+		super.processPacket(packet);
+	}
+		
 	//~--- set methods ----------------------------------------------------------
 
 	/**
