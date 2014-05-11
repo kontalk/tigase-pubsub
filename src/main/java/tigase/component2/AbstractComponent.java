@@ -28,12 +28,12 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import tigase.component2.eventbus.DefaultEventBus;
 import tigase.component2.eventbus.EventBus;
 import tigase.component2.exceptions.ComponentException;
 import tigase.component2.modules.Module;
 import tigase.component2.modules.ModulesManager;
+import tigase.conf.ConfigurationException;
 import tigase.disco.XMPPService;
 import tigase.server.AbstractMessageReceiver;
 import tigase.server.Packet;
@@ -283,9 +283,10 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 	 * 
 	 * 
 	 * @param props
+	 * @throws tigase.conf.ConfigurationException
 	 */
 	@Override
-	public void setProperties(Map<String, Object> props) {
+	public void setProperties(Map<String, Object> props) throws ConfigurationException {
 		super.setProperties(props);
 		componentConfig.setProperties(props);
 	}
