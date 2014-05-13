@@ -140,6 +140,7 @@
 		<resources>
 			<resource>
 				<directory>database</directory>
+				<targetPath>database</targetPath>
 				<includes>
 					<include>**/*3.0.0*.sql</include>
 					<include>**/*.sh</include>
@@ -148,6 +149,7 @@
 			</resource>
 			<resource>
 				<directory>src/main/groovy/tigase/</directory>
+				<targetPath>scripts</targetPath>
 				<includes>
 					<include>**/*.groovy</include>
 				</includes>
