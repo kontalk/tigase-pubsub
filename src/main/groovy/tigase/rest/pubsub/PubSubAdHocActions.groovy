@@ -43,7 +43,7 @@ class PubSubActionsHandler extends tigase.http.rest.Handler {
     def DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
 
     public PubSubActionsHandler() {
-        regex = /\/([^@\/]+@)?\.?([^@\/]+)\/([^\/]+)/
+        regex = /\/(?:([^@\/]+)@){0,1}([^@\/]+)\/([^\/]+)/
         isAsync = true
 		decodeContent = false;
 
@@ -52,9 +52,9 @@ class PubSubActionsHandler extends tigase.http.rest.Handler {
         }
 
         execPost = { Service service, callback, content, localPart, domain, cmd ->
-			if (localPart) {
-				localPart = localPart.substring(0,localPart.length()-1);
-			}
+			//if (localPart) {
+			//	localPart = localPart.substring(0,localPart.length()-1);
+			//}
 			
 			content = decodeContent(content ? content.getReader().getText() : null);
 			
