@@ -149,7 +149,7 @@ try {
 			Element associateEl = new Element("associate");
 			associateEl.setAttribute("node", node);
 			colE.addChild(associateEl);
-			def results = (component.publishNodeModule.prepareNotification(colE,
+			def results = (component.publishNodeModule.sendNotifications(colE,
 							packet.getStanzaTo(), collection, nodeConfig,
 							colNodeAffiliations, colNodeSubscriptions));
 			results.each { packet -> 

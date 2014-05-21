@@ -148,10 +148,12 @@ public class PubSubComponent
 	private AdHocConfigCommandModule  adHocCommandsModule;
 	private CapsModule                capsModule;
 	private PubSubDAO                 directPubSubRepository;
-	private PendingSubscriptionModule pendingSubscriptionModule;
-	private PresenceCollectorModule   presenceCollectorModule;
-	private PresenceNotifierModule    presenceNotifierModule;	
-	private PublishItemModule         publishNodeModule;
+
+	/* modules */
+	protected PendingSubscriptionModule pendingSubscriptionModule;
+	protected PresenceCollectorModule   presenceCollectorModule;
+	protected PresenceNotifierModule    presenceNotifierModule;
+	protected PublishItemModule         publishNodeModule;
 
 	// ~--- constructors
 	// ---------------------------------------------------------

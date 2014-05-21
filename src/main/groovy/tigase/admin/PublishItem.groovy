@@ -41,6 +41,8 @@ import tigase.pubsub.repository.IPubSubRepository
 import tigase.pubsub.exceptions.PubSubException
 import tigase.pubsub.exceptions.PubSubErrorCondition
 
+
+try {
 def NODE = "node"
 def ID = "item-id";
 def ENTRY = "entry";
@@ -63,12 +65,12 @@ if (!node || !entry) {
 	Command.addInstructions(result, "Fill out this form to publish item to a node.")
 
 	Command.addFieldValue(result, NODE, node ?: "", "text-single",
-			"The node to publish to")	
+			"The node to publish to")
 	Command.addFieldValue(result, ID, id ?: "", "text-single",
 			"ID of item")
 	Command.addFieldValue(result, ENTRY, entry ?: "", "text-multi",
 			"Entry")
-	
+
 	return result
 }
 
@@ -79,79 +81,79 @@ try {
 
 		def nodeConfig = pubsubRepository.getNodeConfig(toJid, node);
 		if (nodeConfig == null) {
-			throw new PubSubException(Authorization.ITEM_NOT_FOUND, "Node " + node + " needs " + 
+			throw new PubSubException(Authorization.ITEM_NOT_FOUND, "Node " + node + " needs " +
 				"to be created before an item can be published.");
 		}
 		if (nodeConfig.getNodeType() == NodeType.collection) {
 			throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED,
 						new PubSubErrorCondition("unsupported", "publish"));
-		}		
-		
+		}
+
 		def nodeAffiliations = pubsubRepository.getNodeAffiliations(toJid, node);
 		def nodeSubscriptions = pubsubRepository.getNodeSubscriptions(toJid, node);
-		
+
 		Element item = new Element("item");
 		if (!id) id = UUID.randomUUID().toString();
 		item.setAttribute("id", id);
-		
+
 		def data = entry.join("\n")
 		data = ((String) data).toCharArray();
-		
+
 		def handler = new DomBuilderHandler();
 		def parser = SingletonFactory.getParserInstance();
 		parser.parse(handler, data, 0, data.length);
 		item.addChildren(handler.getParsedElements());
-		
+
 		def items = new Element("items");
 		items.setAttribute("node", node);
 		items.addChild(item);
-		
+
 		def results = [];
-		results.addAll(component.publishNodeModule.prepareNotification(items, packet.getStanzaTo(), 
+			component.publishNodeModule.sendNotifications(items, packet.getStanzaTo(),
 			node, pubsubRepository.getNodeConfig(toJid, node),
-			nodeAffiliations, nodeSubscriptions));
-		
+			nodeAffiliations, nodeSubscriptions)
+
 		def parents = component.publishNodeModule.getParents(toJid, node);
-		
+
 		if (!parents) {
 			parents.each { collection ->
 				def headers = [Collection:collection];
-				
+
 				AbstractNodeConfig colNodeConfig    = pubsubRepository.getNodeConfig(toJid, collection);
 				def colNodeSubscriptions =
 					pubsubRepository.getNodeSubscriptions(toJid, collection);
 				def colNodeAffiliations =
 					pubsubRepository.getNodeAffiliations(toJid, collection);
 
-				results.addAll(component.publishNodeModule.prepareNotification(items, packet.getStanzaTo(),
+					component.publishNodeModule.sendNotifications(items, packet.getStanzaTo(),
 									node, headers, colNodeConfig,
-									colNodeAffiliations, colNodeSubscriptions));				
+									colNodeAffiliations, colNodeSubscriptions)
 			}
 		}
-		
+
 		if (nodeConfig.isPersistItem()) {
 			def nodeItems = pubsubRepository.getNodeItems(toJid, node);
 
 			nodeItems.writeItem(System.currentTimeMillis(), id,
 					p.getAttributeStaticStr("from"), item);
-														
+
 			if (nodeConfig.getMaxItems() != null) {
 				component.publishNodeModule.trimItems(nodeItems, nodeConfig.getMaxItems());
 			}
-		}		
-			
+		}
+
 		results.each { packet ->
 			component.addOutPacket(packet);
 		}
-		
+
 		Command.addTextField(result, "Note", "Operation successful");
 	} else {
 		//Command.addTextField(result, "Error", "You do not have enough permissions to publish item to a node.");
-		throw new PubSubException(Authorization.FORBIDDEN, "You do not have enough " + 
+		throw new PubSubException(Authorization.FORBIDDEN, "You do not have enough " +
 				"permissions to publish item to a node.");
 	}
 } catch (PubSubException ex) {
-	Command.addTextField(result, "Error", ex.getMessage())	
+	Command.addTextField(result, "Error", ex.getMessage())
 	if (ex.getErrorCondition()) {
 		def error = ex.getErrorCondition();
 		Element errorEl = new Element("error");
@@ -162,10 +164,14 @@ try {
 		Element pubsubCondition = ex.pubSubErrorCondition?.getElement();
 		if (pubsubCondition)
 			errorEl.addChild(pubsubCondition);
-		result.getElement().addChild(errorEl);	
+		result.getElement().addChild(errorEl);
 	}
 } catch (TigaseDBException ex) {
 	Command.addTextField(result, "Note", "Problem accessing database, item not published to node.");
 }
 
 return result
+
+} catch (Exception ex) {
+	ex.printStackTrace();
+}
