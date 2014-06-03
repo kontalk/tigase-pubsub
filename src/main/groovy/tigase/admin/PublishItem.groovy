@@ -40,6 +40,7 @@ import tigase.pubsub.*
 import tigase.pubsub.repository.IPubSubRepository
 import tigase.pubsub.exceptions.PubSubException
 import tigase.pubsub.exceptions.PubSubErrorCondition
+import tigase.pubsub.modules.PublishItemModule.ItemPublishedHandler
 
 
 try {
@@ -145,6 +146,9 @@ try {
 		results.each { packet ->
 			component.addOutPacket(packet);
 		}
+
+			component.getEventBus().fire(
+				new ItemPublishedHandler.ItemPublishedEvent(packet.getStanzaTo().getBareJID(), node, itemsToSend));
 
 		Command.addTextField(result, "Note", "Operation successful");
 	} else {
