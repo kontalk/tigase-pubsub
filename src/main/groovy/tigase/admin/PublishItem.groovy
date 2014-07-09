@@ -147,6 +147,9 @@ try {
 			component.addOutPacket(packet);
 		}
 
+			def itemsToSend = [];
+			itemsToSend += item;
+
 			component.getEventBus().fire(
 				new ItemPublishedHandler.ItemPublishedEvent(packet.getStanzaTo().getBareJID(), node, itemsToSend));
 
