@@ -430,16 +430,18 @@ public class PubSubComponent
 
 	@Override
 	public int hashCodeForPacket(Packet packet) {
+		int hash = 1;
 		if ((packet.getStanzaFrom() != null) && (packet.getPacketFrom() != null) 
-				&& !getComponentId().equals(packet.getPacketFrom())) {
-			return packet.getStanzaFrom().hashCode();
+				&& !getComponentId().equals(packet.getPacketFrom()) 
+				// this should detect if packet is addressed from pubsub.example.com
+				&& (packet.getPacketFrom().getLocalpart() != null || !packet.getPacketFrom().getDomain().startsWith(getName()))) {
+			hash = packet.getStanzaFrom().hashCode();
+		}
+		else if (packet.getStanzaTo() != null) {
+			hash = packet.getStanzaTo().hashCode();
 		}
 		
-		if (packet.getStanzaTo() != null) {
-			return packet.getStanzaTo().hashCode();
-		}
-		
-		return 1;
+		return hash;
 	}
 
 	@Override
