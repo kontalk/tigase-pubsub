@@ -37,15 +37,15 @@ import tigase.xmpp.impl.roster.RosterElement;
  * @version 5.0.0, 2010.03.27 at 05:20:46 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class CachedPubSubRepository implements IPubSubRepository {
+public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 	private class NodeSaver {
 
-		public void save(Node node) throws RepositoryException {
+		public void save(Node<T> node) throws RepositoryException {
 			save(node, 0);
 		}
 		
-		public void save(Node node, int iteration) throws RepositoryException {
+		public void save(Node<T> node, int iteration) throws RepositoryException {
 			long start = System.currentTimeMillis();
 
 			++repo_writes;
@@ -60,13 +60,13 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 					if (node.configNeedsWriting()) {
 						String collection = node.getNodeConfig().getCollection();
-						Long collectionId = null;
+						T collectionId = null;
 						if (collection != null && !collection.equals("")) {
 							collectionId = dao.getNodeId(node.getServiceJid(), collection);
-							if (collectionId == 0) {
+							if (collectionId == null) {
 								throw new RepositoryException("Parent collection does not exists yet!");
 							}							
-						}						
+						}					
 						dao.updateNodeConfig(node.getServiceJid(), node.getNodeId(),
 								node.getNodeConfig().getFormElement().toString(), 
 								collectionId);
@@ -76,7 +76,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 					if (node.affiliationsNeedsWriting()) {
 						Map<BareJID,UsersAffiliation> changedAffiliations = node.getNodeAffiliations().getChanged();
 						for (Map.Entry<BareJID,UsersAffiliation> entry : changedAffiliations.entrySet()) {
-							dao.updateNodeAffiliation(node.getServiceJid(), node.getNodeId(), entry.getValue());
+							dao.updateNodeAffiliation(node.getServiceJid(), node.getNodeId(), node.getName(), entry.getValue());
 						}
 						node.affiliationsSaved();
 					}
@@ -99,7 +99,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 								dao.removeNodeSubscription(node.getServiceJid(), node.getNodeId(), subscription.getJid());
 							}
 							else {
-								dao.updateNodeSubscription(node.getServiceJid(), node.getNodeId(), subscription);
+								dao.updateNodeSubscription(node.getServiceJid(), node.getNodeId(), node.getName(), subscription);
 							}
 						}
 						node.subscriptionsSaved();
@@ -186,7 +186,7 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	/** Field description */
 	public final static long MAX_WRITE_DELAY = 1000l * 15l;
-	protected final IPubSubDAO dao;
+	protected final IPubSubDAO<T> dao;
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final Integer maxCacheSize;
 	// private final Object mutex = new Object();
@@ -344,15 +344,15 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
 		long start = System.currentTimeMillis();
-		Long collectionId = null;
+		T collectionId = null;
 		if (collection != null && !collection.equals("")) {
 			collectionId = this.dao.getNodeId(serviceJid, collection);
-			if (collectionId == 0) {
+			if (collectionId == null) {
 				throw new RepositoryException("Parent collection does not exists yet!");
 			}
 		}
 		
-		long nodeId = this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collectionId);
+		T nodeId = this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collectionId);
 
 		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create((Queue<UsersAffiliation>) null);
 		NodeSubscriptions nodeSubscriptions = tigase.pubsub.repository.NodeSubscriptions.create();
@@ -379,8 +379,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
-		Node node = this.nodes.get(key);
-		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+		Node<T> node = this.nodes.get(key);
+		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
 		this.dao.deleteNode(serviceJid, nodeId);
 
 		if (node != null) {
@@ -454,9 +454,9 @@ public class CachedPubSubRepository implements IPubSubRepository {
 
 	protected Node getNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
-		Node node = this.nodes.get(key);
+		Node<T> node = this.nodes.get(key);
 		if (node == null) {
-			long nodeId = this.dao.getNodeId(serviceJid, nodeName);
+			T nodeId = this.dao.getNodeId(serviceJid, nodeName);
 			String cfgData = this.dao.getNodeConfig(serviceJid, nodeId);
 			AbstractNodeConfig nodeConfig = this.dao.parseConfig(nodeName, cfgData);
 
@@ -545,8 +545,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
-		Node node = this.nodes.get(key);		
-		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+		Node<T> node = this.nodes.get(key);		
+		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
 		return new Items(nodeId, serviceJid, nodeName, this.dao);
 	}
 
@@ -660,8 +660,8 @@ public class CachedPubSubRepository implements IPubSubRepository {
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
-		Node node = this.nodes.get(key);		
-		long nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);		
+		Node<T> node = this.nodes.get(key);		
+		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);		
 		dao.removeFromRootCollection(serviceJid, nodeId);
 		Set<String> nodes = rootCollection.get(serviceJid);
 		if (nodes != null) {

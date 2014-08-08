@@ -59,7 +59,7 @@ import tigase.server.XMPPServer;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 
-public class PubSubDAOJDBC extends PubSubDAO {
+public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	/**
 	 * Database active connection.
@@ -164,9 +164,9 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public long createNode( BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
+	public Long createNode( BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 													NodeType nodeType, Long collectionId ) throws RepositoryException {
-		long nodeId = 0;
+		Long nodeId = null;
 		ResultSet rs = null;
 		try {
 			String serializedNodeConfig = null;
@@ -217,7 +217,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void deleteItem( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
+	public void deleteItem( BareJID serviceJid, Long nodeId, String id ) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized ( delete_item_sp ) {
@@ -231,7 +231,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void deleteNode( BareJID serviceJid, long nodeId ) throws RepositoryException {
+	public void deleteNode( BareJID serviceJid, Long nodeId ) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized ( remove_node_sp ) {
@@ -305,12 +305,12 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public Element getItem( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
+	public Element getItem( BareJID serviceJid, Long nodeId, String id ) throws RepositoryException {
 		return itemDataToElement( getStringFromItem( serviceJid, nodeId, id, 1 ).toCharArray() );
 	}
 
 	@Override
-	public Date getItemCreationDate( final BareJID serviceJid, final long nodeId, final String id )
+	public Date getItemCreationDate( final BareJID serviceJid, final Long nodeId, final String id )
 			throws RepositoryException {
 		return getDateFromItem( serviceJid, nodeId, id, 3 );
 	}
@@ -321,7 +321,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 //	}
 
 	@Override
-	public String[] getItemsIds( BareJID serviceJid, long nodeId ) throws RepositoryException {
+	public String[] getItemsIds( BareJID serviceJid, Long nodeId ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -342,7 +342,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public String[] getItemsIdsSince( BareJID serviceJid, long nodeId, Date since ) throws RepositoryException {
+	public String[] getItemsIdsSince( BareJID serviceJid, Long nodeId, Date since ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			Timestamp sinceTs = new Timestamp(since.getTime());
@@ -365,7 +365,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 	
 	@Override
-	public List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, long nodeId, String nodeName) 
+	public List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, Long nodeId, String nodeName) 
 			throws RepositoryException {
 		ResultSet rs = null;
 		try {
@@ -389,12 +389,12 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 	
 	@Override
-	public Date getItemUpdateDate( BareJID serviceJid, long nodeId, String id ) throws RepositoryException {
+	public Date getItemUpdateDate( BareJID serviceJid, Long nodeId, String id ) throws RepositoryException {
 		return getDateFromItem( serviceJid, nodeId, id, 4 );
 	}
 
 	@Override
-	public long getNodeId( BareJID serviceJid, String nodeName ) throws RepositoryException {
+	public Long getNodeId( BareJID serviceJid, String nodeName ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -405,7 +405,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 				if ( rs.next() ) {
 					return rs.getLong(1);
 				}				
-				return 0;
+				return null;
 			}
 		} catch ( SQLException e ) {
 			throw new RepositoryException( "Retrieving node id error", e );
@@ -416,7 +416,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 	
 	@Override
-	public NodeAffiliations getNodeAffiliations( BareJID serviceJid, long nodeId ) throws RepositoryException {
+	public NodeAffiliations getNodeAffiliations( BareJID serviceJid, Long nodeId ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -439,7 +439,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public String getNodeConfig(BareJID serviceJid, long nodeId) throws RepositoryException {
+	public String getNodeConfig(BareJID serviceJid, Long nodeId) throws RepositoryException {
 		return readNodeConfigFormData(serviceJid, nodeId);
 	}
 	
@@ -479,7 +479,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public NodeSubscriptions getNodeSubscriptions( BareJID serviceJid, long nodeId ) throws RepositoryException {
+	public NodeSubscriptions getNodeSubscriptions( BareJID serviceJid, Long nodeId ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			final NodeSubscriptions ns = NodeSubscriptions.create();
@@ -811,13 +811,13 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void removeFromRootCollection( BareJID serviceJid, long nodeId ) throws RepositoryException {
+	public void removeFromRootCollection( BareJID serviceJid, Long nodeId ) throws RepositoryException {
 		// TODO check it
 		deleteNode( serviceJid, nodeId );
 	}
 
 	@Override
-	public void removeNodeSubscription( BareJID serviceJid, long nodeId, BareJID jid ) throws RepositoryException {
+	public void removeNodeSubscription( BareJID serviceJid, Long nodeId, BareJID jid ) throws RepositoryException {
 		try {
 			checkConnection();
 			synchronized ( delete_node_subscriptions_sp ) {
@@ -831,7 +831,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeAffiliation( BareJID serviceJid, long nodeId, UsersAffiliation affiliation ) throws RepositoryException {
+	public void updateNodeAffiliation( BareJID serviceJid, Long nodeId, String nodeName, UsersAffiliation affiliation ) throws RepositoryException {
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -857,7 +857,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeConfig(final BareJID serviceJid, final long nodeId, final String serializedData,
+	public void updateNodeConfig(final BareJID serviceJid, final Long nodeId, final String serializedData,
 			final Long collectionId)
 			throws RepositoryException {
 		ResultSet rs = null;
@@ -889,7 +889,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void updateNodeSubscription( BareJID serviceJid, long nodeId, UsersSubscription subscription )
+	public void updateNodeSubscription( BareJID serviceJid, Long nodeId, String nodeName, UsersSubscription subscription )
 			throws RepositoryException {
 		ResultSet rs = null;
 		try {
@@ -917,7 +917,7 @@ public class PubSubDAOJDBC extends PubSubDAO {
 	}
 
 	@Override
-	public void writeItem( final BareJID serviceJid, final long nodeId, long timeInMilis, final String id,
+	public void writeItem( final BareJID serviceJid, final Long nodeId, long timeInMilis, final String id,
 												 final String publisher, final Element item ) throws RepositoryException {
 		ResultSet rs = null;
 		try {

@@ -45,7 +45,7 @@ import tigase.xmpp.impl.roster.RosterElement;
  * @version 5.0.0, 2010.03.27 at 05:16:25 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public interface IPubSubDAO {
+public interface IPubSubDAO<T> {
 
 	/**
 	 * Method description
@@ -69,8 +69,8 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract long createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
-			NodeType nodeType, Long collectionId) throws RepositoryException;
+	public abstract T createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
+			NodeType nodeType, T collectionId) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -81,7 +81,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void deleteItem(BareJID serviceJid, long nodeId, String id) throws RepositoryException;
+	public abstract void deleteItem(BareJID serviceJid, T nodeId, String id) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -91,7 +91,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void deleteNode(BareJID serviceJid, long nodeId) throws RepositoryException;
+	public abstract void deleteNode(BareJID serviceJid, T nodeId) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -106,7 +106,7 @@ public interface IPubSubDAO {
 	@Deprecated
 	String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException;
 
-	Element getItem(BareJID serviceJid, long nodeId, String id) throws RepositoryException;
+	Element getItem(BareJID serviceJid, T nodeId, String id) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -119,14 +119,14 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract Date getItemCreationDate(BareJID serviceJid, long nodeId, final String id)
+	public abstract Date getItemCreationDate(BareJID serviceJid, T nodeId, final String id)
 			throws RepositoryException;
 
-	String[] getItemsIds(BareJID serviceJid, long nodeId) throws RepositoryException;
+	String[] getItemsIds(BareJID serviceJid, T nodeId) throws RepositoryException;
 
-	String[] getItemsIdsSince(BareJID serviceJid, long nodeId, Date since) throws RepositoryException;
+	String[] getItemsIdsSince(BareJID serviceJid, T nodeId, Date since) throws RepositoryException;
 
-	List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, long nodeId, String nodeName)
+	List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, T nodeId, String nodeName)
 			throws RepositoryException;
 	
 	/**
@@ -140,7 +140,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract Date getItemUpdateDate(BareJID serviceJid, long nodeId, final String id)
+	public abstract Date getItemUpdateDate(BareJID serviceJid, T nodeId, final String id)
 			throws RepositoryException;
 
 	/**
@@ -153,7 +153,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, long nodeId) throws RepositoryException;
+	public NodeAffiliations getNodeAffiliations(BareJID serviceJid, T nodeId) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -165,9 +165,9 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public String getNodeConfig(BareJID serviceJid, long nodeId) throws RepositoryException;
+	public String getNodeConfig(BareJID serviceJid, T nodeId) throws RepositoryException;
 
-	public long getNodeId(BareJID serviceJid, String nodeName) throws RepositoryException;
+	public T getNodeId(BareJID serviceJid, String nodeName) throws RepositoryException;
 	
 	/**
 	 * Method description
@@ -179,7 +179,7 @@ public interface IPubSubDAO {
 	 */
 	public abstract String[] getNodesList(BareJID serviceJid, String nodeName) throws RepositoryException;
 
-	NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, long nodeId) throws RepositoryException;
+	NodeSubscriptions getNodeSubscriptions(BareJID serviceJid, T nodeId) throws RepositoryException;
 
 	/**
 	 * Method description
@@ -216,9 +216,9 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void removeFromRootCollection(BareJID serviceJid, long nodeId) throws RepositoryException;
+	public void removeFromRootCollection(BareJID serviceJid, T nodeId) throws RepositoryException;
 
-	public void removeNodeSubscription(BareJID serviceJid, long nodeId, BareJID jid) throws RepositoryException;
+	public void removeNodeSubscription(BareJID serviceJid, T nodeId, BareJID jid) throws RepositoryException;
 	
 	/**
 	 * Method description
@@ -229,7 +229,7 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void updateNodeConfig(BareJID serviceJid, final long nodeId, final String serializedData, Long collectionId)
+	public abstract void updateNodeConfig(BareJID serviceJid, final T nodeId, final String serializedData, T collectionId)
 			throws RepositoryException;
 
 	/**
@@ -241,9 +241,9 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public void updateNodeAffiliation(BareJID serviceJid, long nodeId, UsersAffiliation userAffiliation) throws RepositoryException;
+	public void updateNodeAffiliation(BareJID serviceJid, T nodeId, String nodeName, UsersAffiliation userAffiliation) throws RepositoryException;
 
-	public void updateNodeSubscription(BareJID serviceJid, long nodeId, UsersSubscription userSubscription) throws RepositoryException;
+	public void updateNodeSubscription(BareJID serviceJid, T nodeId, String nodeName, UsersSubscription userSubscription) throws RepositoryException;
 	
 	/**
 	 * Method description
@@ -257,6 +257,6 @@ public interface IPubSubDAO {
 	 * 
 	 * @throws RepositoryException
 	 */
-	public abstract void writeItem(BareJID serviceJid, long nodeId, long timeInMilis, final String id,
+	public abstract void writeItem(BareJID serviceJid, T nodeId, long timeInMilis, final String id,
 			final String publisher, final Element item) throws RepositoryException;
 }

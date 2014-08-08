@@ -3,7 +3,7 @@ package tigase.pubsub.repository.cached;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.xmpp.BareJID;
 
-public class Node {
+public class Node<T> {
 
 	//private boolean affNeedsWriting = false;
 	private boolean conNeedsWriting = false;
@@ -11,7 +11,7 @@ public class Node {
 
 	private boolean deleted = false;
 	private String name;
-	private long nodeId;
+	private T nodeId;
 
 	// private Long nodeAffiliationsChangeTimestamp;
 
@@ -26,7 +26,7 @@ public class Node {
 
 	// private Long nodeSubscriptionsChangeTimestamp;
 
-	public Node(long nodeId, BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations,
+	public Node(T nodeId, BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations,
 			NodeSubscriptions nodeSubscriptions) {
 		this.nodeId = nodeId;
 		this.serviceJid = serviceJid;
@@ -36,7 +36,7 @@ public class Node {
 		this.name = nodeConfig.getNodeName();
 	}
 	
-	public long getNodeId() {
+	public T getNodeId() {
 		return nodeId;
 	}
 

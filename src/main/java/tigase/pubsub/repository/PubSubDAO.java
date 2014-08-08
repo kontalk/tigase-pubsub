@@ -27,7 +27,7 @@ import tigase.xmpp.impl.roster.RosterFlat;
  *
  * @author andrzej
  */
-public abstract class PubSubDAO implements IPubSubDAO {
+public abstract class PubSubDAO<T> implements IPubSubDAO<T> {
 
 	protected static final Logger log = Logger.getLogger(PubSubDAO.class.getCanonicalName());
 	
