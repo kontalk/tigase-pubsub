@@ -311,6 +311,7 @@ public class PubSubComponent
 		}    // end of if (params.get(GEN_USER_DB_URI) != null)
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
+		props.put(PUBSUB_REPO_POOL_SIZE_PROP_KEY, 10);
 		props.put(MAX_CACHE_SIZE, "2000");
 
 		String[] admins;
@@ -623,9 +624,9 @@ public class PubSubComponent
 			int dao_pool_size;
 
 			try {
-				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
-						? poolSizes.get(domain)
-						: poolSizes.get(null)));
+				Object value = (poolSizes.containsKey(domain)
+						? poolSizes.get(domain) : poolSizes.get(null));
+				dao_pool_size = (value instanceof Integer) ? ((Integer) value) : Integer.parseInt((String) value);
 			} catch (Exception ex) {
 				// we should set it at least to 10 to improve performace, 
 				// as previous value (1) was really not enought
