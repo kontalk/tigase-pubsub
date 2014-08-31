@@ -204,11 +204,6 @@ public class PubSubComponent
 
 		// this.componentConfig.setServiceName("tigase-pubsub");
 
-		// XXX remove ASAP
-		if (pubSubDAO != null) {
-			pubSubDAO.init();
-		}
-
 		// create pubsub user if it doesn't exist
 		if ( ! ( userRepository.getUserUID( componentConfig.getServiceBareJID() ) > 0 ) ){
 			userRepository.addUser( componentConfig.getServiceBareJID() );
@@ -512,7 +507,7 @@ public class PubSubComponent
 	 */
 	@Override
 	public void setProperties(Map<String, Object> props) throws ConfigurationException {
-			super.setProperties(props);
+		super.setProperties(props);
 		if (props.size() == 1) {
 
 			// If props.size() == 1, it means this is a single property update
@@ -566,7 +561,7 @@ public class PubSubComponent
 			if (userRepository == null) {
 				userRepository = RepositoryFactory.getUserRepository(cls_name, res_uri, null);
 				userRepository.initRepository(res_uri, null);
-				log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
+				log.log(Level.CONFIG, "Initialized {0} as pubsub repository: {1}", new Object[]{cls_name, res_uri});
 			}
 			dao = createDAO(props);
 			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig(
