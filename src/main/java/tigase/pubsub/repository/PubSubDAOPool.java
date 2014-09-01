@@ -51,8 +51,14 @@ public class PubSubDAOPool<T> extends PubSubDAO<T> {
 
 	private final Map<BareJID, LinkedBlockingQueue<PubSubDAO>> pools = new HashMap<BareJID, LinkedBlockingQueue<PubSubDAO>>();
 
+	/**
+	 * Variable destroyed is set to true to ensure that all JDBC connections will be closed
+	 * and even if some of them were taken for execution in moment of pool being destroyed.
+	 */
+	private boolean destroyed = false;
+
 	public PubSubDAOPool(UserRepository userRepository) {
-		super(userRepository);
+		super(userRepository);		
 	}
 
 	public void addDao(BareJID domain, PubSubDAO dao) {
@@ -124,6 +130,10 @@ public class PubSubDAOPool<T> extends PubSubDAO<T> {
 
 	@Override
 	public void destroy() {
+		if (log.isLoggable(Level.FINEST)) {
+			log.log(Level.FINEST, "destroying PubSubDAOPool {0}", this);
+		}
+		destroyed = true;
 		Set<BareJID> keys = new HashSet<BareJID>(pools.keySet());
 		for (BareJID serviceJid : keys) {
 			List<PubSubDAO> list = new ArrayList<PubSubDAO>(pools.get(serviceJid));
@@ -379,7 +389,7 @@ public class PubSubDAOPool<T> extends PubSubDAO<T> {
 	}
 
 	@Override
-	public void init() throws RepositoryException {
+	public void init() throws RepositoryException {	
 		Set<BareJID> keys = new HashSet<BareJID>(pools.keySet());
 		for (BareJID serviceJid : keys) {
 			List<PubSubDAO> list = new ArrayList<PubSubDAO>(pools.get(serviceJid));
@@ -393,6 +403,10 @@ public class PubSubDAOPool<T> extends PubSubDAO<T> {
 	}
 
 	protected void offerDao(BareJID serviceJid, PubSubDAO dao) {
+		if (destroyed) {
+			dao.destroy();
+			return;
+		}
 		LinkedBlockingQueue<PubSubDAO> ee = this.pools.containsKey(serviceJid) ? this.pools.get(serviceJid)
 				: this.pools.get(null);
 		ee.offer(dao);

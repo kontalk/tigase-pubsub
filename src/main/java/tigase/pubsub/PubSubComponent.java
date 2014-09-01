@@ -204,11 +204,6 @@ public class PubSubComponent
 
 		// this.componentConfig.setServiceName("tigase-pubsub");
 
-		// XXX remove ASAP
-		if (pubSubDAO != null) {
-			pubSubDAO.init();
-		}
-
 		// create pubsub user if it doesn't exist
 		if ( ! ( userRepository.getUserUID( componentConfig.getServiceBareJID() ) > 0 ) ){
 			userRepository.addUser( componentConfig.getServiceBareJID() );
@@ -316,6 +311,7 @@ public class PubSubComponent
 		}    // end of if (params.get(GEN_USER_DB_URI) != null)
 		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
+		props.put(PUBSUB_REPO_POOL_SIZE_PROP_KEY, 10);
 		props.put(MAX_CACHE_SIZE, "2000");
 
 		String[] admins;
@@ -512,7 +508,7 @@ public class PubSubComponent
 	 */
 	@Override
 	public void setProperties(Map<String, Object> props) throws ConfigurationException {
-			super.setProperties(props);
+		super.setProperties(props);
 		if (props.size() == 1) {
 
 			// If props.size() == 1, it means this is a single property update
@@ -566,7 +562,7 @@ public class PubSubComponent
 			if (userRepository == null) {
 				userRepository = RepositoryFactory.getUserRepository(cls_name, res_uri, null);
 				userRepository.initRepository(res_uri, null);
-				log.config("Initialized " + cls_name + " as pubsub repository: " + res_uri);
+				log.log(Level.CONFIG, "Initialized {0} as pubsub repository: {1}", new Object[]{cls_name, res_uri});
 			}
 			dao = createDAO(props);
 			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig(
@@ -628,9 +624,9 @@ public class PubSubComponent
 			int dao_pool_size;
 
 			try {
-				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
-						? poolSizes.get(domain)
-						: poolSizes.get(null)));
+				Object value = (poolSizes.containsKey(domain)
+						? poolSizes.get(domain) : poolSizes.get(null));
+				dao_pool_size = (value instanceof Integer) ? ((Integer) value) : Integer.parseInt((String) value);
 			} catch (Exception ex) {
 				// we should set it at least to 10 to improve performace, 
 				// as previous value (1) was really not enought

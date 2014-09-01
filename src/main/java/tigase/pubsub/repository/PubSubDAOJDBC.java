@@ -122,7 +122,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 			database = DataRepository.dbTypes.jtds;
 		} else if (db_conn.startsWith("jdbc:sqlserver")) {
 			database = DataRepository.dbTypes.sqlserver;
-		}
+		}	
 	}
 
 	@Override
@@ -246,6 +246,9 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	@Override
 	public void destroy() {
 		try {
+			if (log.isLoggable(Level.FINEST)) {
+				log.log(Level.FINEST, "closing JDBC connection: {0} - {1}", new Object[] {conn.getClass().getCanonicalName(), conn});
+			}			
 			if ( !conn.isClosed() ) {
 				conn.close();
 			}
@@ -728,6 +731,18 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	 */
 	private void initRepo() throws SQLException {
 		synchronized ( db_conn ) {
+			if (conn != null) {
+				try {
+					if (!conn.isClosed()) {
+						if (log.isLoggable(Level.FINEST)) {
+							log.log(Level.FINEST, "closing JDBC connection: {0}", conn);
+						}
+						conn.close();
+					}
+				} catch (Exception ex) {
+					log.log(Level.WARNING, "Exception occured while closing old DB connection for reinitialization", ex);
+				}
+			}
 			String driverClass = null;
 			switch (database) {
 				case postgresql:
@@ -757,6 +772,9 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 			}		
 			
 			conn = DriverManager.getConnection( db_conn );
+			if (log.isLoggable(Level.FINEST)) {
+				log.log(Level.FINEST, "establishing JDBC connection: {0} for {1}", new Object[]{conn, db_conn});
+			}
 			checkSchema();			
 			initPreparedStatements();
 		}
