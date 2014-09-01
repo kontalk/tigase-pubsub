@@ -123,10 +123,10 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 		Map<BareJID, UsersSubscription> changedSubs = changedSubs();
 		for (Map.Entry<BareJID, UsersSubscription> entry : changedSubs.entrySet()) {
 			if (entry.getValue().getSubscription() == Subscription.none) {
-				continue;
+				subs.remove(entry.getKey());
+			} else {
+				subs.put(entry.getKey(), entry.getValue());
 			}
-
-			subs.put(entry.getKey(), entry.getValue());
 		}
 		//subs.putAll(changedSubs);
 		changedSubs.clear();

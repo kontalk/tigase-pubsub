@@ -99,9 +99,10 @@ public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations 
 		Map<BareJID, UsersAffiliation> changedAffs = changedAffs();
 		for (Map.Entry<BareJID, UsersAffiliation> entry : changedAffs.entrySet()) {
 			if (entry.getValue().getAffiliation() == Affiliation.none) {
-				continue;
+				affs.remove(entry.getKey());
+			} else {
+				affs.put(entry.getKey(), entry.getValue());
 			}
-			affs.put(entry.getKey(), entry.getValue());
 		}
 		changedAffs.clear();
 
