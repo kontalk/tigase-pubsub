@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.script.Bindings;
@@ -204,7 +205,7 @@ public class PubSubComponent
 		// this.componentConfig.setServiceName("tigase-pubsub");
 
 		// create pubsub user if it doesn't exist
-		if ( ! ( userRepository.getUserUID( componentConfig.getServiceBareJID() ) > 0 ) ){
+		if ( !userRepository.userExists( componentConfig.getServiceBareJID() ) ){
 			userRepository.addUser( componentConfig.getServiceBareJID() );
 		}
 		this.directPubSubRepository = pubSubDAO;
@@ -633,9 +634,15 @@ public class PubSubComponent
 			}
 
 			for (int i = 0; i < dao_pool_size; i++) {
-				PubSubDAO dao = new PubSubDAOJDBC();
-				dao.init(resUri, repoParams, userRepository);
-				dao_pool.addDao(domain == null ? null : BareJID.bareJIDInstanceNS(domain), dao);
+				try {
+					IPubSubDAO dao = repoClass.newInstance();
+					dao.init(resUri, repoParams, userRepository);
+					dao_pool.addDao(domain == null ? null : BareJID.bareJIDInstanceNS(domain), dao);
+				} catch (InstantiationException ex) {
+					throw new RepositoryException("Cound not create instance of " + repoClass.getCanonicalName(), ex);
+				} catch (IllegalAccessException ex) {
+					throw new RepositoryException("Cound not create instance of " + repoClass.getCanonicalName(), ex);
+				}
 			}
 
 			if (log.isLoggable(Level.CONFIG)) {
