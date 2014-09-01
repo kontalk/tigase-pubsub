@@ -7,6 +7,8 @@ package tigase.pubsub.repository.migration;
 import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.Map;
+import tigase.db.UserRepository;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.xmpp.BareJID;
 
@@ -19,13 +21,12 @@ public class PubSubNewDAOJDBC extends tigase.pubsub.repository.PubSubDAOJDBC {
 	private CallableStatement fix_node_st = null;
 	private CallableStatement fix_item_st = null;
 	
-	public PubSubNewDAOJDBC(String connectionUri) {
-		super(null, null, connectionUri);
+	public PubSubNewDAOJDBC() {
 	}
 	
 	@Override
-	public void init() throws RepositoryException {
-		super.init();
+	public void init(String resource_uri, Map<String, String> params, UserRepository userRepository) throws RepositoryException {
+		super.init(resource_uri, params, userRepository);
 		try {
 			fix_node_st = conn.prepareCall("{ call TigPubSubFixNode(?,?) }");
 			fix_item_st = conn.prepareCall("{ call TigPubSubFixItem(?,?,?,?) }");

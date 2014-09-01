@@ -26,14 +26,28 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.script.Bindings;
 import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
 import tigase.conf.Configurable;
+import tigase.conf.ConfigurationException;
+import tigase.db.DBInitException;
 import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
+import tigase.osgi.ModulesManagerImpl;
 import tigase.pubsub.modules.AdHocConfigCommandModule;
 import tigase.pubsub.modules.CapsModule;
 import tigase.pubsub.modules.DefaultConfigModule;
@@ -62,8 +76,10 @@ import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurat
 import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
 import tigase.pubsub.modules.commands.ReadAllNodesCommand;
 import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
+import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 import tigase.pubsub.modules.ext.presence.PresenceNodeSubscriptions;
 import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
+import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.PubSubDAO;
@@ -76,26 +92,9 @@ import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
 import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
-
-//~--- JDK imports ------------------------------------------------------------
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.script.Bindings;
-import tigase.conf.ConfigurationException;
-import tigase.pubsub.modules.commands.RetrieveItemsCommand;
-import tigase.xmpp.Authorization;
 import tigase.xmpp.PacketErrorTypeException;
 
 /**
@@ -285,31 +284,11 @@ public class PubSubComponent
 		Map<String, Object> props = super.getDefaults(params);
 
 		// By default use the same repository as all other components:
-		String repo_class = RepositoryFactory.DERBY_REPO_CLASS_PROP_VAL;
-		String repo_uri   = RepositoryFactory.DERBY_REPO_URL_PROP_VAL;
-		String conf_db    = null;
-
-		if (params.get(RepositoryFactory.GEN_USER_DB) != null) {
-			conf_db = (String) params.get(RepositoryFactory.GEN_USER_DB);
-		}    // end of if (params.get(GEN_USER_DB) != null)
-		if (conf_db != null) {
-			if (conf_db.equals("mysql")) {
-				repo_class = RepositoryFactory.MYSQL_REPO_CLASS_PROP_VAL;
-				repo_uri   = RepositoryFactory.MYSQL_REPO_URL_PROP_VAL;
-			}
-			if (conf_db.equals("pgsql")) {
-				repo_class = RepositoryFactory.PGSQL_REPO_CLASS_PROP_VAL;
-				repo_uri   = RepositoryFactory.PGSQL_REPO_URL_PROP_VAL;
-			}
-			if (conf_db.equals("sqlserver")) {
-				repo_class = RepositoryFactory.SQLSERVER_REPO_CLASS_PROP_VAL;
-				repo_uri   = RepositoryFactory.SQLSERVER_REPO_URL_PROP_VAL;
-			}
-		}    // end of if (conf_db != null)
+		String repo_uri   = null;
+		
 		if (params.get(RepositoryFactory.GEN_USER_DB_URI) != null) {
 			repo_uri = (String) params.get(RepositoryFactory.GEN_USER_DB_URI);
 		}    // end of if (params.get(GEN_USER_DB_URI) != null)
-		props.put(PUBSUB_REPO_CLASS_PROP_KEY, repo_class);
 		props.put(PUBSUB_REPO_URL_PROP_KEY, repo_uri);
 		props.put(PUBSUB_REPO_POOL_SIZE_PROP_KEY, 10);
 		props.put(MAX_CACHE_SIZE, "2000");
@@ -548,23 +527,22 @@ public class PubSubComponent
 		}
 
 		// Is there a shared user repository pool? If so I want to use it:
-		userRepository = (UserRepository) props.get(SHARED_USER_REPO_PROP_KEY);
-		if (userRepository == null) {
+		userRepository = (UserRepository) props.get(RepositoryFactory.SHARED_USER_REPO_PROP_KEY);
 
-			// Is there shared user repository instance? If so I want to use it:
-			userRepository = (UserRepository) props.get(SHARED_USER_REPO_PROP_KEY);
-		}
 		try {
-			PubSubDAO dao;
-			String    cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
-			String    res_uri  = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
-
-			if (userRepository == null) {
-				userRepository = RepositoryFactory.getUserRepository(cls_name, res_uri, null);
-				userRepository.initRepository(res_uri, null);
-				log.log(Level.CONFIG, "Initialized {0} as pubsub repository: {1}", new Object[]{cls_name, res_uri});
-			}
-			dao = createDAO(props);
+			// I suppose that this code is useless as ConfiguratorAbstract will pass proper instance 
+			// in props map under RepositoryFactory.SHARED_USER_REPO_PROP_KEY key which is checked 
+			// already above. Moreover we should not relay on creation of UserRepository here using
+			// PubSub repository class property and PubSub repository URI - this is wrong!!
+//			String    cls_name = (String) props.get(PUBSUB_REPO_CLASS_PROP_KEY);
+//			String    res_uri  = (String) props.get(PUBSUB_REPO_URL_PROP_KEY);
+//
+//			if (userRepository == null) {
+//				userRepository = RepositoryFactory.getUserRepository(cls_name, res_uri, null);
+//				userRepository.initRepository(res_uri, null);
+//				log.log(Level.CONFIG, "Initialized {0} as pubsub repository: {1}", new Object[]{cls_name, res_uri});
+//			}
+			PubSubDAO dao = createDAO(props);
 			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig(
 					"default"));
 		} catch (Exception e) {
@@ -610,18 +588,35 @@ public class PubSubComponent
 				props);
 		final String default_cls_name = (String) classNames.get(null);
 
-		
-		
-//		if (resUris.size() > 1) {
-		PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
+		PubSubDAOPool dao_pool = new PubSubDAOPool();
+		dao_pool.init(null, null, userRepository);
 
 		for (Entry<String, Object> e : resUris.entrySet()) {
 			String domain = e.getKey();
 			String resUri = (String) e.getValue();
 			String className = classNames.containsKey(domain)
 					? (String) classNames.get(domain)
-					: default_cls_name;
+					: null;
+			Class<? extends IPubSubDAO> repoClass = null;
+			if (className == null) {
+				try {
+					repoClass = RepositoryFactory.getRepoClass(IPubSubDAO.class, resUri);
+				} catch (DBInitException ex) {
+					log.log(Level.FINE, "could not autodetect PubSubDAO implementation for domain = {0} for uri = {1}", 
+							new Object[] { (domain==null ? "default" : domain), resUri });
+				}
+			}
+			if (repoClass == null) {
+				if (className == null) className = default_cls_name;
+				try {
+					repoClass = (Class<? extends IPubSubDAO>) ModulesManagerImpl.getInstance().forName(className);
+				} catch (ClassNotFoundException ex) {
+					throw new RepositoryException("could not find class " + className + " to use as PubSubDAO"
+							+ " implementation for domain " + (domain==null ? "default" : domain), ex);
+				}
+			}
 			int dao_pool_size;
+			Map<String,String> repoParams = new HashMap<String,String>();
 
 			try {
 				Object value = (poolSizes.containsKey(domain)
@@ -633,12 +628,14 @@ public class PubSubComponent
 				dao_pool_size = 10;
 			}
 			if (log.isLoggable(Level.FINER)) {
-				log.finer("Creating DAO for domain=" + domain + "; class=" + className
+				log.finer("Creating DAO for domain=" + domain + "; class=" + (repoClass == null ? className : repoClass.getCanonicalName())
 						+ "; uri=" + resUri + "; poolSize=" + dao_pool_size);
 			}
 
 			for (int i = 0; i < dao_pool_size; i++) {
-				dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig, resUri));
+				PubSubDAO dao = new PubSubDAOJDBC();
+				dao.init(resUri, repoParams, userRepository);
+				dao_pool.addDao(domain == null ? null : BareJID.bareJIDInstanceNS(domain), dao);
 			}
 
 			if (log.isLoggable(Level.CONFIG)) {
@@ -649,42 +646,8 @@ public class PubSubComponent
 						: domain));
 			}
 		}
-
-		dao_pool.init();
 		
 		return dao_pool;
-//		} else {
-//			String domain    = null;
-//			String resUri    = (String) resUris.get(null);
-//			String className = default_cls_name;
-//			int    dao_pool_size;
-//
-//			try {
-//				dao_pool_size = Integer.parseInt((String) (poolSizes.containsKey(domain)
-//						? poolSizes.get(domain)
-//						: poolSizes.get(null)));
-//			} catch (Exception ex) {
-//				// we should set it at least to 10 to improve performace, 
-//				// as previous value (1) was really not enought				
-//				dao_pool_size = 10;
-//			}
-//
-//			PubSubDAO dao;
-//
-//			if (dao_pool_size > 1) {
-//				PubSubDAOPool dao_pool = new PubSubDAOPool(userRepository);
-//
-//				for (int i = 0; i < dao_pool_size; i++) {
-//					dao_pool.addDao(null, new PubSubDAOJDBC(userRepository, this.componentConfig,
-//							resUri));
-//				}
-//				dao = dao_pool;
-//			} else {
-//				dao = new PubSubDAOJDBC(userRepository, this.componentConfig, resUri);
-//			}
-//
-//			return dao;
-//		}
 	}
 
 	//~--- inner classes --------------------------------------------------------

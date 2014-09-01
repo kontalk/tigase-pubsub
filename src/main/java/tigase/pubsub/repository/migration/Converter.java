@@ -94,10 +94,10 @@ public class Converter {
 					new Object[] { oldRepo.getClass().getCanonicalName(), oldRepoUri });
 			oldRepo.init();
 			
-			newRepo = new PubSubNewDAOJDBC(newRepoUri);
+			newRepo = new PubSubNewDAOJDBC();
 			log.log(Level.INFO, "initializing destination repository {0} for uri {1}",
 					new Object[] { newRepo.getClass().getCanonicalName(), newRepoUri });
-			newRepo.init();
+			newRepo.init(repoCls, null, null);
 		} catch (Exception ex) {
 			throw new RepositoryException("could not initialize converter", ex);
 		}

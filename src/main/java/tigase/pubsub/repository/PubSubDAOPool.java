@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import tigase.db.DBInitException;
 
 import tigase.db.TigaseDBException;
 import tigase.db.UserRepository;
@@ -57,8 +58,7 @@ public class PubSubDAOPool<T> extends PubSubDAO<T> {
 	 */
 	private boolean destroyed = false;
 
-	public PubSubDAOPool(UserRepository userRepository) {
-		super(userRepository);		
+	public PubSubDAOPool() {
 	}
 
 	public void addDao(BareJID domain, PubSubDAO dao) {
@@ -388,18 +388,12 @@ public class PubSubDAOPool<T> extends PubSubDAO<T> {
 		return null;
 	}
 
+	/**
+	 * This method is not doing anything right now
+	 * Parameter values may not reflect values passed to PubSubDAO instances inside 
+	 */
 	@Override
-	public void init() throws RepositoryException {	
-		Set<BareJID> keys = new HashSet<BareJID>(pools.keySet());
-		for (BareJID serviceJid : keys) {
-			List<PubSubDAO> list = new ArrayList<PubSubDAO>(pools.get(serviceJid));
-			for (PubSubDAO dao : list) {
-				try {
-					dao.init();
-				} finally {
-				}
-			}
-		}
+	public void initRepository(String resource_uri, Map<String, String> params) throws DBInitException {
 	}
 
 	protected void offerDao(BareJID serviceJid, PubSubDAO dao) {

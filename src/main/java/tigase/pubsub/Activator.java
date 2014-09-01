@@ -9,6 +9,7 @@ import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
 
 import tigase.osgi.ModulesManager;
+import tigase.pubsub.repository.PubSubDAOJDBC;
 
 public class Activator implements BundleActivator, ServiceListener {
 
@@ -23,6 +24,7 @@ public class Activator implements BundleActivator, ServiceListener {
 		if (serviceManager != null) {
 			serviceManager.registerServerComponentClass(pubsubComponentClass);
 			serviceManager.registerPluginClass(pepPluginClass);
+			serviceManager.registerClass(PubSubDAOJDBC.class);
 			serviceManager.update();
 		}
 	}
@@ -76,6 +78,7 @@ public class Activator implements BundleActivator, ServiceListener {
 
 	private void unregisterAddons() {
 		if (serviceManager != null) {
+			serviceManager.unregisterClass(PubSubDAOJDBC.class);
 			serviceManager.unregisterPluginClass(pepPluginClass);
 			serviceManager.unregisterServerComponentClass(pubsubComponentClass);
 			serviceManager.update();

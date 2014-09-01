@@ -30,8 +30,6 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,18 +38,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import tigase.db.DBInitException;
 import tigase.db.DataRepository;
 import static tigase.db.DataRepository.dbTypes.derby;
 import static tigase.db.DataRepository.dbTypes.jtds;
 import static tigase.db.DataRepository.dbTypes.mysql;
 import static tigase.db.DataRepository.dbTypes.postgresql;
 import static tigase.db.DataRepository.dbTypes.sqlserver;
-
-import tigase.db.UserRepository;
+import tigase.db.Repository;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
-import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
@@ -59,6 +56,7 @@ import tigase.server.XMPPServer;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 
+@Repository.Meta( supportedUris = { "jdbc:[^:]+:.*" } )
 public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	/**
@@ -108,23 +106,9 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	private boolean schemaOk = false;
 	
-	public PubSubDAOJDBC( UserRepository repository, PubSubConfig pubSubConfig, final String connection_str ) {
-		super( repository );
-		this.db_conn = connection_str;
-
-		if (db_conn.startsWith("jdbc:postgresql")) {
-			database = DataRepository.dbTypes.postgresql;
-		} else if (db_conn.startsWith("jdbc:mysql")) {
-			database = DataRepository.dbTypes.mysql;
-		} else if (db_conn.startsWith("jdbc:derby")) {
-			database = DataRepository.dbTypes.derby;
-		} else if (db_conn.startsWith("jdbc:jtds:sqlserver")) {
-			database = DataRepository.dbTypes.jtds;
-		} else if (db_conn.startsWith("jdbc:sqlserver")) {
-			database = DataRepository.dbTypes.sqlserver;
-		}	
+	public PubSubDAOJDBC() {
 	}
-
+	
 	@Override
 	public void addToRootCollection( BareJID serviceJid, String nodeName ) throws RepositoryException {
 		// TODO
@@ -624,18 +608,32 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 			System.exit(1);
 		}		
 	}
-	
+
 	@Override
-	public void init() throws RepositoryException {
+	public void initRepository(String resource_uri, Map<String, String> params) throws DBInitException {
+		this.db_conn = resource_uri;
+
+		if (db_conn.startsWith("jdbc:postgresql")) {
+			database = DataRepository.dbTypes.postgresql;
+		} else if (db_conn.startsWith("jdbc:mysql")) {
+			database = DataRepository.dbTypes.mysql;
+		} else if (db_conn.startsWith("jdbc:derby")) {
+			database = DataRepository.dbTypes.derby;
+		} else if (db_conn.startsWith("jdbc:jtds:sqlserver")) {
+			database = DataRepository.dbTypes.jtds;
+		} else if (db_conn.startsWith("jdbc:sqlserver")) {
+			database = DataRepository.dbTypes.sqlserver;
+		}	
+		
 		try {
 			initRepo();
 		} catch ( SQLException e ) {
 			conn = null;
-			throw new RepositoryException( "Problem initializing jdbc connection: " + db_conn, e );
-		}
-		super.init();
+			throw new DBInitException( "Problem initializing jdbc connection: " + db_conn, e );
+		}		
 	}
 
+	
 	/**
 	 * <code>initPreparedStatements</code> method initializes internal database
 	 * connection variables such as prepared statements.
