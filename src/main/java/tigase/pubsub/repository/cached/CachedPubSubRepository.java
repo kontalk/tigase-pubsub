@@ -457,6 +457,9 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		Node<T> node = this.nodes.get(key);
 		if (node == null) {
 			T nodeId = this.dao.getNodeId(serviceJid, nodeName);
+			if (nodeId == null) {
+				return null;
+			}
 			String cfgData = this.dao.getNodeConfig(serviceJid, nodeId);
 			AbstractNodeConfig nodeConfig = this.dao.parseConfig(nodeName, cfgData);
 
