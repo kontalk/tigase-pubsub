@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
@@ -64,7 +65,6 @@ import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.server.Message;
 import tigase.server.Packet;
-import tigase.sys.TigaseRuntime;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -75,8 +75,8 @@ import tigase.xmpp.impl.roster.RosterElement;
 
 /**
  * Class description
- * 
- * 
+ *
+ *
  * @version 5.0.0, 2010.03.27 at 05:21:54 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
@@ -97,46 +97,54 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	/** Field description */
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
-			"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
-	
+		"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
+
 	private final CapsChangeHandler capsChangeHandler = new CapsChangeHandler() {
 
-			@Override
-			public void onCapsChange(BareJID serviceJid, JID buddyJid, String[] newCaps, String[] oldCaps, Set<String> newFeatures) {
-				if (newFeatures == null || newFeatures.isEmpty() || !config.isSendLastPublishedItemOnPresence())
-					return;
-				
-				// if we have new features we need to check if there are nodes for which 
-				// we need to send notifications due to +notify feature
-				for (String feature : newFeatures) {
-					if (!feature.endsWith("+notify"))
-						continue;
-					String nodeName = feature.substring(0, feature.length() - "+notify".length());
-					
-					try {
-						AbstractNodeConfig nodeConfig = config.getPubSubRepository().getNodeConfig(serviceJid, nodeName);
-						if (nodeConfig != null && nodeConfig.getSendLastPublishedItem() == SendLastPublishedItem.on_sub_and_presence) {
-							publishLastItem(serviceJid, nodeConfig, buddyJid);
-						}
+		@Override
+		public void onCapsChange(BareJID serviceJid, JID buddyJid, String[] newCaps, String[] oldCaps, Set<String> newFeatures) {
+			if (newFeatures == null || newFeatures.isEmpty() || !config.isSendLastPublishedItemOnPresence())
+				return;
+
+			// if we have new features we need to check if there are nodes for
+			// which
+			// we need to send notifications due to +notify feature
+			for (String feature : newFeatures) {
+				if (!feature.endsWith("+notify"))
+					continue;
+				String nodeName = feature.substring(0, feature.length() - "+notify".length());
+
+				try {
+					AbstractNodeConfig nodeConfig = config.getPubSubRepository().getNodeConfig(serviceJid, nodeName);
+					if (nodeConfig != null
+							&& nodeConfig.getSendLastPublishedItem() == SendLastPublishedItem.on_sub_and_presence) {
+						publishLastItem(serviceJid, nodeConfig, buddyJid);
 					}
-					catch (RepositoryException ex) {
-						log.log(Level.WARNING, "Exception while sending last published item on on_sub_and_presence with CAPS filtering");
-					}
+				} catch (RepositoryException ex) {
+					log.log(Level.WARNING,
+							"Exception while sending last published item on on_sub_and_presence with CAPS filtering");
 				}
 			}
-			
-		};
-	
-	private long idCounter = 0;	
+		}
+
+	};
+
+	private final LeafNodeConfig defaultPepNodeConfig;
+	private long idCounter = 0;
+
 	private final Set<String> pepNodes = new HashSet<String>();
 
 	private final PresenceChangeHandler presenceChangeHandler = new PresenceChangeHandler() {
-		
+
 		@Override
 		public void onPresenceChange(Packet packet) {
-			// PEP services are using CapsChangeEvent - but we should process this here as well
-			// as on PEP service we can have some nodes which have there types of subscription
-			if (packet.getStanzaTo() == null) // || packet.getStanzaTo().getLocalpart() != null)
+			// PEP services are using CapsChangeEvent - but we should process
+			// this here as well
+			// as on PEP service we can have some nodes which have there types
+			// of subscription
+			if (packet.getStanzaTo() == null) // ||
+				// packet.getStanzaTo().getLocalpart()
+				// != null)
 				return;
 			if (!config.isSendLastPublishedItemOnPresence())
 				return;
@@ -145,8 +153,9 @@ public class PublishItemModule extends AbstractPubSubModule {
 				JID userJid = packet.getStanzaFrom();
 				try {
 					// sending last published items for subscribed nodes
-					Map<String,UsersSubscription> subscrs = config.getPubSubRepository().getUserSubscriptions(serviceJid, userJid.getBareJID());
-					for (Map.Entry<String,UsersSubscription> e : subscrs.entrySet()) {
+					Map<String, UsersSubscription> subscrs = config.getPubSubRepository().getUserSubscriptions(serviceJid,
+							userJid.getBareJID());
+					for (Map.Entry<String, UsersSubscription> e : subscrs.entrySet()) {
 						if (e.getValue().getSubscription() != Subscription.subscribed)
 							continue;
 						String nodeName = e.getKey();
@@ -158,22 +167,20 @@ public class PublishItemModule extends AbstractPubSubModule {
 				} catch (RepositoryException ex) {
 					Logger.getLogger(PublishItemModule.class.getName()).log(Level.SEVERE, null, ex);
 				}
-				
-			}				
+
+			}
 		}
-		
+
 	};
-	
+
 	private final PresenceCollectorModule presenceCollector;
 
 	private final XsltTool xslTransformer;
 
-	private final LeafNodeConfig defaultPepNodeConfig;
-	
 	/**
 	 * Constructs ...
-	 * 
-	 * 
+	 *
+	 *
 	 * @param config
 	 * @param pubsubRepository
 	 * @param xsltTool
@@ -192,15 +199,15 @@ public class PublishItemModule extends AbstractPubSubModule {
 		defaultPepNodeConfig.setValue("pubsub#access_model", AccessModel.presence.name());
 		defaultPepNodeConfig.setValue("pubsub#presence_based_delivery", true);
 		defaultPepNodeConfig.setValue("pubsub#send_last_published_item", "on_sub_and_presence");
-		
+
 		this.config.getEventBus().addHandler(CapsChangeEvent.TYPE, capsChangeHandler);
 		this.config.getEventBus().addHandler(PresenceChangeEvent.TYPE, presenceChangeHandler);
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param nodeConfig
 	 * @param nodesSubscriptions
 	 */
@@ -209,10 +216,49 @@ public class PublishItemModule extends AbstractPubSubModule {
 		}
 	}
 
+	public void doPublishItems(BareJID serviceJID, String nodeName, LeafNodeConfig leafNodeConfig,
+			IAffiliations nodeAffiliations, ISubscriptions nodeSubscriptions, String publisher, List<Element> itemsToSend)
+					throws RepositoryException {
+		final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
+
+		items.addChildren(itemsToSend);
+		sendNotifications(items, JID.jidInstance(serviceJID), nodeName,
+				this.getRepository().getNodeConfig(serviceJID, nodeName), nodeAffiliations, nodeSubscriptions);
+
+		List<String> parents = getParents(serviceJID, nodeName);
+
+		if ((parents != null) && (parents.size() > 0)) {
+			for (String collection : parents) {
+				Map<String, String> headers = new HashMap<String, String>();
+
+				headers.put("Collection", collection);
+
+				AbstractNodeConfig colNodeConfig = this.getRepository().getNodeConfig(serviceJID, collection);
+				ISubscriptions colNodeSubscriptions = this.getRepository().getNodeSubscriptions(serviceJID, collection);
+				IAffiliations colNodeAffiliations = this.getRepository().getNodeAffiliations(serviceJID, collection);
+
+				sendNotifications(items, JID.jidInstance(serviceJID), nodeName, headers, colNodeConfig, colNodeAffiliations,
+						colNodeSubscriptions);
+			}
+		}
+		if (leafNodeConfig.isPersistItem()) {
+			IItems nodeItems = getRepository().getNodeItems(serviceJID, nodeName);
+
+			for (Element item : itemsToSend) {
+				final String id = item.getAttributeStaticStr("id");
+
+				nodeItems.writeItem(System.currentTimeMillis(), id, publisher, item);
+			}
+			if (leafNodeConfig.getMaxItems() != null) {
+				trimItems(nodeItems, leafNodeConfig.getMaxItems());
+			}
+		}
+	}
+
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @return
 	 */
 	@Override
@@ -222,8 +268,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @return
 	 */
 	@Override
@@ -233,12 +279,12 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param nodeName
-	 * 
+	 *
 	 * @return
-	 * 
+	 *
 	 * @throws RepositoryException
 	 */
 	protected List<String> getParents(final BareJID serviceJid, final String nodeName) throws RepositoryException {
@@ -259,20 +305,20 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param id
-	 * 
+	 *
 	 * @return
-	 * 
+	 *
 	 * @throws RepositoryException
 	 */
 	protected JID[] getValidBuddies(BareJID id) throws RepositoryException {
 		ArrayList<JID> result = new ArrayList<JID>();
-		Map<BareJID,RosterElement> rosterJids = this.getRepository().getUserRoster(id);
+		Map<BareJID, RosterElement> rosterJids = this.getRepository().getUserRoster(id);
 
 		if (rosterJids != null) {
-			for (Entry<BareJID,RosterElement> e : rosterJids.entrySet()) {
+			for (Entry<BareJID, RosterElement> e : rosterJids.entrySet()) {
 				SubscriptionType sub = e.getValue().getSubscription();
 
 				if (sub == SubscriptionType.both || sub == SubscriptionType.from || sub == SubscriptionType.from_pending_out) {
@@ -286,16 +332,16 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param nodeName
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isPEPNodeName(String nodeName) {
 		if (config.isPepPeristent())
 			return false;
-		
+
 		return this.pepNodes.contains(nodeName);
 	}
 
@@ -321,215 +367,19 @@ public class PublishItemModule extends AbstractPubSubModule {
 		items.addChild(item);
 
 		JID[] subscribers = getValidBuddies(senderJid.getBareJID());
-		sendNotifications(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"),
-				null);
+		sendNotifications(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
 
 		packetWriter.write(packet.okResult((Element) null, 0));
-		sendNotifications(new JID[] { senderJid }, items, senderJid, null,
-				publish.getAttributeStaticStr("node"), null);
+		sendNotifications(new JID[] { senderJid }, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * @param itemToSend
-	 * @param jidFrom
-	 * @param publisherNodeName
-	 * @param nodeConfig
-	 * @param nodeAffiliations
-	 * @param nodesSubscriptions
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
-	public void sendNotifications(Element itemToSend, final JID jidFrom, final String publisherNodeName,
-			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
-			throws RepositoryException {
-		sendNotifications(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations,
-				nodesSubscriptions);
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param itemToSend
-	 * @param jidFrom
-	 * @param publisherNodeName
-	 * @param headers
-	 * @param nodeConfig
-	 * @param nodeAffiliations
-	 * @param nodesSubscriptions
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
-	public void sendNotifications(final Element itemToSend, final JID jidFrom, final String publisherNodeName,
-			final Map<String, String> headers, AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations,
-			ISubscriptions nodesSubscriptions) throws RepositoryException {
-		beforePrepareNotification(nodeConfig, nodesSubscriptions);
-
-		HashSet<JID> tmp = new HashSet<JID>();
-		for (BareJID j : getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions)) {
-			tmp.add(JID.jidInstance(j));
-		}
-		boolean updateSubscriptions = false;
-
-		if (nodeConfig.isPresenceExpired()) {
-			Iterator<JID> it = tmp.iterator();
-
-			while (it.hasNext()) {
-				final JID jid = it.next();
-				boolean available = this.presenceCollector.isJidAvailable(jidFrom.getBareJID(), jid.getBareJID());
-				final UsersAffiliation afi = nodeAffiliations.getSubscriberAffiliation(jid.getBareJID());
-
-				if ((afi == null) || (!available && (afi.getAffiliation() == Affiliation.member))) {
-					it.remove();
-					nodesSubscriptions.changeSubscription(jid.getBareJID(), Subscription.none);
-					updateSubscriptions = true;
-					if (log.isLoggable(Level.FINE)) {
-						log.fine("Subscriptione expired. Node: " + nodeConfig.getNodeName() + ", jid: " + jid);
-					}
-				}
-			}
-		}
-		if (updateSubscriptions) {
-			this.getRepository().update(jidFrom.getBareJID(), nodeConfig.getNodeName(), nodesSubscriptions);
-		}
-
-		JID[] subscribers = tmp.toArray(new JID[] {});
-
-		if (nodeConfig.isDeliverPresenceBased()) {
-			HashSet<JID> s = new HashSet<JID>();
-
-			for (JID jid : subscribers) {
-				s.addAll(this.presenceCollector.getAllAvailableResources(jidFrom.getBareJID(), jid.getBareJID()));
-			}
-
-			// for pubsub service for user accounts we need dynamic subscriptions based on presence
-			if (jidFrom.getLocalpart() != null) {
-				switch (nodeConfig.getNodeAccessModel()) {
-					case open:
-					case presence:
-						s.addAll(this.presenceCollector.getAllAvailableJidsWithFeature(jidFrom.getBareJID(), nodeConfig.getNodeName() + "+notify"));
-						break;
-					case roster:
-						String[] allowedGroups = nodeConfig.getRosterGroupsAllowed();
-						Arrays.sort(allowedGroups);
-						List<JID> jids = this.presenceCollector.getAllAvailableJidsWithFeature(jidFrom.getBareJID(), nodeConfig.getNodeName() + "+notify");
-						if (!jids.isEmpty() && (allowedGroups != null && allowedGroups.length > 0)) {
-							Map<BareJID, RosterElement> roster = this.getRepository().getUserRoster(jidFrom.getBareJID());
-							Iterator<JID> it = jids.iterator();
-							for (JID jid : jids) {
-								RosterElement re = roster.get(jid.getBareJID());
-								if (re == null) {
-									it.remove();
-									continue;
-								}
-								boolean notInGroups = true;
-								String[] groups = re.getGroups();
-								if (groups != null) {
-									for (String group : groups) {
-										notInGroups &= Arrays.binarySearch(allowedGroups, group) < 0;
-									}
-								}
-								if (notInGroups)
-									it.remove();
-							}
-						}
-						break;
-					default:
-						break;
-				}
-			}
-			subscribers = s.toArray(new JID[] {});
-		}
-
-		sendNotifications(subscribers, itemToSend, jidFrom, nodeConfig, publisherNodeName, headers);
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param subscribers
-	 * @param itemToSend
-	 * @param jidFrom
-	 * @param nodeConfig
-	 * @param publisherNodeName
-	 * @param headers
-	 * 
-	 * @return
-	 */
-	public void sendNotifications(final JID[] subscribers, final Element itemToSend, final JID jidFrom,
-			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
-		List<Element> body = null;
-
-		if ((this.xslTransformer != null) && (nodeConfig != null)) {
-			try {
-				body = this.xslTransformer.transform(itemToSend, nodeConfig);
-			} catch (Exception e) {
-				body = null;
-				log.log(Level.WARNING, "Problem with generating BODY", e);
-			}
-		}
-		for (JID jid : subscribers) {
-			
-			// in case of low memory we should slow down creation of response to
-			// prevent OOM on high traffic node
-			// maybe we should drop some notifications if we can not get enough 
-			// memory for n-th time?
-			long lowMemoryDelay;
-			while ((lowMemoryDelay = config.getDelayOnLowMemory()) != 0) {
-				try {
-					System.gc();
-					Thread.sleep(lowMemoryDelay);
-				} catch (Exception e) {
-				}
-			}
-			
-			Packet packet = Message.getMessage(jidFrom, jid, null, null, null, null, String.valueOf(++this.idCounter));
-			Element message = packet.getElement();
-
-			if (body != null) {
-				message.addChildren(body);
-			}
-
-			Element event = new Element("event", new String[] { "xmlns" },
-					new String[] { "http://jabber.org/protocol/pubsub#event" });
-
-			event.addChild(itemToSend);
-			message.addChild(event);
-			if ((headers != null) && (headers.size() > 0)) {
-				Element headElem = new Element("headers", new String[] { "xmlns" },
-						new String[] { "http://jabber.org/protocol/shim" });
-
-				for (Entry<String, String> entry : headers.entrySet()) {
-					Element h = new Element("header", entry.getValue(), new String[] { "name" },
-							new String[] { entry.getKey() });
-
-					headElem.addChild(h);
-				}
-				message.addChild(headElem);
-			}
-			
-			// we are adding notifications to outgoing queue instead temporary list
-			// of notifications to send, so before creating next packets other threads
-			// will be able to process first notifications and deliver them
-			packetWriter.write(packet);
-		}
-	}
-
-	/**
-	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param packet
 	 * @return
-	 * 
+	 *
 	 * @throws PubSubException
 	 */
 	@Override
@@ -549,22 +399,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
-				if (packet.getStanzaTo().getLocalpart() == null || !config.isPepPeristent() 
-						|| !toJid.equals(packet.getStanzaFrom().getBareJID())) {
-					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
-				} else {
-					// this is PubSub service for particular user - we should autocreate node
-					try {
-						nodeConfig = new LeafNodeConfig(nodeName, defaultPepNodeConfig);
-						getRepository().createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, NodeType.leaf, "");
-						IAffiliations nodeaAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
-						nodeaAffiliations.addAffiliation(packet.getStanzaFrom().getBareJID(), Affiliation.owner);
-						getRepository().update(toJid, nodeName, nodeaAffiliations);
-						getRepository().addToRootCollection(toJid, nodeName);
-					} catch (RepositoryException ex) {
-						throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
-					}
-				}
+				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 			} else {
 				if (nodeConfig.getNodeType() == NodeType.collection) {
 					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
@@ -616,40 +451,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 			}
 			packetWriter.write(resultIq);
 
-			final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
-
-			items.addChildren(itemsToSend);
-			sendNotifications(items, packet.getStanzaTo(), nodeName,
-					this.getRepository().getNodeConfig(toJid, nodeName), nodeAffiliations, nodeSubscriptions);
-
-			List<String> parents = getParents(toJid, nodeName);
-
-			if ((parents != null) && (parents.size() > 0)) {
-				for (String collection : parents) {
-					Map<String, String> headers = new HashMap<String, String>();
-
-					headers.put("Collection", collection);
-
-					AbstractNodeConfig colNodeConfig = this.getRepository().getNodeConfig(toJid, collection);
-					ISubscriptions colNodeSubscriptions = this.getRepository().getNodeSubscriptions(toJid, collection);
-					IAffiliations colNodeAffiliations = this.getRepository().getNodeAffiliations(toJid, collection);
-
-					sendNotifications(items, packet.getStanzaTo(), nodeName, headers, colNodeConfig,
-							colNodeAffiliations, colNodeSubscriptions);
-				}
-			}
-			if (leafNodeConfig.isPersistItem()) {
-				IItems nodeItems = getRepository().getNodeItems(toJid, nodeName);
-
-				for (Element item : itemsToSend) {
-					final String id = item.getAttributeStaticStr("id");
-
-					nodeItems.writeItem(System.currentTimeMillis(), id, element.getAttributeStaticStr("from"), item);
-				}
-				if (leafNodeConfig.getMaxItems() != null) {
-					trimItems(nodeItems, leafNodeConfig.getMaxItems());
-				}
-			}
+			doPublishItems(toJid, nodeName, leafNodeConfig, nodeAffiliations, nodeSubscriptions,
+					element.getAttributeStaticStr("from"), itemsToSend);
 		} catch (PubSubException e1) {
 			throw e1;
 		} catch (Exception e) {
@@ -657,6 +460,15 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			throw new RuntimeException(e);
 		}
+	}
+
+	public void publish(BareJID serviceJid, String publisher, String nodeName, Element item) throws RepositoryException {
+		AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(serviceJid, nodeName);
+		IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(serviceJid, nodeName);
+		ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(serviceJid, nodeName);
+
+		doPublishItems(serviceJid, nodeName, (LeafNodeConfig) nodeConfig, nodeAffiliations, nodeSubscriptions, publisher,
+				Collections.singletonList(item));
 	}
 
 	public void publishLastItem(BareJID serviceJid, AbstractNodeConfig nodeConfig, JID destinationJID)
@@ -670,24 +482,222 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			Element items = new Element("items");
 			items.addAttribute("node", nodeConfig.getNodeName());
-//			Element item = new Element("item");
-//			item.addAttribute("id", lastID);
-//			items.addChild(item);
-			items.addChild(payload);
+			Element item = new Element("item");
+			item.addAttribute("id", lastID);
+			items.addChild(item);
+			item.addChild(payload);
 
-			sendNotifications(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid),
-					nodeConfig, nodeConfig.getNodeName(), null);
+			sendNotifications(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid), nodeConfig,
+					nodeConfig.getNodeName(), null);
 		}
 
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
+	 * @param itemToSend
+	 * @param jidFrom
+	 * @param publisherNodeName
+	 * @param nodeConfig
+	 * @param nodeAffiliations
+	 * @param nodesSubscriptions
+	 *
+	 * @return
+	 *
+	 * @throws RepositoryException
+	 */
+	public void sendNotifications(Element itemToSend, final JID jidFrom, final String publisherNodeName,
+			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
+					throws RepositoryException {
+		sendNotifications(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations, nodesSubscriptions);
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param itemToSend
+	 * @param jidFrom
+	 * @param publisherNodeName
+	 * @param headers
+	 * @param nodeConfig
+	 * @param nodeAffiliations
+	 * @param nodesSubscriptions
+	 *
+	 * @return
+	 *
+	 * @throws RepositoryException
+	 */
+	public void sendNotifications(final Element itemToSend, final JID jidFrom, final String publisherNodeName,
+			final Map<String, String> headers, AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations,
+			ISubscriptions nodesSubscriptions) throws RepositoryException {
+		beforePrepareNotification(nodeConfig, nodesSubscriptions);
+
+		HashSet<JID> tmp = new HashSet<JID>();
+		for (BareJID j : getActiveSubscribers(nodeConfig, nodeAffiliations, nodesSubscriptions)) {
+			tmp.add(JID.jidInstance(j));
+		}
+		boolean updateSubscriptions = false;
+
+		if (nodeConfig.isPresenceExpired()) {
+			Iterator<JID> it = tmp.iterator();
+
+			while (it.hasNext()) {
+				final JID jid = it.next();
+				boolean available = this.presenceCollector.isJidAvailable(jidFrom.getBareJID(), jid.getBareJID());
+				final UsersAffiliation afi = nodeAffiliations.getSubscriberAffiliation(jid.getBareJID());
+
+				if ((afi == null) || (!available && (afi.getAffiliation() == Affiliation.member))) {
+					it.remove();
+					nodesSubscriptions.changeSubscription(jid.getBareJID(), Subscription.none);
+					updateSubscriptions = true;
+					if (log.isLoggable(Level.FINE)) {
+						log.fine("Subscriptione expired. Node: " + nodeConfig.getNodeName() + ", jid: " + jid);
+					}
+				}
+			}
+		}
+		if (updateSubscriptions) {
+			this.getRepository().update(jidFrom.getBareJID(), nodeConfig.getNodeName(), nodesSubscriptions);
+		}
+
+		JID[] subscribers = tmp.toArray(new JID[] {});
+
+		if (nodeConfig.isDeliverPresenceBased()) {
+			HashSet<JID> s = new HashSet<JID>();
+
+			for (JID jid : subscribers) {
+				s.addAll(this.presenceCollector.getAllAvailableResources(jidFrom.getBareJID(), jid.getBareJID()));
+			}
+
+			// for pubsub service for user accounts we need dynamic
+			// subscriptions based on presence
+			if (jidFrom.getLocalpart() != null) {
+				switch (nodeConfig.getNodeAccessModel()) {
+				case open:
+				case presence:
+					s.addAll(this.presenceCollector.getAllAvailableJidsWithFeature(jidFrom.getBareJID(),
+							nodeConfig.getNodeName() + "+notify"));
+					break;
+				case roster:
+					String[] allowedGroups = nodeConfig.getRosterGroupsAllowed();
+					Arrays.sort(allowedGroups);
+					List<JID> jids = this.presenceCollector.getAllAvailableJidsWithFeature(jidFrom.getBareJID(),
+							nodeConfig.getNodeName() + "+notify");
+					if (!jids.isEmpty() && (allowedGroups != null && allowedGroups.length > 0)) {
+						Map<BareJID, RosterElement> roster = this.getRepository().getUserRoster(jidFrom.getBareJID());
+						Iterator<JID> it = jids.iterator();
+						for (JID jid : jids) {
+							RosterElement re = roster.get(jid.getBareJID());
+							if (re == null) {
+								it.remove();
+								continue;
+							}
+							boolean notInGroups = true;
+							String[] groups = re.getGroups();
+							if (groups != null) {
+								for (String group : groups) {
+									notInGroups &= Arrays.binarySearch(allowedGroups, group) < 0;
+								}
+							}
+							if (notInGroups)
+								it.remove();
+						}
+					}
+					break;
+				default:
+					break;
+				}
+			}
+			subscribers = s.toArray(new JID[] {});
+		}
+
+		sendNotifications(subscribers, itemToSend, jidFrom, nodeConfig, publisherNodeName, headers);
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param subscribers
+	 * @param itemToSend
+	 * @param jidFrom
+	 * @param nodeConfig
+	 * @param publisherNodeName
+	 * @param headers
+	 *
+	 * @return
+	 */
+	public void sendNotifications(final JID[] subscribers, final Element itemToSend, final JID jidFrom,
+			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
+		List<Element> body = null;
+
+		if ((this.xslTransformer != null) && (nodeConfig != null)) {
+			try {
+				body = this.xslTransformer.transform(itemToSend, nodeConfig);
+			} catch (Exception e) {
+				body = null;
+				log.log(Level.WARNING, "Problem with generating BODY", e);
+			}
+		}
+		for (JID jid : subscribers) {
+
+			// in case of low memory we should slow down creation of response to
+			// prevent OOM on high traffic node
+			// maybe we should drop some notifications if we can not get enough
+			// memory for n-th time?
+			long lowMemoryDelay;
+			while ((lowMemoryDelay = config.getDelayOnLowMemory()) != 0) {
+				try {
+					System.gc();
+					Thread.sleep(lowMemoryDelay);
+				} catch (Exception e) {
+				}
+			}
+
+			Packet packet = Message.getMessage(jidFrom, jid, null, null, null, null, String.valueOf(++this.idCounter));
+			Element message = packet.getElement();
+
+			if (body != null) {
+				message.addChildren(body);
+			}
+
+			Element event = new Element("event", new String[] { "xmlns" },
+					new String[] { "http://jabber.org/protocol/pubsub#event" });
+
+			event.addChild(itemToSend);
+			message.addChild(event);
+			if ((headers != null) && (headers.size() > 0)) {
+				Element headElem = new Element("headers", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/shim" });
+
+				for (Entry<String, String> entry : headers.entrySet()) {
+					Element h = new Element("header", entry.getValue(), new String[] { "name" },
+							new String[] { entry.getKey() });
+
+					headElem.addChild(h);
+				}
+				message.addChild(headElem);
+			}
+
+			// we are adding notifications to outgoing queue instead temporary
+			// list
+			// of notifications to send, so before creating next packets other
+			// threads
+			// will be able to process first notifications and deliver them
+			packetWriter.write(packet);
+		}
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
 	 * @param nodeItems
 	 * @param maxItems
-	 * 
+	 *
 	 * @throws RepositoryException
 	 */
 	public void trimItems(final IItems nodeItems, final Integer maxItems) throws RepositoryException {

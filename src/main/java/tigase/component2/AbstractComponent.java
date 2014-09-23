@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import tigase.component2.eventbus.DefaultEventBus;
 import tigase.component2.eventbus.EventBus;
 import tigase.component2.exceptions.ComponentException;
@@ -45,10 +46,10 @@ import tigase.xmpp.StanzaType;
 
 /**
  * Class description
- * 
- * 
+ *
+ *
  * @param <T>
- * 
+ *
  */
 public abstract class AbstractComponent<T extends ComponentConfig> extends AbstractMessageReceiver implements XMPPService {
 
@@ -89,7 +90,7 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/**
 	 * Constructs ...
-	 * 
+	 *
 	 */
 	public AbstractComponent() {
 		this(null);
@@ -97,8 +98,8 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/**
 	 * Constructs ...
-	 * 
-	 * 
+	 *
+	 *
 	 * @param writer
 	 */
 	public AbstractComponent(PacketWriter writer) {
@@ -108,20 +109,20 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param abstractComponent
-	 * 
+	 *
 	 * @return
 	 */
 	protected abstract T createComponentConfigInstance(AbstractComponent<?> abstractComponent);
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param params
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -144,8 +145,8 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @return
 	 */
 	protected PacketWriter getWriter() {
@@ -153,12 +154,13 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 	}
 
 	/**
-	 * Is this component discoverable by disco#items for domain by non admin users
-	 * 
+	 * Is this component discoverable by disco#items for domain by non admin
+	 * users
+	 *
 	 * @return true - if yes
-	 */	
+	 */
 	public abstract boolean isDiscoNonAdmin();
-	
+
 	public boolean isRegistered(final Class<? extends Module> moduleClass) {
 		return this.modulesManager.isRegistered(moduleClass);
 	}
@@ -183,23 +185,23 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param packet
 	 */
 	@Override
 	public void processPacket(Packet packet) {
-		if (packet.isCommand()) {
-			processCommandPacket(packet);
-		} else {
-			processStanzaPacket(packet);
-		}
+		// if (packet.isCommand()) {
+		// processCommandPacket(packet);
+		// } else {
+		processStanzaPacket(packet);
+		// }
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param packet
 	 */
 	protected void processStanzaPacket(final Packet packet) {
@@ -232,7 +234,7 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 			if (log.isLoggable(Level.SEVERE)) {
 				log.log(Level.SEVERE, e.getMessage() + " when processing " + packet.toString(), e);
 			}
-			sendException(packet, new ComponentException(Authorization.INTERNAL_SERVER_ERROR));			
+			sendException(packet, new ComponentException(Authorization.INTERNAL_SERVER_ERROR));
 		}
 	}
 
@@ -246,8 +248,8 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param packet
 	 * @param e
 	 */
@@ -280,8 +282,8 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param props
 	 * @throws tigase.conf.ConfigurationException
 	 */
@@ -290,7 +292,7 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 		super.setProperties(props);
 		componentConfig.setProperties(props);
 	}
-	
+
 	@Override
 	public void updateServiceEntity() {
 		super.updateServiceEntity();
