@@ -54,7 +54,6 @@ public class LoadTestGenerator implements Runnable {
 			final long testStartTime = System.currentTimeMillis();
 			final long testEndTime = testStartTime + testTime * 1000 + delay;
 			long cst;
-			System.out.println(".");
 			while (testEndTime > (cst = System.currentTimeMillis())) {
 				++counter;
 				Element item = new Element("item", new String[] { "id" }, new String[] { counter + "-" + testEndTime });
@@ -67,9 +66,13 @@ public class LoadTestGenerator implements Runnable {
 				final long now = System.currentTimeMillis();
 				final long dt = now - cst;
 				final long fix = (testStartTime + delay * (counter - 1)) - now;
-				Thread.sleep(delay - dt + fix);
+				final long sleepTime = delay - dt + fix;
+				// System.out.println(new Date() + " :: " + delay + ", " + dt +
+				// ", " + fix + ", " + sleepTime);
+				if (sleepTime > 0) {
+					Thread.sleep(sleepTime);
+				}
 			}
-			System.out.println(counter);
 		} catch (Exception e) {
 			log.log(Level.WARNING, "LoadTest generator stopped", e);
 		}
