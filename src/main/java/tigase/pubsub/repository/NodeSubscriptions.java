@@ -140,6 +140,11 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 		}
 	}
 
+	@Override
+	public UsersSubscription[] getSubscriptionsForPublish() {
+		return getSubscriptions();
+	}	
+	
 	/**
 	 * Method description
 	 * 

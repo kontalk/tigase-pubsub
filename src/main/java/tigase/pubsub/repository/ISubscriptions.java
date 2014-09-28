@@ -17,6 +17,8 @@ public interface ISubscriptions {
 	public abstract String getSubscriptionId(BareJID jid);
 
 	public abstract UsersSubscription[] getSubscriptions();
+	
+	public abstract UsersSubscription[] getSubscriptionsForPublish();
 
 	public boolean isChanged();
 

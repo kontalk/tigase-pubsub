@@ -93,6 +93,11 @@ public class PresenceNodeSubscriptions implements ISubscriptions {
 	}
 
 	@Override
+	public UsersSubscription[] getSubscriptionsForPublish() {
+		return getSubscriptions();
+	}
+	
+	@Override
 	public boolean isChanged() {
 		return subscriptions.isChanged();
 	}

@@ -367,6 +367,10 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		writingTime += (end - start);
 	}
 
+	protected NodeSubscriptions wrapNodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions nodeSubscriptions) {
+		return new NodeSubscriptions(nodeSubscriptions);
+	}
+	
 	/**
 	 * Method description
 	 * 
@@ -468,7 +472,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 			}
 
 			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(serviceJid, nodeId));
-			NodeSubscriptions nodeSubscriptions = new NodeSubscriptions(this.dao.getNodeSubscriptions(serviceJid, nodeId));
+			NodeSubscriptions nodeSubscriptions = wrapNodeSubscriptions(this.dao.getNodeSubscriptions(serviceJid, nodeId));
 
 			node = new Node(nodeId, serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 

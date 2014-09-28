@@ -175,7 +175,7 @@ public abstract class AbstractPubSubModule implements Module {
 	 */
 	public static Collection<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig,
 			final IAffiliations affiliations, final ISubscriptions subscriptions) throws RepositoryException {
-		UsersSubscription[] subscribers = subscriptions.getSubscriptions();
+		UsersSubscription[] subscribers = subscriptions.getSubscriptionsForPublish();
 
 		if (subscribers == null) {
 			return Collections.emptyList();
