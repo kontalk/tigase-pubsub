@@ -97,7 +97,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	/** Field description */
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
-		"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
+			"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
 
 	private final CapsChangeHandler capsChangeHandler = new CapsChangeHandler() {
 
@@ -218,7 +218,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	public void doPublishItems(BareJID serviceJID, String nodeName, LeafNodeConfig leafNodeConfig,
 			IAffiliations nodeAffiliations, ISubscriptions nodeSubscriptions, String publisher, List<Element> itemsToSend)
-					throws RepositoryException {
+			throws RepositoryException {
 		final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
 
 		items.addChildren(itemsToSend);
@@ -510,7 +510,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 */
 	public void sendNotifications(Element itemToSend, final JID jidFrom, final String publisherNodeName,
 			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
-					throws RepositoryException {
+			throws RepositoryException {
 		sendNotifications(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations, nodesSubscriptions);
 	}
 
@@ -730,4 +730,5 @@ public class PublishItemModule extends AbstractPubSubModule {
 			nodeItems.deleteItem(it.id);
 		}
 	}
+
 }

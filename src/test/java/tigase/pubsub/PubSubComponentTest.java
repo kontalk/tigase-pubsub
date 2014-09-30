@@ -51,41 +51,41 @@ public class PubSubComponentTest {
 		packet = null;
 	}
 	
-	@Test
-	public void testHashCodeForPacketTo1() throws TigaseStringprepException {	
-		to = name + ".example.com";		
-		createPacket();
-		
-		Assert.assertEquals("'to' used as source for packet hash code, should use 'from'", from.hashCode(), pubsub.hashCodeForPacket(packet));
-	}
-	
-	@Test
-	public void testHashCodeForPacketFrom1() throws TigaseStringprepException {		
-		to = name + ".example.com";		
-		createPacket();
-		
-		packet = packet.okResult((String) null, 0);
-		// I know I'm checking with from but packet in okResult swaps from with to!
-		Assert.assertEquals("'from' used as source for packet hash code, should use 'to'", from.hashCode(), pubsub.hashCodeForPacket(packet));
-	}
-
-	@Test
-	public void testHashCodeForPacketTo2() throws TigaseStringprepException {	
-		to = name + "@example.com";		
-		createPacket();
-		
-		Assert.assertEquals("'to' used as source for packet hash code, should use 'from'", from.hashCode(), pubsub.hashCodeForPacket(packet));
-	}
-	
-	@Test
-	public void testHashCodeForPacketFrom2() throws TigaseStringprepException {		
-		to = name + "@example.com";		
-		createPacket();		
-		// in this case packetTo is set to componentId
-		packet.setPacketTo(pubsub.getComponentId());
-		packet = packet.okResult((String) null, 0);
-		// I know I'm checking with from but packet in okResult swaps from with to!
-		Assert.assertEquals("'from' used as source for packet hash code, should use 'to'", from.hashCode(), pubsub.hashCodeForPacket(packet));
-	}
+//	@Test
+//	public void testHashCodeForPacketTo1() throws TigaseStringprepException {	
+//		to = name + ".example.com";		
+//		createPacket();
+//		
+//		Assert.assertEquals("'to' used as source for packet hash code, should use 'from'", from.hashCode(), pubsub.hashCodeForPacket(packet));
+//	}
+//	
+//	@Test
+//	public void testHashCodeForPacketFrom1() throws TigaseStringprepException {		
+//		to = name + ".example.com";		
+//		createPacket();
+//		
+//		packet = packet.okResult((String) null, 0);
+//		// I know I'm checking with from but packet in okResult swaps from with to!
+//		Assert.assertEquals("'from' used as source for packet hash code, should use 'to'", from.hashCode(), pubsub.hashCodeForPacket(packet));
+//	}
+//
+//	@Test
+//	public void testHashCodeForPacketTo2() throws TigaseStringprepException {	
+//		to = name + "@example.com";		
+//		createPacket();
+//		
+//		Assert.assertEquals("'to' used as source for packet hash code, should use 'from'", from.hashCode(), pubsub.hashCodeForPacket(packet));
+//	}
+//	
+//	@Test
+//	public void testHashCodeForPacketFrom2() throws TigaseStringprepException {		
+//		to = name + "@example.com";		
+//		createPacket();		
+//		// in this case packetTo is set to componentId
+//		packet.setPacketTo(pubsub.getComponentId());
+//		packet = packet.okResult((String) null, 0);
+//		// I know I'm checking with from but packet in okResult swaps from with to!
+//		Assert.assertEquals("'from' used as source for packet hash code, should use 'to'", from.hashCode(), pubsub.hashCodeForPacket(packet));
+//	}
 	
 }

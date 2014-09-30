@@ -3,11 +3,14 @@ package tigase.pubsub.modules.commands;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tigase.pubsub.modules.PublishItemModule;
+import tigase.server.AbstractMessageReceiver;
+import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 
 public class LoadTestGenerator implements Runnable {
+
+	private final AbstractMessageReceiver component;
 
 	private int counter = 0;
 
@@ -19,9 +22,7 @@ public class LoadTestGenerator implements Runnable {
 
 	private Element payload;
 
-	private String publisher;
-
-	private final PublishItemModule publishItemModule;
+	private BareJID publisher;
 
 	private BareJID serviceJid;
 
@@ -30,14 +31,17 @@ public class LoadTestGenerator implements Runnable {
 	 */
 	private final long testTime;
 
-	public LoadTestGenerator(PublishItemModule publishItemModule, BareJID serviceJid, String node, long time, long frequency,
-			int messageLength) {
-		this.publishItemModule = publishItemModule;
+	private final boolean useBlockingMethod;
+
+	public LoadTestGenerator(AbstractMessageReceiver component, BareJID serviceJid, String node, BareJID publisher, long time,
+			long frequency, int messageLength, boolean useBlockingMethod) {
+		this.component = component;
 		this.serviceJid = serviceJid;
 		this.nodeName = node;
-		this.publisher = serviceJid.toString();
+		this.publisher = publisher;
 		this.testTime = time;
-		this.delay = (long) (1.0 / (frequency / 60.0) * 1000.0);
+		this.useBlockingMethod = useBlockingMethod;
+		this.delay = (long) ((1.0 / frequency) * 1000.0);
 
 		String x = "";
 		for (int i = 0; i < messageLength; i++) {
@@ -52,15 +56,36 @@ public class LoadTestGenerator implements Runnable {
 	public void run() {
 		try {
 			final long testStartTime = System.currentTimeMillis();
-			final long testEndTime = testStartTime + testTime * 1000 + delay;
+			final long testEndTime = testStartTime + testTime * 1000;
 			long cst;
-			while (testEndTime > (cst = System.currentTimeMillis())) {
+			while (testEndTime >= (cst = System.currentTimeMillis())) {
 				++counter;
 				Element item = new Element("item", new String[] { "id" }, new String[] { counter + "-" + testEndTime });
 				item.addChild(payload);
 
-				if (publishItemModule != null)
-					publishItemModule.publish(serviceJid, publisher, nodeName, item);
+				Element iq = new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "set",
+						publisher.toString(), serviceJid.toString(), "pub-" + counter + "-" + testEndTime });
+
+				Element pubsub = new Element("pubsub", new String[] { "xmlns" },
+						new String[] { "http://jabber.org/protocol/pubsub" });
+				iq.addChild(pubsub);
+
+				Element publish = new Element("publish", new String[] { "node" }, new String[] { nodeName });
+				pubsub.addChild(publish);
+
+				publish.addChild(item);
+
+				Packet p = Packet.packetInstance(iq);
+				p.setXMLNS(Packet.CLIENT_XMLNS);
+
+				if (component != null) {
+					if (useBlockingMethod)
+						component.addPacket(p);
+					else
+						component.addPacketNB(p);
+				}
+				// publishItemModule.publish(serviceJid, publisher, nodeName,
+				// item);
 
 				// do not add code under this line ;-)
 				final long now = System.currentTimeMillis();
@@ -77,4 +102,5 @@ public class LoadTestGenerator implements Runnable {
 			log.log(Level.WARNING, "LoadTest generator stopped", e);
 		}
 	}
+
 }

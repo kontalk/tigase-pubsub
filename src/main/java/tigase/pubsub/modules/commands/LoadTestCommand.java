@@ -9,25 +9,28 @@ import tigase.db.UserNotFoundException;
 import tigase.form.Field;
 import tigase.form.Form;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
 import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.modules.PublishItemModule;
+import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.server.AbstractMessageReceiver;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
 public class LoadTestCommand implements AdHocCommand {
 
-	private final PubSubConfig config;
+	private final AbstractMessageReceiver component;
 
-	private final PublishItemModule publishModule;
+	private final PubSubConfig config;
 
 	private final IPubSubRepository repository;
 
-	public LoadTestCommand(PubSubConfig config, IPubSubRepository repo, PublishItemModule module) {
+	public LoadTestCommand(PubSubConfig config, IPubSubRepository repo, AbstractMessageReceiver component) {
 		this.config = config;
-		this.publishModule = module;
+		this.component = component;
 		this.repository = repo;
 	}
 
@@ -48,8 +51,9 @@ public class LoadTestCommand implements AdHocCommand {
 
 					form.addField(Field.fieldTextSingle("nodeId", "", "Node"));
 					form.addField(Field.fieldTextSingle("time", "60", "Time of the test [s]"));
-					form.addField(Field.fieldTextSingle("frequency", "60", "Publishing frequency [msg/min]"));
-					form.addField(Field.fieldTextSingle("length", "512", "Published messages size"));
+					form.addField(Field.fieldTextSingle("frequency", "1", "Publishing frequency [msg/s]"));
+					form.addField(Field.fieldTextSingle("length", "20", "Published messages size"));
+					form.addField(Field.fieldBoolean("nonBlocking", Boolean.FALSE, "Use non-blocking adding"));
 
 					response.getElements().add(form.getElement());
 					response.startSession();
@@ -62,15 +66,38 @@ public class LoadTestCommand implements AdHocCommand {
 						final long frequency = form.getAsLong("frequency");
 						final int length = form.getAsInteger("length");
 						final String nodeName = form.getAsString("nodeId");
+						final Boolean nonBlocking = form.getAsBoolean("nonBlocking");
 
 						AbstractNodeConfig cfg = repository.getNodeConfig(service, nodeName);
 
 						if (cfg != null) {
-							startLoadTest(service, nodeName, time, frequency, length);
+							IAffiliations subscriptions = repository.getNodeAffiliations(service, nodeName);
 
-							Form f = new Form(null, "Info", "Load Test started");
+							UsersAffiliation owner = null;
+							UsersAffiliation publisher = null;
 
-							response.getElements().add(f.getElement());
+							for (UsersAffiliation a : subscriptions.getAffiliations()) {
+								if (publisher == null && a.getAffiliation().isPublishItem()) {
+									publisher = a;
+								}
+								if (owner == null && a.getAffiliation() == Affiliation.owner) {
+									owner = a;
+								}
+								if (owner != null && publisher != null)
+									break;
+							}
+
+							if (owner == null && publisher == null) {
+								Form f = new Form(null, "Info", "Can't find publisher!");
+								response.getElements().add(f.getElement());
+							} else {
+								startLoadTest(service, nodeName, owner != null ? owner.getJid() : publisher.getJid(), time,
+										frequency, length, nonBlocking == null ? true : !nonBlocking);
+
+								Form f = new Form(null, "Info", "Load Test started");
+
+								response.getElements().add(f.getElement());
+							}
 						} else {
 							Form f = new Form(null, "Info", "Load Test cancelled. Node " + nodeName + " doesn't exists.");
 							response.getElements().add(f.getElement());
@@ -99,10 +126,11 @@ public class LoadTestCommand implements AdHocCommand {
 		return "load-test";
 	}
 
-	private void startLoadTest(BareJID serviceJid, String nodeName, Long time, Long frequency, Integer length)
-			throws RepositoryException, UserNotFoundException, TigaseDBException {
+	private void startLoadTest(BareJID serviceJid, String nodeName, BareJID publisher, Long time, Long frequency,
+			Integer length, boolean useBlockingMethod) throws RepositoryException, UserNotFoundException, TigaseDBException {
 
-		(new Thread(new LoadTestGenerator(publishModule, serviceJid, nodeName, time, frequency, length))).start();
+		(new Thread(new LoadTestGenerator(component, serviceJid, nodeName, publisher, time, frequency, length,
+				useBlockingMethod))).start();
 
 	}
 }

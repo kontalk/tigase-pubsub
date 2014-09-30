@@ -209,11 +209,11 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 			if (matcher.find()) {
 				String keyBaseName = (matcher.group(1) != null) ? matcher.group(1) : matcher.group(3);
-						String keyMod = matcher.group(2);
+				String keyMod = matcher.group(2);
 
-						if (keyBaseName.equals(key)) {
-							result.put(keyMod, entry.getValue());
-						}
+				if (keyBaseName.equals(key)) {
+					result.put(keyMod, entry.getValue());
+				}
 			}
 		}
 
@@ -295,58 +295,58 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			String domain = e.getKey();
 			String resUri = (String) e.getValue();
 			String className = classNames.containsKey(domain) ? (String) classNames.get(domain) : null;
-					Class<? extends IPubSubDAO> repoClass = null;
-					if (className == null) {
-						try {
-							repoClass = RepositoryFactory.getRepoClass(IPubSubDAO.class, resUri);
-						} catch (DBInitException ex) {
-							log.log(Level.FINE, "could not autodetect PubSubDAO implementation for domain = {0} for uri = {1}",
+			Class<? extends IPubSubDAO> repoClass = null;
+			if (className == null) {
+				try {
+					repoClass = RepositoryFactory.getRepoClass(IPubSubDAO.class, resUri);
+				} catch (DBInitException ex) {
+					log.log(Level.FINE, "could not autodetect PubSubDAO implementation for domain = {0} for uri = {1}",
 							new Object[] { (domain == null ? "default" : domain), resUri });
-						}
-					}
-					if (repoClass == null) {
-						if (className == null)
+				}
+			}
+			if (repoClass == null) {
+				if (className == null)
 					className = default_cls_name;
-						try {
-							repoClass = (Class<? extends IPubSubDAO>) ModulesManagerImpl.getInstance().forName(className);
-						} catch (ClassNotFoundException ex) {
-							throw new RepositoryException("could not find class " + className + " to use as PubSubDAO"
-									+ " implementation for domain " + (domain == null ? "default" : domain), ex);
-						}
-					}
-					int dao_pool_size;
-					Map<String, String> repoParams = new HashMap<String, String>();
+				try {
+					repoClass = (Class<? extends IPubSubDAO>) ModulesManagerImpl.getInstance().forName(className);
+				} catch (ClassNotFoundException ex) {
+					throw new RepositoryException("could not find class " + className + " to use as PubSubDAO"
+							+ " implementation for domain " + (domain == null ? "default" : domain), ex);
+				}
+			}
+			int dao_pool_size;
+			Map<String, String> repoParams = new HashMap<String, String>();
 
-					try {
-						Object value = (poolSizes.containsKey(domain) ? poolSizes.get(domain) : poolSizes.get(null));
-						dao_pool_size = (value instanceof Integer) ? ((Integer) value) : Integer.parseInt((String) value);
-					} catch (Exception ex) {
-						// we should set it at least to 10 to improve performace,
+			try {
+				Object value = (poolSizes.containsKey(domain) ? poolSizes.get(domain) : poolSizes.get(null));
+				dao_pool_size = (value instanceof Integer) ? ((Integer) value) : Integer.parseInt((String) value);
+			} catch (Exception ex) {
+				// we should set it at least to 10 to improve performace,
 				// as previous value (1) was really not enought
-						dao_pool_size = 10;
-					}
-					if (log.isLoggable(Level.FINER)) {
-						log.finer("Creating DAO for domain=" + domain + "; class="
+				dao_pool_size = 10;
+			}
+			if (log.isLoggable(Level.FINER)) {
+				log.finer("Creating DAO for domain=" + domain + "; class="
 						+ (repoClass == null ? className : repoClass.getCanonicalName()) + "; uri=" + resUri + "; poolSize="
 						+ dao_pool_size);
-					}
+			}
 
-					for (int i = 0; i < dao_pool_size; i++) {
-						try {
-							IPubSubDAO dao = repoClass.newInstance();
-							dao.init(resUri, repoParams, userRepository);
-							dao_pool.addDao(domain == null ? null : BareJID.bareJIDInstanceNS(domain), dao);
-						} catch (InstantiationException ex) {
-							throw new RepositoryException("Cound not create instance of " + repoClass.getCanonicalName(), ex);
-						} catch (IllegalAccessException ex) {
-							throw new RepositoryException("Cound not create instance of " + repoClass.getCanonicalName(), ex);
-						}
-					}
+			for (int i = 0; i < dao_pool_size; i++) {
+				try {
+					IPubSubDAO dao = repoClass.newInstance();
+					dao.init(resUri, repoParams, userRepository);
+					dao_pool.addDao(domain == null ? null : BareJID.bareJIDInstanceNS(domain), dao);
+				} catch (InstantiationException ex) {
+					throw new RepositoryException("Cound not create instance of " + repoClass.getCanonicalName(), ex);
+				} catch (IllegalAccessException ex) {
+					throw new RepositoryException("Cound not create instance of " + repoClass.getCanonicalName(), ex);
+				}
+			}
 
-					if (log.isLoggable(Level.CONFIG)) {
-						log.config("Registered DAO for " + ((domain == null) ? "default " : "") + "domain "
+			if (log.isLoggable(Level.CONFIG)) {
+				log.config("Registered DAO for " + ((domain == null) ? "default " : "") + "domain "
 						+ ((domain == null) ? "" : domain));
-					}
+			}
 		}
 
 		return dao_pool;
@@ -413,16 +413,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	@Override
 	public int hashCodeForPacket(Packet packet) {
-		int hash = 1;
-		if ((packet.getStanzaFrom() != null) && (packet.getPacketFrom() != null)
-				&& !getComponentId().equals(packet.getPacketFrom())
-				// this should detect if packet is addressed from
-				// pubsub.example.com
-				&& (packet.getPacketFrom().getLocalpart() != null || !packet.getPacketFrom().getDomain().startsWith(getName()))) {
-			hash = packet.getStanzaFrom().hashCode();
-		} else if (packet.getStanzaTo() != null) {
-			hash = packet.getStanzaTo().hashCode();
-		}
+		int hash = packet.hashCode();
+		
 
 		return hash;
 	}
@@ -539,17 +531,16 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		final DefaultConfigCommand configCommand = new DefaultConfigCommand(this.componentConfig, this.userRepository);
 
 		configCommand.addDefaultNodeConfigurationChangedHandler(new DefaultNodeConfigurationChangedHandler() {
-					@Override
-					public void onDefaultConfigurationChanged(Packet packet, PubSubConfig config) {
-						onChangeDefaultNodeConfig();
-					}
-				});
+			@Override
+			public void onDefaultConfigurationChanged(Packet packet, PubSubConfig config) {
+				onChangeDefaultNodeConfig();
+			}
+		});
 		this.adHocCommandsModule.register(new RebuildDatabaseCommand(this.componentConfig, this.directPubSubRepository));
 		this.adHocCommandsModule.register(configCommand);
 		this.adHocCommandsModule.register(new DeleteAllNodesCommand(this.componentConfig, this.directPubSubRepository,
 				this.userRepository));
-		this.adHocCommandsModule.register(new LoadTestCommand(this.componentConfig, this.pubsubRepository,
-				this.publishNodeModule));
+		this.adHocCommandsModule.register(new LoadTestCommand(this.componentConfig, this.pubsubRepository, this));
 		this.adHocCommandsModule.register(new ReadAllNodesCommand(this.componentConfig, this.directPubSubRepository,
 				this.pubsubRepository));
 		this.adHocCommandsModule.register(new RetrieveItemsCommand(this.componentConfig, this.pubsubRepository,
