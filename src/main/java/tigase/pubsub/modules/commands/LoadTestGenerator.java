@@ -7,6 +7,7 @@ import tigase.server.AbstractMessageReceiver;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 public class LoadTestGenerator implements Runnable {
 
@@ -19,6 +20,8 @@ public class LoadTestGenerator implements Runnable {
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
 
 	private String nodeName;
+	
+	private JID packetFromJid;
 
 	private Element payload;
 
@@ -42,6 +45,7 @@ public class LoadTestGenerator implements Runnable {
 		this.testTime = time;
 		this.useBlockingMethod = useBlockingMethod;
 		this.delay = (long) ((1.0 / frequency) * 1000.0);
+		this.packetFromJid = JID.jidInstanceNS("sess-man", serviceJid.getDomain(), null);
 
 		String x = "";
 		for (int i = 0; i < messageLength; i++) {
@@ -77,6 +81,7 @@ public class LoadTestGenerator implements Runnable {
 
 				Packet p = Packet.packetInstance(iq);
 				p.setXMLNS(Packet.CLIENT_XMLNS);
+				p.setPacketFrom(packetFromJid);
 
 				if (component != null) {
 					if (useBlockingMethod)
