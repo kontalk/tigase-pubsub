@@ -24,6 +24,7 @@ package tigase.pubsub.modules;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -38,6 +39,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.component2.PacketWriter;
+import tigase.component2.eventbus.Event;
+import tigase.component2.eventbus.EventHandler;
+import tigase.component2.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractNodeConfig;
@@ -90,6 +94,50 @@ public class PublishItemModule extends AbstractPubSubModule {
 			this.updateDate = date;
 			this.id = id;
 		}
+	}
+
+	public interface ItemPublishedHandler extends EventHandler {
+
+		public static class ItemPublishedEvent extends Event<ItemPublishedHandler> {
+
+			public static final EventType<ItemPublishedHandler> TYPE = new EventType<ItemPublishedHandler>();
+
+			private final Collection<Element> items;
+
+			private final String node;
+
+			private final BareJID serviceJID;
+
+			public ItemPublishedEvent(BareJID serviceJID, String node, Collection<Element> items) {
+				super(TYPE);
+				this.node = node;
+				this.serviceJID = serviceJID;
+				this.items = items;
+			}
+
+			@Override
+			protected void dispatch(ItemPublishedHandler handler) {
+				handler.onItemPublished(serviceJID, node, items);
+			}
+
+			/**
+			 * @return the items
+			 */
+			public Collection<Element> getItems() {
+				return items;
+			}
+
+			public String getNode() {
+				return node;
+			}
+
+			public BareJID getServiceJID() {
+				return serviceJID;
+			}
+
+		}
+
+		void onItemPublished(BareJID serviceJID, String node, Collection<Element> items);
 	};
 
 	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
@@ -97,7 +145,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	/** Field description */
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
-			"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
+		"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
 
 	private final CapsChangeHandler capsChangeHandler = new CapsChangeHandler() {
 
@@ -218,7 +266,9 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	public void doPublishItems(BareJID serviceJID, String nodeName, LeafNodeConfig leafNodeConfig,
 			IAffiliations nodeAffiliations, ISubscriptions nodeSubscriptions, String publisher, List<Element> itemsToSend)
-			throws RepositoryException {
+					throws RepositoryException {
+		getEventBus().fire(new ItemPublishedHandler.ItemPublishedEvent(serviceJID, nodeName, itemsToSend));
+
 		final Element items = new Element("items", new String[] { "node" }, new String[] { nodeName });
 
 		items.addChildren(itemsToSend);
@@ -510,7 +560,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 	 */
 	public void sendNotifications(Element itemToSend, final JID jidFrom, final String publisherNodeName,
 			AbstractNodeConfig nodeConfig, IAffiliations nodeAffiliations, ISubscriptions nodesSubscriptions)
-			throws RepositoryException {
+					throws RepositoryException {
 		sendNotifications(itemToSend, jidFrom, publisherNodeName, null, nodeConfig, nodeAffiliations, nodesSubscriptions);
 	}
 
