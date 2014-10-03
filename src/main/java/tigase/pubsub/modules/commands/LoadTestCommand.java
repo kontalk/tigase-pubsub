@@ -51,7 +51,7 @@ public class LoadTestCommand implements AdHocCommand {
 
 					form.addField(Field.fieldTextSingle("nodeId", "", "Node"));
 					form.addField(Field.fieldTextSingle("time", "60", "Time of the test [s]"));
-					form.addField(Field.fieldTextSingle("frequency", "1", "Publishing frequency [msg/s]"));
+					form.addField(Field.fieldTextSingle("frequency", "1", "Publishing frequency [push/s]"));
 					form.addField(Field.fieldTextSingle("length", "20", "Published messages size"));
 					form.addField(Field.fieldBoolean("nonBlocking", Boolean.FALSE, "Use non-blocking adding"));
 
