@@ -39,7 +39,6 @@ import tigase.vhosts.*
 import tigase.pubsub.*
 import tigase.pubsub.repository.IPubSubRepository
 import tigase.pubsub.exceptions.PubSubException
-import tigase.pubsub.modules.SubscribeNodeModule.NodeSubscribedHandler;
 
 def NODE = "node"
 def JIDS = "jids";
@@ -107,9 +106,6 @@ try {
 			if (nodeAffiliations.isChanged()) {
 				pubsubRepository.update(toJid, node, nodeAffiliations);
 			}
-
-			component.getEventBus().fire(
-					new NodeSubscribedHandler.NodeSubscribedEvent(packet, node, jid, subid, Subscription.subscribed, affiliation));
 
 		}
 				
