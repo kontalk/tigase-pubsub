@@ -95,12 +95,16 @@ public class ModulesManager {
 	}
 
 	public <T extends Module> T register(final T module, boolean skipIfExists) {
+		return register((Class<T>) module.getClass(), module, skipIfExists);
+	}
+	
+	public <T extends Module, S extends T> T register(final Class<T> cls, final S module, boolean skipIfExists) {
 		if (log.isLoggable(Level.CONFIG))
-			log.config("Register Component module: " + module.getClass().getCanonicalName());
+			log.config("Register Component module: " + module.getClass().getCanonicalName() + " as " + cls.getCanonicalName());
 
 		if (skipIfExists) {
 			@SuppressWarnings("unchecked")
-			T old = getByClass((Class<T>) module.getClass());
+			T old = getByClass(cls);
 			if (old != null)
 				return old;
 		}

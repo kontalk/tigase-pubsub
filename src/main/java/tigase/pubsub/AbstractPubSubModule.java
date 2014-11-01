@@ -278,7 +278,7 @@ public abstract class AbstractPubSubModule implements Module {
 			if (affiliation.getAffiliation() != Affiliation.owner) {
 				continue;
 			}
-			if (bareJid.equals(owner)) {
+			if (bareJid.equals(owner.getJid())) {
 				return true;
 			}
 

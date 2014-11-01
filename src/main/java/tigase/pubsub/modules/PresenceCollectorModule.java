@@ -285,7 +285,9 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		if (presenceByUser != null) {
 			for (Entry<BareJID, Map<String,String[]>> entry : presenceByUser.entrySet()) {
 				for (String reource : entry.getValue().keySet()) {
-					result.add(JID.jidInstanceNS(entry.getKey(), reource));
+					JID jid = JID.jidInstanceNS(entry.getKey(), reource);
+					if (isAvailableLocally(jid))
+						result.add(jid);
 				}
 			}			
 		}
@@ -311,7 +313,9 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 		if (jid_resources != null) {
 			for (String reource : jid_resources.keySet()) {
-				result.add(JID.jidInstanceNS(bareJid, reource));
+				JID jid = JID.jidInstanceNS(bareJid, reource);
+				if (isAvailableLocally(jid))
+					result.add(jid);
 			}
 		}
 
@@ -346,7 +350,9 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 							match |= nodesWithFeature.contains(node);
 						}
 						if (match) {
-							result.add(JID.jidInstanceNS(pe.getKey(), e.getKey()));
+							JID jid = JID.jidInstanceNS(pe.getKey(), e.getKey());
+							if (isAvailableLocally(jid))
+								result.add(jid);
 						}
 					}
 				}
@@ -378,6 +384,10 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 		return CRIT;
 	}
 
+	protected boolean isAvailableLocally(JID jid) {
+		return true;
+	}
+	
 	/**
 	 * Method description
 	 * 

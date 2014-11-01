@@ -96,6 +96,7 @@ import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 import tigase.xmpp.PacketErrorTypeException;
+import tigase.xmpp.StanzaType;
 
 /**
  * Class description
@@ -222,7 +223,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	private AdHocConfigCommandModule adHocCommandsModule;
 
-	private CapsModule capsModule;
+	protected CapsModule capsModule;
 	/** Field description */
 	protected LeafNodeConfig defaultNodeConfig;
 	private PubSubDAO directPubSubRepository;
@@ -615,7 +616,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	public void processPacket(Packet packet) {
 		// if stanza is addressed to getName()@domain then we need to return
 		// SERVICE_UNAVAILABLE error
-		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart())) {
+		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart()) && packet.getType() != StanzaType.result) {
 			try {
 				Packet result = Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, true);
 				addOutPacket(result);

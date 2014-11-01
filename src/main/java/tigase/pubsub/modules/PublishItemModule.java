@@ -449,14 +449,32 @@ public class PublishItemModule extends AbstractPubSubModule {
 			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
-				throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+				if (packet.getStanzaTo().getLocalpart() == null || !config.isPepPeristent() 
+						|| !toJid.equals(packet.getStanzaFrom().getBareJID())) {
+					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
+				} else {
+					// this is PubSub service for particular user - we should autocreate node
+					try {
+						nodeConfig = new LeafNodeConfig(nodeName, defaultPepNodeConfig);
+						getRepository().createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, NodeType.leaf, "");
+						nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
+						IAffiliations nodeaAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
+						nodeaAffiliations.addAffiliation(packet.getStanzaFrom().getBareJID(), Affiliation.owner);
+						ISubscriptions nodeaSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
+						nodeaSubscriptions.addSubscriberJid(toJid, Subscription.subscribed);
+						getRepository().update(toJid, nodeName, nodeaAffiliations);
+						getRepository().addToRootCollection(toJid, nodeName);
+					} catch (RepositoryException ex) {
+						throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
+					}
+				}
 			} else {
 				if (nodeConfig.getNodeType() == NodeType.collection) {
 					throw new PubSubException(Authorization.FEATURE_NOT_IMPLEMENTED, new PubSubErrorCondition("unsupported",
 							"publish"));
 				}
-			}
-
+			}			
+			
 			IAffiliations nodeAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
 			final UsersAffiliation senderAffiliation = nodeAffiliations.getSubscriberAffiliation(packet.getStanzaFrom().getBareJID());
 			final ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);

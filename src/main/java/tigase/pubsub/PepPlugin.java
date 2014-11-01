@@ -59,7 +59,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	private static final String DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
 	private static final String PUBSUB_XMLNS = "http://jabber.org/protocol/pubsub";
 	
-	private static final String ID = "pep-experimental";
+	private static final String ID = "pep";
 	
 	private static final Element[] DISCO_FEATURES = { new Element("feature", new String[] {
 			"var" }, new String[] { PUBSUB_XMLNS }),
