@@ -98,7 +98,8 @@ public abstract class PubSubDAO<T> implements IPubSubDAO<T> {
 		try {
 			String tmp = this.repository.getData(owner, "roster");
 			Map<BareJID,RosterElement> roster = new HashMap<BareJID,RosterElement>();
-			RosterFlat.parseRosterUtil(tmp, roster, null);
+			if (tmp != null)
+				RosterFlat.parseRosterUtil(tmp, roster, null);
 			return roster;
 		} catch (Exception e) {
 			throw new RepositoryException("Getting user roster error", e);
