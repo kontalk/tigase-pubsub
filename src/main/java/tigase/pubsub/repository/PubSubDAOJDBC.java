@@ -855,14 +855,20 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 				set_node_affiliations_sp.setLong( 1, nodeId );
 				set_node_affiliations_sp.setString( 2, affiliation.getJid().toString() );
 				set_node_affiliations_sp.setString( 3, affiliation.getAffiliation().name() );
-				if ( db_conn != null ){
+				switch (database) {
+//				if ( db_conn != null ){
 //					if ( db_conn.contains( "mysql" ) ){
+					case mysql:
+						rs = set_node_affiliations_sp.executeQuery();
+						break;
 //						rs = set_node_affiliations_sp.executeQuery();
 //					}
 //					if ( db_conn.contains( "sqlserver" ) ){
 //						set_node_affiliations_sp.executeUpdate();
 //					}
-					set_node_affiliations_sp.execute();
+					default:
+						set_node_affiliations_sp.execute();
+						break;
 				}
 			}
 		} catch ( SQLException e ) {
@@ -887,14 +893,20 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 				} else {
 					set_node_configuration_sp.setLong( 3, collectionId );
 				}
-				if ( db_conn != null ){
+				switch (database) {
+//				if ( db_conn != null ){
 //					if ( db_conn.contains( "mysql" ) ){
+					case mysql:
+						rs = set_node_configuration_sp.executeQuery();
+						break;
 //						rs = set_node_configuration_sp.executeQuery();
 //					}
 //					if ( db_conn.contains( "sqlserver" ) ){
 //						set_node_configuration_sp.executeUpdate();
 //					}
-					set_node_configuration_sp.execute();
+					default:
+						set_node_configuration_sp.execute();
+						break;
 				}
 			}
 		} catch ( SQLException e ) {
@@ -915,14 +927,19 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 				set_node_subscriptions_sp.setString( 2, subscription.getJid().toString() );
 				set_node_subscriptions_sp.setString( 3, subscription.getSubscription().name() );
 				set_node_subscriptions_sp.setString( 4, subscription.getSubid());
-				if ( db_conn != null ){
+				switch (database) {
+//				if ( db_conn != null ){
 //					if ( db_conn.contains( "mysql" ) ){
-//						rs = set_node_subscriptions_sp.executeQuery();
+					case mysql:
+						rs = set_node_subscriptions_sp.executeQuery();
+						break;
 //					}
 //					if ( db_conn.contains( "sqlserver" ) ){
 //						set_node_subscriptions_sp.executeUpdate();
 //					}
-					set_node_subscriptions_sp.execute();
+					default:
+						set_node_subscriptions_sp.execute();
+						break;
 				}
 			}
 		} catch ( SQLException e ) {
