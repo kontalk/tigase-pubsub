@@ -1,7 +1,8 @@
 package tigase.pubsub.repository.stateless;
 
-import tigase.pubsub.Affiliation;
 import tigase.xmpp.BareJID;
+
+import tigase.pubsub.Affiliation;
 
 public class UsersAffiliation implements Cloneable {
 
@@ -37,4 +38,8 @@ public class UsersAffiliation implements Cloneable {
 		this.affiliation = affiliation;
 	}
 
+	@Override
+	public String toString() {
+		return "UsersAffiliation{" + "affiliation=" + affiliation + ", jid=" + jid + '}';
+	}
 }

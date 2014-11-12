@@ -22,8 +22,9 @@
 
 package tigase.pubsub.repository.stateless;
 
-import tigase.pubsub.Subscription;
 import tigase.xmpp.BareJID;
+
+import tigase.pubsub.Subscription;
 
 /**
  * Class description
@@ -106,4 +107,10 @@ public class UsersSubscription implements Cloneable {
 	public void setSubscription(Subscription subscriptionType) {
 		this.subscription = subscriptionType;
 	}
+
+	@Override
+	public String toString() {
+		return "UsersSubscription{" + "jid=" + jid + ", subid=" + subid + ", subscription=" + subscription + '}';
+	}
+	
 }

@@ -22,7 +22,13 @@
 
 package tigase.pubsub.modules;
 
-import java.util.List;
+import tigase.server.Message;
+import tigase.server.Packet;
+
+import tigase.xmpp.Authorization;
+import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
@@ -36,13 +42,11 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
-import tigase.server.Message;
-import tigase.server.Packet;
 import tigase.xml.Element;
-import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
-import tigase.xmpp.JID;
-import tigase.xmpp.StanzaType;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Class description
@@ -172,6 +176,10 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 		ps.addChild(afr);
 
 		UsersAffiliation[] affiliationsList = nodeAffiliations.getAffiliations();
+
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Node affiliations: " + nodeName + " / " + Arrays.toString( affiliationsList ));
+		}
 
 		if (affiliationsList != null) {
 			for (UsersAffiliation affi : affiliationsList) {

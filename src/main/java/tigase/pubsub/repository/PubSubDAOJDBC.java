@@ -21,6 +21,22 @@
  */
 package tigase.pubsub.repository;
 
+import tigase.db.DBInitException;
+import tigase.db.DataRepository;
+import tigase.db.Repository;
+
+import tigase.server.XMPPServer;
+
+import tigase.xmpp.BareJID;
+
+import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
+import tigase.pubsub.NodeType;
+import tigase.pubsub.Subscription;
+import tigase.pubsub.repository.stateless.UsersAffiliation;
+import tigase.pubsub.repository.stateless.UsersSubscription;
+import tigase.xml.Element;
+
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -37,24 +53,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
-import tigase.db.DBInitException;
-import tigase.db.DataRepository;
-import static tigase.db.DataRepository.dbTypes.derby;
-import static tigase.db.DataRepository.dbTypes.jtds;
-import static tigase.db.DataRepository.dbTypes.mysql;
-import static tigase.db.DataRepository.dbTypes.postgresql;
-import static tigase.db.DataRepository.dbTypes.sqlserver;
-import tigase.db.Repository;
-import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.Affiliation;
-import tigase.pubsub.NodeType;
-import tigase.pubsub.Subscription;
-import tigase.pubsub.repository.stateless.UsersAffiliation;
-import tigase.pubsub.repository.stateless.UsersSubscription;
-import tigase.server.XMPPServer;
-import tigase.xml.Element;
-import tigase.xmpp.BareJID;
+
+import static tigase.db.DataRepository.dbTypes.*;
 
 @Repository.Meta( supportedUris = { "jdbc:[^:]+:.*" } )
 public class PubSubDAOJDBC extends PubSubDAO<Long> {
@@ -849,6 +849,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	@Override
 	public void updateNodeAffiliation( BareJID serviceJid, Long nodeId, String nodeName, UsersAffiliation affiliation ) throws RepositoryException {
 		ResultSet rs = null;
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Updating node affiliation[1]: " + nodeName + " / " + affiliation);
+		}
+
 		try {
 			checkConnection();
 			synchronized ( set_node_affiliations_sp ) {
@@ -876,6 +880,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 		} finally {
 			release( null, rs );
 		} // end of catch
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Updating node affiliation[2]");
+		}
+
 	}
 
 	@Override
@@ -919,6 +927,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	@Override
 	public void updateNodeSubscription( BareJID serviceJid, Long nodeId, String nodeName, UsersSubscription subscription )
 			throws RepositoryException {
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Updating node subscriptions[1]: " + nodeName + " / " + subscription);
+		}
+
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -947,6 +959,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 		} finally {
 			release( null, rs );
 		} // end of catch
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Updating node subscriptions[2]");
+		}
+
 	}
 
 	@Override

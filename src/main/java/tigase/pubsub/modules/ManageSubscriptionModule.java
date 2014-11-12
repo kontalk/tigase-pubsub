@@ -22,8 +22,13 @@
 
 package tigase.pubsub.modules;
 
-import java.util.List;
-import java.util.regex.Pattern;
+import tigase.server.Message;
+import tigase.server.Packet;
+
+import tigase.xmpp.Authorization;
+import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
+import tigase.xmpp.StanzaType;
 
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
@@ -41,13 +46,12 @@ import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-import tigase.server.Message;
-import tigase.server.Packet;
 import tigase.xml.Element;
-import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
-import tigase.xmpp.JID;
-import tigase.xmpp.StanzaType;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class description
@@ -57,6 +61,9 @@ import tigase.xmpp.StanzaType;
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
 public class ManageSubscriptionModule extends AbstractPubSubModule {
+
+	private Logger log = Logger.getLogger(this.getClass().getName());
+
 	private class SubscriptionFilter {
 
 		private String jidContains;
@@ -228,6 +235,10 @@ public class ManageSubscriptionModule extends AbstractPubSubModule {
 		ps.addChild(afr);
 
 		UsersSubscription[] subscribers = nodeSubscriptions.getSubscriptions();
+
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Node subscriptions: " + nodeName + " / " + Arrays.toString( subscribers ));
+		}
 
 		if (subscribers != null) {
 			for (UsersSubscription usersSubscription : subscribers) {
