@@ -45,7 +45,9 @@ import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.xml.Element;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -152,9 +154,6 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 			} else if (type == StanzaType.set) {
 				processSet(packet, affiliations, nodeName, nodeConfig, nodeAffiliations, packetWriter);
 			}
-			if (nodeAffiliations.isChanged()) {
-				getRepository().update(toJid, nodeName, nodeAffiliations);
-			}
 
 		} catch (PubSubException e1) {
 			throw e1;
@@ -193,6 +192,11 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 				afr.addChild(affiliation);
 			}
 		}
+		
+		if (nodeAffiliations.isChanged()) {
+			getRepository().update(packet.getStanzaTo().getBareJID(), nodeName, nodeAffiliations);
+		}
+		
 		packetWriter.write(iq);
 	}
 
@@ -206,6 +210,9 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 				throw new PubSubException(Authorization.BAD_REQUEST);
 			}
 		}
+		
+		Map<JID,Affiliation> changedAffiliations = new HashMap<JID,Affiliation>();
+		
 		for (Element af : affs) {
 			String strAfiliation = af.getAttributeStaticStr("affiliation");
 			String jidStr = af.getAttributeStaticStr("jid");
@@ -221,16 +228,23 @@ public class ManageAffiliationsModule extends AbstractPubSubModule {
 			oldAffiliation = (oldAffiliation == null) ? Affiliation.none : oldAffiliation;
 			if ((oldAffiliation == Affiliation.none) && (newAffiliation != Affiliation.none)) {
 				nodeAffiliations.addAffiliation(jid.getBareJID(), newAffiliation);
-				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
-					packetWriter.write(createAffiliationNotification(packet.getStanzaTo(), jid, nodeName, newAffiliation));
-				}
+				changedAffiliations.put(jid, newAffiliation);
 			} else {
 				nodeAffiliations.changeAffiliation(jid.getBareJID(), newAffiliation);
-				if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
-					packetWriter.write(createAffiliationNotification(packet.getStanzaTo(), jid, nodeName, newAffiliation));
-				}
+				changedAffiliations.put(jid, newAffiliation);
 			}
 		}
+		
+		if (nodeAffiliations.isChanged()) {
+			getRepository().update(packet.getStanzaTo().getBareJID(), nodeName, nodeAffiliations);
+		}
+
+		for (Map.Entry<JID,Affiliation> entry : changedAffiliations.entrySet()) {
+			if (nodeConfig.isTigaseNotifyChangeSubscriptionAffiliationState()) {
+				packetWriter.write(createAffiliationNotification(packet.getStanzaTo(), entry.getKey(), nodeName, entry.getValue()));
+			}		
+		}
+		
 		Packet iq = packet.okResult((Element) null, 0);
 		packetWriter.write(iq);
 	}
