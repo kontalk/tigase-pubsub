@@ -38,7 +38,7 @@ public class PubSubComponentTest {
 	}
 	
 	private void createPacket() throws TigaseStringprepException {
-		packet = Packet.packetInstance(new Element("iq", new String[] { "from", "to", "type" }, new String[] { from, to, "set" }));
+		packet = Packet.packetInstance(new Element("iq", new String[] { "from", "to", "type", Packet.XMLNS_ATT }, new String[] { from, to, "set", Packet.CLIENT_XMLNS }));
 		packet.setPacketFrom(JID.jidInstanceNS(from));
 		packet.setPacketTo(null);
 	}

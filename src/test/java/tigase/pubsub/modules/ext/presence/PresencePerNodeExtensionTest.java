@@ -42,6 +42,7 @@ public class PresencePerNodeExtensionTest {
 	@Test
 	public void testAddPresence01() throws TigaseStringprepException {
 		Element presence = new Element("presence");
+		presence.setXMLNS(Packet.CLIENT_XMLNS);
 		presence.setAttribute("from", "a@b.c/d1");
 		presence.setAttribute("to", service1.toString());
 
@@ -66,6 +67,7 @@ public class PresencePerNodeExtensionTest {
 	@Test
 	public void testAddPresence02() throws TigaseStringprepException {
 		Element presence = new Element("presence");
+		presence.setXMLNS(Packet.CLIENT_XMLNS);
 		presence.setAttribute("from", "a@b.c/d1");
 		presence.setAttribute("to", service1.toString());
 

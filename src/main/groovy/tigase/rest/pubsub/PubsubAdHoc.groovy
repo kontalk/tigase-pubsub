@@ -49,6 +49,7 @@ class PubSubHandler extends tigase.http.rest.Handler {
         execGet = { Service service, callback, localPart, domain ->
 
             Element iq = new Element("iq");
+			iq.setXMLNS(Iq.CLIENT_XMLNS);
             iq.setAttribute("to", localPart != null ? "$localPart@$domain" : domain);
 //            iq.setAttribute("from", user.toString());
             iq.setAttribute("type", "get");
@@ -86,6 +87,7 @@ class PubSubHandler extends tigase.http.rest.Handler {
             def fields = content.fields;
 
             Element iq = new Element("iq");
+			iq.setXMLNS(Iq.CLIENT_XMLNS);
             iq.setAttribute("to", localPart != null ? "$localPart@$domain" : domain);
             iq.setAttribute("type", "set");
             iq.setAttribute("id", UUID.randomUUID().toString())

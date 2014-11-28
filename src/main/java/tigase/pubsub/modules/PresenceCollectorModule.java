@@ -411,13 +411,12 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 
 		if ( from != null && to != null && !((from.getBareJID()).equals( to.getBareJID())) ){
 			JID jid = from.copyWithoutResource();
-			Element p = new Element( "presence", new String[] { "to", "from" },
-															 new String[] { jid.toString(), to.toString() } );
+			Element p = new Element( "presence", new String[] { "to", "from", Packet.XMLNS_ATT },
+															 new String[] { jid.toString(), to.toString(), Packet.CLIENT_XMLNS } );
 
 			if ( type != null ){
 				p.setAttribute("type", type.toString());
 			}
-			p.setXMLNS( "jabber:client" );
 
 			return new Presence(p, to, from);
 		}
@@ -446,8 +445,8 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 			boolean added = addJid( toJid.getBareJID(), jid, caps );
 			firePresenceChangeEvent( packet );
 			if ( added && packet.getStanzaTo().getLocalpart() == null ){
-				Packet p = new Presence( new Element( "presence", new String[] { "to", "from" },
-																							new String[] { jid.toString(), toJid.toString() } ),
+				Packet p = new Presence( new Element( "presence", new String[] { "to", "from", Packet.XMLNS_ATT },
+																							new String[] { jid.toString(), toJid.toString(), Packet.CLIENT_XMLNS } ),
 																 toJid, jid );
 
 				packetWriter.write( p );
@@ -456,8 +455,8 @@ public class PresenceCollectorModule extends AbstractPubSubModule {
 			removeJid( toJid.getBareJID(), jid );
 			firePresenceChangeEvent( packet );
 			if (packet.getStanzaTo().getLocalpart() == null) {
-				Packet p = new Presence( new Element( "presence", new String[] { "to", "from", "type" }, new String[] {
-					jid.toString(), toJid.toString(), StanzaType.unavailable.toString() } ), toJid, jid );
+				Packet p = new Presence( new Element( "presence", new String[] { "to", "from", "type", Packet.XMLNS_ATT }, new String[] {
+					jid.toString(), toJid.toString(), StanzaType.unavailable.toString(), Packet.CLIENT_XMLNS } ), toJid, jid );
 
 				packetWriter.write( p );
 			}

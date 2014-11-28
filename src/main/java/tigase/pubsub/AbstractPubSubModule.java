@@ -40,6 +40,7 @@ import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
+import tigase.server.Iq;
 import tigase.server.Packet;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
@@ -67,6 +68,7 @@ public abstract class AbstractPubSubModule implements Module {
 	 */
 	public static Element createResultIQ(Element iq) {
 		Element e = new Element("iq");
+		e.setXMLNS(Iq.CLIENT_XMLNS);
 		String id = iq.getAttributeStaticStr("id");
 		String from = iq.getAttributeStaticStr("from");
 		String to = iq.getAttributeStaticStr("to");

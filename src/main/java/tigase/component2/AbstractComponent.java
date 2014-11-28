@@ -71,6 +71,18 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 		@Override
 		public void write(Packet packet) {
 			if (log.isLoggable(Level.FINER)) {
+				if (log.isLoggable(Level.FINEST)) {
+					// in case of most detail logging level add check for missing XMLNS in packets
+					// this is only on lowest level as it is expensive as we need stacktrace to
+					// make it easy to find source of this packet
+					if (packet.getXMLNS() == null) {
+						try {
+							throw new Exception("Missing XMLNS");
+						} catch (Exception ex) {
+							log.log(Level.WARNING, "sending packet with not XMLNS set, should not occur, packet = " + packet.toString(), ex);
+						}
+					}
+				}
 				log.finer("Sent: " + packet.getElement());
 			}
 			addOutPacket(packet);

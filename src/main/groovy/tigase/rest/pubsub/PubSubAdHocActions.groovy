@@ -61,6 +61,7 @@ class PubSubActionsHandler extends tigase.http.rest.Handler {
             def compJid = BareJID.bareJIDInstance(localPart, domain);
 
             Element iq = new Element("iq");
+			iq.setXMLNS(Iq.CLIENT_XMLNS);
             iq.setAttribute("to", localPart ? "$localPart@$domain" : domain);
             iq.setAttribute("type", "set");
             iq.setAttribute("id", UUID.randomUUID().toString())
