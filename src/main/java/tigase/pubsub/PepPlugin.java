@@ -55,13 +55,13 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 
 	private static final Logger log = Logger.getLogger(PepPlugin.class.getCanonicalName());
 	
-	private static final String DISCO_INFO_XMLNS = "http://jabber.org/protocol/disco#info";
-	private static final String DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
-	private static final String PUBSUB_XMLNS = "http://jabber.org/protocol/pubsub";
+	protected static final String DISCO_INFO_XMLNS = "http://jabber.org/protocol/disco#info";
+	protected static final String DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
+	protected static final String PUBSUB_XMLNS = "http://jabber.org/protocol/pubsub";
 	
 	private static final String ID = "pep";
 	
-	private static final Element[] DISCO_FEATURES = { new Element("feature", new String[] {
+	protected static final Element[] DISCO_FEATURES = { new Element("feature", new String[] {
 			"var" }, new String[] { PUBSUB_XMLNS }),
 			new Element("feature", new String[] { "var" }, new String[] { PUBSUB_XMLNS + "#owner" }),
 			new Element("feature", new String[] { "var" }, new String[] { PUBSUB_XMLNS +
@@ -70,14 +70,14 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 					"pubsub",
 					"pep" }), };	
 	
-	private static final String[][] ELEMENTS = { Iq.IQ_PUBSUB_PATH, new String[] { Presence.ELEM_NAME }, Iq.IQ_QUERY_PATH, Iq.IQ_QUERY_PATH };
+	protected static final String[][] ELEMENTS = { Iq.IQ_PUBSUB_PATH, new String[] { Presence.ELEM_NAME }, Iq.IQ_QUERY_PATH, Iq.IQ_QUERY_PATH };
 	
-	private static final String[] XMLNSS = { PUBSUB_XMLNS, Presence.CLIENT_XMLNS, DISCO_ITEMS_XMLNS, DISCO_INFO_XMLNS };
+	protected static final String[] XMLNSS = { PUBSUB_XMLNS, Presence.CLIENT_XMLNS, DISCO_ITEMS_XMLNS, DISCO_INFO_XMLNS };
 	
-	private JID pubsubJid = null;
+	protected JID pubsubJid = null;
 	
-	private boolean simplePepEnabled = false;
-	private final Set<String> simpleNodes = new HashSet<String>();
+	protected boolean simplePepEnabled = false;
+	protected final Set<String> simpleNodes = new HashSet<String>();
 	
 	@Override
 	public void init(Map<String, Object> settings) throws TigaseDBException {
@@ -128,7 +128,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		return XMLNSS;
 	}
 
-	private void processIq(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException {
+	protected void processIq(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException {
 		if (session != null && session.isServerSession()) {
 			return;
 		}
@@ -197,7 +197,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		results.offer(result);
 	}
 	
-	private void processPresence(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException {
+	protected void processPresence(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException {
 		// is there a point in forwarding <presence/> of type error? we should forward only online/offline
 		if (packet.getType() != null && packet.getType() != StanzaType.available && packet.getType() != StanzaType.unavailable) 
 			return;
