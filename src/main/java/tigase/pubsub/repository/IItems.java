@@ -11,11 +11,20 @@ public interface IItems {
 		private final String node;
 		private final String id;
 		private final Date creationDate;
+		private final Date updateDate;
 		
 		public ItemMeta(String node, String id, Date creationDate) {
 			this.node = node;
 			this.id = id;
-			this.creationDate = creationDate;			
+			this.creationDate = creationDate;
+			this.updateDate = creationDate;
+		}
+
+		public ItemMeta(String node, String id, Date creationDate, Date updateDate) {
+			this.node = node;
+			this.id = id;
+			this.creationDate = creationDate;
+			this.updateDate = updateDate;
 		}
 		
 		public String getNode() {
@@ -28,6 +37,10 @@ public interface IItems {
 		
 		public Date getCreationDate() {
 			return creationDate;
+		}
+
+		public Date getItemUpdateDate() {
+			return updateDate;
 		}
 	}
 	

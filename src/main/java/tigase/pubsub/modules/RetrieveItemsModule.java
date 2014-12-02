@@ -52,12 +52,19 @@ import tigase.pubsub.repository.IItems;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
+
 import tigase.server.Packet;
+
 import tigase.util.DateTimeFormatter;
 import tigase.xml.Element;
+
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
+
+import tigase.pubsub.CollectionItemsOrdering;
+
+import java.util.logging.Level;
 
 /**
  * Class description
@@ -65,17 +72,9 @@ import tigase.xmpp.JID;
  * 
  */
 public class RetrieveItemsModule extends AbstractPubSubModule {
+
 	private static final Criteria CRIT = ElementCriteria.nameType("iq", "get").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("items"));
-
-	private static final Comparator<IItems.ItemMeta> itemsCreationDateComparator = new Comparator<IItems.ItemMeta>() {
-
-		@Override
-		public int compare(IItems.ItemMeta o1, IItems.ItemMeta o2) {
-			return o1.getCreationDate().compareTo(o2.getCreationDate()) * (-1);
-		}
-
-	};
 
 	private final DateTimeFormatter dtf = new DateTimeFormatter();
 
@@ -233,7 +232,13 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 					}
 				}
 
-				Collections.sort(itemsMeta, itemsCreationDateComparator);
+				CollectionItemsOrdering collectionItemsOrdering = nodeConfig.getCollectionItemsOrdering();
+
+				if ( collectionItemsOrdering != null ){
+					Collections.sort( itemsMeta, collectionItemsOrdering.getComparator() );
+				} else {
+					Collections.sort( itemsMeta, CollectionItemsOrdering.byUpdateDate.getComparator() );
+				}
 
 				final Element rpubsub = new Element("pubsub", new String[] { "xmlns" },
 						new String[] { "http://jabber.org/protocol/pubsub" });
@@ -345,15 +350,23 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 					dtAfter = dtf.parseDateTime(m.getCData());
 			}
 
-			IItems nodeItems = this.getRepository().getNodeItems(toJid, nodeName);
+			IItems nodeItems = this.getRepository().getNodeItems( toJid, nodeName );
+
+			List<IItems.ItemMeta> itemsMeta = new ArrayList<IItems.ItemMeta>();
+			itemsMeta.addAll( nodeItems.getItemsMeta() );
+
+			CollectionItemsOrdering collectionItemsOrdering = nodeConfig.getCollectionItemsOrdering();
+
+			if ( collectionItemsOrdering != null ){
+				Collections.sort( itemsMeta, collectionItemsOrdering.getComparator() );
+			} else {
+				Collections.sort( itemsMeta, CollectionItemsOrdering.byUpdateDate.getComparator() );
+			}
 
 			if (requestedId == null) {
-				String[] ids = nodeItems.getItemsIds();
-
-				if (ids != null) {
-					requestedId = Arrays.asList(ids);
-					requestedId = new ArrayList<String>(requestedId);
-					Collections.reverse(requestedId);
+				requestedId = new ArrayList<>(itemsMeta.size());
+				for ( IItems.ItemMeta item : itemsMeta) {
+					requestedId.add( item.getId());
 				}
 			}
 
@@ -379,8 +392,14 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 						break;
 					String id = requestedId.get(i + offset);
 
-					Date cd = nodeItems.getItemCreationDate(id);
-					if (dtAfter != null && !cd.after(dtAfter.getTime()))
+					Date cd = null;
+					if ( collectionItemsOrdering == CollectionItemsOrdering.byCreationDate ){
+						cd = nodeItems.getItemCreationDate( id );
+					} else if ( collectionItemsOrdering == CollectionItemsOrdering.byUpdateDate ){
+						cd = nodeItems.getItemUpdateDate( id );
+					}
+
+					if (dtAfter != null &&  cd !=null && !cd.after(dtAfter.getTime()))
 						continue;
 
 					if (afterId != null && !allow && afterId.equals(id)) {

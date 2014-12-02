@@ -645,7 +645,7 @@ public class StoredProcedures {
 		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
 		try {
-			PreparedStatement ps = conn.prepareStatement("select id, creation_date from tig_pubsub_items"
+			PreparedStatement ps = conn.prepareStatement("select id, creation_date, update_date from tig_pubsub_items"
 					+ " where node_id = ? order by creation_date");
 			ps.setLong(1, nodeId);
 			data[0] = ps.executeQuery();

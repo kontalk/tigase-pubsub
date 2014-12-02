@@ -364,7 +364,8 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 				while ( rs.next() ) {
 					String id = rs.getString(1);
 					Date creationDate = rs.getTimestamp(2);
-					results.add(new IItems.ItemMeta(nodeName, id, creationDate));
+					Date updateDate = rs.getTimestamp(3);
+					results.add(new IItems.ItemMeta(nodeName, id, creationDate, updateDate));
 				}
 				return results;
 			}

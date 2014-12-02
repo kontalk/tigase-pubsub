@@ -187,6 +187,21 @@ public abstract class AbstractNodeConfig {
 		return (d == null) ? "" : d;
 	}
 
+
+	public CollectionItemsOrdering getCollectionItemsOrdering() {
+		String tmp = form.getAsString(TIGASE + "collection_items_odering");
+
+		if (tmp == null) {
+			return null;
+		} else {
+			try {
+				return CollectionItemsOrdering.valueOf(tmp);
+			} catch (Throwable ex) {
+				return null;
+			}
+		}
+	}
+
 	/**
 	 * Method description
 	 * 
@@ -350,6 +365,11 @@ public abstract class AbstractNodeConfig {
 				"Notify subscribers when owner change their subscription or affiliation state"));
 		form.addField(Field.fieldBoolean(TIGASE + "allow_view_subscribers", false,
 				"Allows get list of subscribers for each sybscriber"));
+		form.addField( Field.fieldListSingle( TIGASE + "collection_items_odering",
+																					CollectionItemsOrdering.byUpdateDate.name(),
+				"Whether to sort collection items by creation date or update time",
+				null, asStrinTable( CollectionItemsOrdering.values() ) ) );
+
 	}
 
 	public boolean isAllowToViewSubscribers() {
