@@ -44,10 +44,12 @@ public class PubSubConfig extends ComponentConfig {
 	private static final String PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY = "pubsub-high-memory-usage-level";
 	private static final String PUBSUB_LOW_MEMORY_DELAY_KEY = "pubsub-low-memory-delay";
 	private static final String PUBSUB_PERSISTENT_PEP_KEY = "persistent-pep";
+	private static final String PUBSUB_PEP_REMOVE_EMPTY_GEOLOC_KEY = "pep-remove-empty-geoloc";
 	private static final String PUBSUB_SEND_LAST_PUBLISHED_ITEM_ON_PRESECE_KEY = "send-last-published-item-on-presence";
 	
 	private static final int DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL = 90;
 	private static final long DEF_PUBSUB_LOW_MEMORY_DELAY_VAL = 1000;
+	private static final boolean DEF_PUBSUB_PEP_REMOVE_EMPTY_GEOLOC_VAL = false;
 	
 	protected String[] admins;
 
@@ -58,6 +60,7 @@ public class PubSubConfig extends ComponentConfig {
 	private long lowMemoryDelay = DEF_PUBSUB_LOW_MEMORY_DELAY_VAL;
 	private float highMemoryUsageLevel = DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL;
 	private boolean persistentPep = false;
+	private boolean pepRemoveEmptyGeoloc = false;
 	private boolean sendLastPublishedItemOnPresence = false;
 	
 	public PubSubConfig(AbstractComponent<?> component) {
@@ -79,6 +82,7 @@ public class PubSubConfig extends ComponentConfig {
 		final HashMap<String, Object> props = new HashMap<String, Object>();
 		props.put(PUBSUB_HIGH_MEMORY_USAGE_LEVEL_KEY, DEF_PUBSUB_HIGH_MEMORY_USAGE_LEVEL_VAL);
 		props.put(PUBSUB_LOW_MEMORY_DELAY_KEY, DEF_PUBSUB_LOW_MEMORY_DELAY_VAL);
+		props.put(PUBSUB_PEP_REMOVE_EMPTY_GEOLOC_KEY, DEF_PUBSUB_PEP_REMOVE_EMPTY_GEOLOC_VAL);
 		return props;
 	}
 
@@ -155,6 +159,9 @@ public class PubSubConfig extends ComponentConfig {
 		if (props.containsKey(PUBSUB_PERSISTENT_PEP_KEY)) {
 			this.persistentPep = (Boolean) props.get(PUBSUB_PERSISTENT_PEP_KEY);
 		}
+		if (props.containsKey(PUBSUB_PEP_REMOVE_EMPTY_GEOLOC_KEY)) {
+			this.pepRemoveEmptyGeoloc = (Boolean) props.get(PUBSUB_PEP_REMOVE_EMPTY_GEOLOC_KEY);
+		}
 		if (props.containsKey(PUBSUB_SEND_LAST_PUBLISHED_ITEM_ON_PRESECE_KEY)) {
 			this.sendLastPublishedItemOnPresence = (Boolean) props.get(PUBSUB_SEND_LAST_PUBLISHED_ITEM_ON_PRESECE_KEY);
 		}
@@ -171,7 +178,11 @@ public class PubSubConfig extends ComponentConfig {
 	public boolean isPepPeristent() {
 		return persistentPep;
 	}
-	
+
+	public boolean isPepRemoveEmptyGeoloc() {
+		return pepRemoveEmptyGeoloc;
+	}
+
 	public boolean isSendLastPublishedItemOnPresence() {
 		return sendLastPublishedItemOnPresence;
 	}

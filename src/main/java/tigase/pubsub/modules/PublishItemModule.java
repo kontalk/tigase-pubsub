@@ -297,7 +297,14 @@ public class PublishItemModule extends AbstractPubSubModule {
 			for (Element item : itemsToSend) {
 				final String id = item.getAttributeStaticStr("id");
 
-				nodeItems.writeItem(System.currentTimeMillis(), id, publisher, item);
+				if ( !config.isPepRemoveEmptyGeoloc() ){
+					nodeItems.writeItem( System.currentTimeMillis(), id, publisher, item );
+				} else {
+					Element geoloc = item.findChildStaticStr( new String[] { "item", "geoloc" } );
+					if ( geoloc != null && ( geoloc.getChildren() == null || geoloc.getChildren().size() == 0 ) ){
+						nodeItems.deleteItem( id );
+					}
+				}
 			}
 			if (leafNodeConfig.getMaxItems() != null) {
 				trimItems(nodeItems, leafNodeConfig.getMaxItems());
