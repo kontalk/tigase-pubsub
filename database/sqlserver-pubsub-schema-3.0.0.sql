@@ -1,3 +1,191 @@
+-- QUERY START:
+SET QUOTED_IDENTIFIER ON
+-- QUERY END:
+GO
+
+-- QUERY START:
+if not exists (select * from sysobjects where name='tig_pubsub_service_jids' and xtype='U')
+	CREATE  TABLE [dbo].[tig_pubsub_service_jids] (
+		[service_id] [bigint] IDENTITY(1,1) NOT NULL,
+		[service_jid] [nvarchar](2049) NOT NULL,
+		[service_jid_sha1] [varbinary](40) NOT NULL,
+		[service_jid_index] AS CAST( [service_jid] AS NVARCHAR(255)),
+		PRIMARY KEY ( [service_id] ),
+		UNIQUE (service_jid_sha1)
+	);
+-- QUERY END:
+GO
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_service_jids_service_jid ON [dbo].[tig_pubsub_service_jids](service_jid_index);
+-- QUERY END:
+GO
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_service_jids_service_jids_sha1 ON [dbo].[tig_pubsub_service_jids](service_jid_sha1);
+-- QUERY END:
+GO
+
+-- QUERY START:
+if not exists (select * from sysobjects where name='tig_pubsub_jids' and xtype='U')
+	CREATE  TABLE [dbo].[tig_pubsub_jids] (
+		[jid_id] [bigint] IDENTITY(1,1) NOT NULL,
+		[jid] [nvarchar](2049) NOT NULL,
+		[jid_sha1] [varbinary](40) NOT NULL,
+		[jid_index] AS CAST( [jid] AS NVARCHAR(255)),
+		PRIMARY KEY ( [jid_id] ),
+		UNIQUE (jid_sha1)
+	);
+-- QUERY END:
+GO
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_jids_jid ON [dbo].[tig_pubsub_jids](jid_index);
+-- QUERY END:
+GO
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_jids_jid_sha1 ON [dbo].[tig_pubsub_jids](jid_sha1);
+-- QUERY END:
+GO
+
+-- QUERY START:
+if not exists (select * from sysobjects where name='tig_pubsub_nodes' and xtype='U')
+	CREATE  TABLE [dbo].[tig_pubsub_nodes] (
+		[node_id] [bigint] IDENTITY(1,1) NOT NULL,
+		[service_id] [bigint] NOT NULL,
+		[name] [nvarchar](1024) NOT NULL,
+		[name_sha1] [varbinary](40) NOT NULL,
+		[name_index] AS CAST( [name] as NVARCHAR(255)),
+		[type] [int] NOT NULL,
+		[title] [nvarchar](1000),
+		[description] [nvarchar](MAX),
+		[creator_id] [bigint],
+		[creation_date] [datetime],
+		[configuration] [nvarchar](MAX),
+		[collection_id] [bigint],
+		PRIMARY KEY (node_id),
+
+		CONSTRAINT [FK_tig_pubsub_nodes_service_id] FOREIGN KEY ([service_id])
+			REFERENCES [dbo].[tig_pubsub_service_jids]([service_id])
+			ON DELETE CASCADE,
+		CONSTRAINT [FK_tig_pubsub_nodes_creator_id] FOREIGN KEY ([creator_id])
+			REFERENCES [dbo].[tig_pubsub_jids](jid_id),
+		CONSTRAINT [FK_tig_pubsub_nodes_collection_id] FOREIGN KEY ([collection_id])
+			REFERENCES [dbo].[tig_pubsub_nodes](node_id),
+		UNIQUE (service_id, name_sha1)
+	);
+-- QUERY END:
+GO
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_nodes_service_id ON [dbo].[tig_pubsub_nodes](service_id);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_nodes_name ON [dbo].[tig_pubsub_nodes](name_index);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_nodes_service_id_name ON [dbo].[tig_pubsub_nodes](service_id,name_index);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_nodes_collection_id ON [dbo].[tig_pubsub_nodes](collection_id);
+-- QUERY END:
+GO
+
+-- QUERY START:
+if not exists (select * from sysobjects where name='tig_pubsub_affiliations' and xtype='U')
+	CREATE  TABLE [dbo].[tig_pubsub_affiliations] (
+		[node_id] [bigint] NOT NULL,
+		[jid_id] [bigint] NOT NULL,
+		[affiliation] [nvarchar](20) NOT NULL,
+		PRIMARY KEY (node_id, jid_id),
+
+		CONSTRAINT [FK_tig_pubsub_affiliations_node_id] FOREIGN KEY ([node_id])
+			REFERENCES [dbo].[tig_pubsub_nodes](node_id),
+		CONSTRAINT [FK_tig_pubsub_affiliations_jid_id] FOREIGN KEY ([jid_id])
+			REFERENCES [dbo].[tig_pubsub_jids](jid_id)
+	);
+-- QUERY END:
+GO
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_affiliations_node_id ON [dbo].[tig_pubsub_affiliations](node_id);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_affiliations_jid_id ON [dbo].[tig_pubsub_affiliations](jid_id);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_affiliations_node_id_jid_id ON [dbo].[tig_pubsub_affiliations](node_id, jid_id);
+-- QUERY END:
+GO
+
+-- QUERY START:
+if not exists (select * from sysobjects where name='tig_pubsub_subscriptions' and xtype='U')
+	CREATE  TABLE [dbo].[tig_pubsub_subscriptions] (
+		[node_id] [bigint] NOT NULL,
+		[jid_id] [bigint] NOT NULL,
+		[subscription] [nvarchar](20) NOT NULL,
+		[subscription_id] [nvarchar](40) NOT NULL,
+		PRIMARY KEY (node_id, jid_id),
+
+		CONSTRAINT [FK_tig_pubsub_subcriptions_node_id] FOREIGN KEY ([node_id])
+			REFERENCES [dbo].[tig_pubsub_nodes](node_id),
+		CONSTRAINT [FK_tig_pubsub_subscriptions_jid_id] FOREIGN KEY ([jid_id])
+			REFERENCES [dbo].[tig_pubsub_jids](jid_id)
+	);
+-- QUERY END:
+GO
+
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_subscriptions_node_id ON [dbo].[tig_pubsub_subscriptions](node_id);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_subscriptions_jid_id ON [dbo].[tig_pubsub_subscriptions](jid_id);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_subscription_node_id_jid_id ON [dbo].[tig_pubsub_subscriptions](node_id, jid_id);
+-- QUERY END:
+GO
+
+-- QUERY START:
+if not exists (select * from sysobjects where name='tig_pubsub_items' and xtype='U')
+	CREATE  TABLE [dbo].[tig_pubsub_items] (
+		[node_id] [bigint] NOT NULL,
+		[id] [nvarchar](1024) NOT NULL,
+		[id_sha1] [varbinary](40) NOT NULL,
+		[id_index] AS CAST( [id] AS NVARCHAR(255)),
+		[creation_date] [datetime],
+		[publisher_id] [bigint],
+		[update_date] [datetime],
+		[data] [nvarchar](MAX),
+		PRIMARY KEY (node_id,id_sha1),
+
+		CONSTRAINT [FK_tig_pubsub_items_node_id] FOREIGN KEY ([node_id])
+			REFERENCES [dbo].[tig_pubsub_nodes](node_id),
+		CONSTRAINT [FK_tig_pubsub_items_publisher_id] FOREIGN KEY ([publisher_id])
+			REFERENCES [dbo].[tig_pubsub_jids](jid_id)
+	);
+-- QUERY END:
+GO
+
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_items_node_id ON [dbo].[tig_pubsub_items](node_id);
+-- QUERY END:
+GO
+-- QUERY START:
+CREATE INDEX IX_tig_pubsub_items_node_id_id ON [dbo].[tig_pubsub_items](node_id, id_index);
+-- QUERY END:
+GO
+
+-- PROCEDURES
 
 -- QUERY START:
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'TigPubSubEnsureServiceJid')
