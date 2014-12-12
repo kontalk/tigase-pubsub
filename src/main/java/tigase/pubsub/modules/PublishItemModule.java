@@ -303,6 +303,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 					Element geoloc = item.findChildStaticStr( new String[] { "item", "geoloc" } );
 					if ( geoloc != null && ( geoloc.getChildren() == null || geoloc.getChildren().size() == 0 ) ){
 						nodeItems.deleteItem( id );
+					} else {
+						nodeItems.writeItem( System.currentTimeMillis(), id, publisher, item );
 					}
 				}
 			}
