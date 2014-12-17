@@ -106,8 +106,10 @@ public class AdHocCommandManager {
 			for (Element r : response.getElements()) {
 				commandResult.addChild(r);
 			}
+			final Packet okResult = packet.okResult(commandResult, 0);
+			okResult.getElement().setXMLNS( Packet.CLIENT_XMLNS);
 
-			return packet.okResult(commandResult, 0);
+			return okResult;
 		}
 
 		return null;

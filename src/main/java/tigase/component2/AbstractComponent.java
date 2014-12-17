@@ -234,12 +234,12 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 			}
 		} catch (TigaseStringprepException e) {
 			if (log.isLoggable(Level.FINEST)) {
-				log.log(Level.FINEST, e.getMessage() + " when processing " + packet.toString());
+				log.log(Level.FINEST, e.getMessage() + " when processing " + packet.toString(), e);
 			}
 			sendException(packet, new ComponentException(Authorization.JID_MALFORMED));
 		} catch (ComponentException e) {
 			if (log.isLoggable(Level.FINEST)) {
-				log.log(Level.FINEST, e.getMessageWithPosition() + " when processing " + packet.toString());
+				log.log(Level.FINEST, e.getMessageWithPosition() + " when processing " + packet.toString(), e);
 			}
 			sendException(packet, e);
 		} catch (Exception e) {
@@ -280,6 +280,7 @@ public abstract class AbstractComponent<T extends ComponentConfig> extends Abstr
 			Packet result = e.makeElement(packet, true);
 			Element el = result.getElement();
 
+			el.setXMLNS( Packet.CLIENT_XMLNS);
 			el.setAttribute("from", BareJID.bareJIDInstance(el.getAttributeStaticStr(Packet.FROM_ATT)).toString());
 			if (log.isLoggable(Level.FINEST)) {
 				log.log(Level.FINEST, "Sending back: " + result.toString());
