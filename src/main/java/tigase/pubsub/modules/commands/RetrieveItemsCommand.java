@@ -4,6 +4,7 @@ import tigase.db.UserRepository;
 
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
@@ -37,36 +38,15 @@ public class RetrieveItemsCommand implements AdHocCommand {
 	public static final String TIGASE_PUBSUB_ITEMID_KEY = "tigase-pubsub#item-id";
 	public static final String TIGASE_PUBSUB_INTERNAL_KEY = "tigase-pubsub#internal";
 
-	/**
-	 * Constructs ...
-	 * 
-	 * 
-	 * @param config
-	 * @param directPubSubRepository
-	 * @param userRepo
-	 */
 	public RetrieveItemsCommand(PubSubConfig config, IPubSubRepository repository, UserRepository userRepo) {
 		this.repository = repository;
 		this.config = config;
 		this.userRepo = userRepo;
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param request
-	 * @param response
-	 * 
-	 * @throws AdHocCommandException
-	 */
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
-			if (!config.isAdmin(request.getSender())) {
-				throw new AdHocCommandException(Authorization.FORBIDDEN);
-			}
-
 			final Element data = request.getCommand().getChild("x", "jabber:x:data");
 
 			if ((request.getAction() != null) && "cancel".equals(request.getAction())) {
@@ -96,6 +76,13 @@ public class RetrieveItemsCommand implements AdHocCommand {
 						final Calendar timestamp = timeStr == null || timeStr.trim().length() == 0 ? null
 								: dtf.parseDateTime(timeStr);
 						String internalId = form.getAsString(TIGASE_PUBSUB_INTERNAL_KEY);
+
+						final JID sender = request.getSender();
+
+						// only admins commands and connadns from service-owner can be executed
+						if ( !config.isAdmin( sender ) && !sender.getBareJID().toString().equals( serviceName ) ){
+							throw new AdHocCommandException( Authorization.FORBIDDEN );
+						}
 
 						if (nodeName == null) {
 							throw new AdHocCommandException(Authorization.BAD_REQUEST, "Empty node name.");
@@ -156,23 +143,11 @@ public class RetrieveItemsCommand implements AdHocCommand {
 		}
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @return
-	 */
 	@Override
 	public String getName() {
 		return "Retrieve items";
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @return
-	 */
 	@Override
 	public String getNode() {
 		return "retrieve-items";

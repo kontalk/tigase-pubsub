@@ -54,10 +54,6 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
-			if (!config.isAdmin(request.getSender())) {
-				throw new AdHocCommandException(Authorization.FORBIDDEN);
-			}
-
 			final Element data = request.getCommand().getChild("x", "jabber:x:data");
 
 			if ((request.getAction() != null) && "cancel".equals(request.getAction())) {
@@ -92,8 +88,6 @@ public class DeleteAllNodesCommand implements AdHocCommand {
 					response.completeSession();
 				}
 			}
-		} catch (AdHocCommandException e) {
-			throw e;
 		} catch (Exception e) {
 			e.printStackTrace();
 

@@ -10,13 +10,11 @@ import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.JID;
 
-/**
- * 
- * @author andrzej
- */
 public interface AdHocScriptCommandManager {
 
 	List<Element> getCommandListItems(final JID senderJid, final JID toJid);
+
+	boolean canCallCommand(JID jid, String commandId);
 
 	List<Packet> process(Packet packet);
 

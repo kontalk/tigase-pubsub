@@ -34,10 +34,6 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 	@Override
 	public void execute(AdhHocRequest request, AdHocResponse response) throws AdHocCommandException {
 		try {
-			if (!config.isAdmin(request.getSender())) {
-				throw new AdHocCommandException(Authorization.FORBIDDEN);
-			}
-
 			final Element data = request.getCommand().getChild("x", "jabber:x:data");
 			if (request.getAction() != null && "cancel".equals(request.getAction())) {
 				response.cancelSession();
@@ -66,8 +62,6 @@ public class RebuildDatabaseCommand implements AdHocCommand {
 				response.completeSession();
 			}
 
-		} catch (AdHocCommandException e) {
-			throw e;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new AdHocCommandException(Authorization.INTERNAL_SERVER_ERROR, e.getMessage());

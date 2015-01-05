@@ -109,50 +109,15 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	private class AdHocScriptCommandManagerImpl implements AdHocScriptCommandManager {
 		private final PubSubComponent component;
 
-		// ~--- constructors
-		// -------------------------------------------------------
-
-		/**
-		 * Constructs ...
-		 *
-		 *
-		 * @param component
-		 */
 		public AdHocScriptCommandManagerImpl(PubSubComponent component) {
 			this.component = component;
 		}
 
-		// ~--- methods
-		// ------------------------------------------------------------
-
-		/**
-		 * Method description
-		 *
-		 *
-		 * @param senderJid
-		 *            is a <code>JID</code>
-		 * @param toJid
-		 *            is a <code>JID</code>
-		 *
-		 * @return a value of <code>List<Element></code>
-		 */
 		@Override
 		public List<Element> getCommandListItems(JID senderJid, JID toJid) {
 			return component.getScriptItems(Command.XMLNS, toJid, senderJid);
 		}
 
-		// ~--- get methods
-		// --------------------------------------------------------
-
-		/**
-		 * Method description
-		 *
-		 *
-		 * @param packet
-		 *            is a <code>Packet</code>
-		 *
-		 * @return a value of <code>List<Packet></code>
-		 */
 		@Override
 		public List<Packet> process(Packet packet) {
 			Queue<Packet> results = new ArrayDeque<Packet>();
@@ -162,6 +127,11 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			}
 
 			return null;
+		}
+
+		@Override
+		public boolean canCallCommand( JID jid, String commandId ) {
+			return component.canCallCommand( jid, commandId );
 		}
 	}
 

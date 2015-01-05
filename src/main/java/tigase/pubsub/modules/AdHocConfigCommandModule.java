@@ -57,7 +57,8 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 	public List<Element> getCommandListItems(final JID senderJid, final JID toJid) {
 		ArrayList<Element> commandsList = new ArrayList<Element>();
 		for (AdHocCommand command : this.commandsManager.getAllCommands()) {
-			if (config.isAdmin(senderJid)) {
+//			if (config.isAdmin(senderJid)) {
+			if ( scriptCommandManager.canCallCommand( senderJid, command.getNode() ) ){
 				commandsList.add(new Element("item", new String[] { "jid", "node", "name" }, new String[] { toJid.toString(),
 						command.getNode(), command.getName() }));
 			}
@@ -83,6 +84,12 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 	@Override
 	public void process(Packet packet) throws PubSubException {
 		String node = packet.getAttributeStaticStr(COMMAND_PATH, "node");
+		JID stanzaFrom = packet.getStanzaFrom();
+		
+		if ( !scriptCommandManager.canCallCommand( stanzaFrom, node ) ){
+			return;
+		}
+
 		if (commandsManager.hasCommand(node)) {
 			try {
 				packetWriter.write(this.commandsManager.process(packet));
