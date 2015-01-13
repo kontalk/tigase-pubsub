@@ -422,7 +422,7 @@ $$ LANGUAGE SQL;
 
 -- QUERY START:
 create or replace function TigPubSubGetNodeItemsMeta(bigint)
-		returns table (id varchar(1024), creation_date timestamp) as $$
+		returns table (id varchar(1024), creation_date timestamp, update_date timestamp) as $$
 	select id, creation_date, update_date from tig_pubsub_items where node_id = $1 order by creation_date
 $$ LANGUAGE SQL;
 -- QUERY END:
