@@ -36,6 +36,7 @@ import tigase.server.Packet;
 import tigase.server.Presence;
 import tigase.util.DNSResolver;
 import tigase.xml.Element;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.JID;
 import tigase.xmpp.NoConnectionIdException;
 import tigase.xmpp.NotAuthorizedException;
@@ -128,7 +129,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		return XMLNSS;
 	}
 
-	protected void processIq(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException {
+	protected void processIq(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws XMPPException {
 		if (session != null && session.isServerSession()) {
 			return;
 		}
@@ -151,14 +152,21 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		// forwarding packet to particular resource
 		if (packet.getStanzaTo() != null && packet.getStanzaTo().getResource() != null) {	
 			if (pubsubEl != null && pubsubEl.getXMLNS() == PUBSUB_XMLNS) {
-				Packet result = packet.copyElementOnly();
+				Packet result = null;
 				if (session != null) {
 					XMPPResourceConnection con = session.getParentSession().getResourceForResource(
 							packet.getStanzaTo().getResource());
-					try {
+					
+					if (con != null) {
+						result = packet.copyElementOnly();
 						result.setPacketTo(con.getConnectionId());
-					} catch (NoConnectionIdException ex) {
-						return;
+						
+						// In most cases this might be skept, however if there is a
+						// problem during packet delivery an error might be sent back						
+						result.setPacketFrom(packet.getTo());
+					} else {
+						result = Authorization.RECIPIENT_UNAVAILABLE.getResponseMessage(packet, 
+								"The recipient is no longer available.", true);
 					}
 				}
 				results.offer(result);
