@@ -164,10 +164,16 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 						// In most cases this might be skept, however if there is a
 						// problem during packet delivery an error might be sent back						
 						result.setPacketFrom(packet.getTo());
-					} else {
-						result = Authorization.RECIPIENT_UNAVAILABLE.getResponseMessage(packet, 
-								"The recipient is no longer available.", true);
 					}
+				}
+				// if result was not generated yet, this means that session is null or
+				// connection is null, so recipient is unavailable
+				// in theory we could skip generation of error for performance reason
+				// as sending iq/error for iq/result will make no difference for component
+				// but for now let's send response to be compatible with specification
+				if (result == null) {
+					result = Authorization.RECIPIENT_UNAVAILABLE.getResponseMessage(packet, 
+								"The recipient is no longer available.", true);
 				}
 				results.offer(result);
 			}
