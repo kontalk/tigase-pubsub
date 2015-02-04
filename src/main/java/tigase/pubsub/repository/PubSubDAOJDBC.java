@@ -202,6 +202,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	@Override
 	public void deleteItem( BareJID serviceJid, Long nodeId, String id ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "deleting Item: serviceJid: {0}, nodeId: {1}, id: {2}",
+							 new Object[] { serviceJid, nodeId, id } );
+		}
 		try {
 			checkConnection();
 			synchronized ( delete_item_sp ) {
@@ -216,6 +220,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	@Override
 	public void deleteNode( BareJID serviceJid, Long nodeId ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "deleting Node: serviceJid: {0}, nodeId: {1}",
+							 new Object[] { serviceJid, nodeId } );
+		}
 		try {
 			checkConnection();
 			synchronized ( remove_node_sp ) {
@@ -244,6 +252,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	@Override
 	public String[] getAllNodesList( BareJID serviceJid) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "get all nodes list: serviceJid: {0}",
+							 new Object[] { serviceJid } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -264,6 +276,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	}
 	
 	protected Date getDateFromItem( BareJID serviceJid, long nodeId, String id, int field ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "getting date from item: serviceJid: {0}, nodeId: {1}, id: {2}, field: {3}",
+							 new Object[] { serviceJid, nodeId, id, field } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -309,27 +325,39 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	@Override
 	public String[] getItemsIds( BareJID serviceJid, Long nodeId ) throws RepositoryException {
-		ResultSet rs = null;
-		try {
-			checkConnection();
-			synchronized ( get_node_items_ids_sp ) {
-				get_node_items_ids_sp.setLong( 1, nodeId );
-				rs = get_node_items_ids_sp.executeQuery();
-				List<String> ids = new ArrayList<String>();
-				while ( rs.next() ) {
-					ids.add( rs.getString( 1 ) );
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "getting items IDs: serviceJid: {0}, nodeId: {1}",
+							 new Object[] { serviceJid, nodeId } );
+		}
+		if ( null != nodeId ){
+			ResultSet rs = null;
+			try {
+				checkConnection();
+				synchronized ( get_node_items_ids_sp ) {
+					get_node_items_ids_sp.setLong( 1, nodeId );
+					rs = get_node_items_ids_sp.executeQuery();
+					List<String> ids = new ArrayList<String>();
+					while ( rs.next() ) {
+						ids.add( rs.getString( 1 ) );
+					}
+					return ids.toArray( new String[ ids.size() ] );
 				}
-				return ids.toArray( new String[ ids.size() ] );
-			}
-		} catch ( SQLException e ) {
-			throw new RepositoryException( "Items list reading error", e );
-		} finally {
-			release( null, rs );
-		} // end of catch
+			} catch ( SQLException e ) {
+				throw new RepositoryException( "Items list reading error", e );
+			} finally {
+				release( null, rs );
+			} // end of catch
+		} else {
+			return null;
+		}
 	}
 
 	@Override
 	public String[] getItemsIdsSince( BareJID serviceJid, Long nodeId, Date since ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting items since: serviceJid: {0}, nodeId: {1}, since: {2}",
+							 new Object[] { serviceJid, nodeId, since } );
+		}
 		ResultSet rs = null;
 		try {
 			Timestamp sinceTs = new Timestamp(since.getTime());
@@ -354,6 +382,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	@Override
 	public List<IItems.ItemMeta> getItemsMeta(BareJID serviceJid, Long nodeId, String nodeName) 
 			throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting items meta: serviceJid: {0}, nodeId: {1}, nodeName: {2}",
+							 new Object[] { serviceJid, nodeId, nodeName } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -383,6 +415,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	@Override
 	public Long getNodeId( BareJID serviceJid, String nodeName ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting Node ID: serviceJid: {0}, nodeName: {1}",
+							 new Object[] { serviceJid, nodeName } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -405,6 +441,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	
 	@Override
 	public NodeAffiliations getNodeAffiliations( BareJID serviceJid, Long nodeId ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node affiliation: serviceJid: {0}, nodeId: {1}",
+							 new Object[] { serviceJid, nodeId } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -433,6 +473,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	
 	@Override
 	public String[] getNodesList( BareJID serviceJid, String nodeName ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting nodes list: serviceJid: {0}, nodeName: {1}",
+							 new Object[] { serviceJid, nodeName } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -468,6 +512,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	@Override
 	public NodeSubscriptions getNodeSubscriptions( BareJID serviceJid, Long nodeId ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node subscriptions: serviceJid: {0}, nodeId: {1}",
+							 new Object[] { serviceJid, nodeId } );
+		}
 		ResultSet rs = null;
 		try {
 			final NodeSubscriptions ns = NodeSubscriptions.create();
@@ -502,6 +550,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	}
 
 	protected String getStringFromItem( BareJID serviceJid, long nodeId, String id, int field ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting string from item: serviceJid: {0}, nodeId: {1}",
+							 new Object[] { serviceJid, nodeId } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
@@ -523,6 +575,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	
 	@Override
 	public Map<String, UsersAffiliation> getUserAffiliations(BareJID serviceJid, BareJID jid) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting user affiliation: serviceJid: {0}, jid: {1}",
+							 new Object[] { serviceJid, jid } );
+		}
 		ResultSet rs = null;
 		try {
 			Map<String, UsersAffiliation> result = new HashMap<String, UsersAffiliation>();
@@ -546,6 +602,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	
 	@Override
 	public Map<String, UsersSubscription> getUserSubscriptions(BareJID serviceJid, BareJID jid) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting user subs: serviceJid: {0}, jid: {1}",
+							 new Object[] { serviceJid, jid } );
+		}
 		ResultSet rs = null;
 		try {
 			Map<String, UsersSubscription> result = new HashMap<String, UsersSubscription>();
@@ -780,6 +840,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	}
 
 	protected String readNodeConfigFormData( final BareJID serviceJid, final long nodeId ) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "reding node config: serviceJid: {0}, nodeId: {1}",
+							 new Object[] { serviceJid, nodeId } );
+		}
 		ResultSet rs = null;
 		try {
 			checkConnection();
