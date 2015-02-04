@@ -139,15 +139,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 	private class NodeComparator implements Comparator<Node> {
 
-		/**
-		 * Method description
-		 * 
-		 * 
-		 * @param o1
-		 * @param o2
-		 * 
-		 * @return
-		 */
 		@Override
 		public int compare(Node o1, Node o2) {
 			if (o1.getCreationTime() < o2.getCreationTime()) {
@@ -167,12 +158,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 		private int maxCacheSize = 1000;
 
-		/**
-		 * Constructs ...
-		 * 
-		 * 
-		 * @param maxSize
-		 */
 		public SizedCache(int maxSize) {
 			super(maxSize, 0.1f, true);
 			maxCacheSize = maxSize;
@@ -205,13 +190,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 	private long writingTime = 0;
 
-	/**
-	 * Constructs ...
-	 * 
-	 * 
-	 * @param dao
-	 * @param maxCacheSize
-	 */
 	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {	
 		this.dao = dao;
 		this.maxCacheSize = maxCacheSize;
@@ -225,13 +203,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		// Thread.dumpStack();
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param name
-	 * @param stats
-	 */
 	public void addStats(final String name, final StatisticsList stats) {
 		if (this.nodes.size() > 0) {
 			stats.add(name, "Cached nodes", this.nodes.size(), Level.FINE);
@@ -307,17 +278,12 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Addint to root collection, serviceJid: {0}, nodeName: {1}",
+							 new Object[] { serviceJid, nodeName } );
+		}
 		this.dao.addToRootCollection(serviceJid, nodeName);
 		
 		this.getRootCollectionSet(serviceJid).add(nodeName);
@@ -327,22 +293,14 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return serviceJid.toString() + "/" + nodeName;
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * @param ownerJid
-	 * @param nodeConfig
-	 * @param nodeType
-	 * @param collection
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
 			NodeType nodeType, String collection) throws RepositoryException {
+
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Creating node, serviceJid: {0}, nodeName: {1}, ownerJid: {2}, nodeConfig: {3}, nodeType: {4}, collection: {5}",
+							 new Object[] { serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collection } );
+		}
 		long start = System.currentTimeMillis();
 		T collectionId = null;
 		if (collection != null && !collection.equals("")) {
@@ -371,20 +329,17 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return new NodeSubscriptions(nodeSubscriptions);
 	}
 	
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
 		Node<T> node = this.nodes.get(key);
 		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
+							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
+		}
+
 		this.dao.deleteNode(serviceJid, nodeId);
 
 		if (node != null) {
@@ -394,10 +349,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		this.nodes.remove(key);
 	}
 
-	/**
-	 * Method description
-	 * 
-	 */
 	@Override
 	public void destroy() {
 
@@ -405,15 +356,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		// have been allocated in the contructor....
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void forgetConfiguration(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
@@ -424,33 +366,11 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return Collections.unmodifiableCollection(nodes.values());
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param owner
-	 * @param bareJid
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public String[] getBuddyGroups(BareJID owner, BareJID bareJid) throws RepositoryException {
 		return this.dao.getBuddyGroups(owner, bareJid);
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param owner
-	 * @param buddy
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public String getBuddySubscription(BareJID owner, BareJID buddy) throws RepositoryException {
 		return this.dao.getBuddySubscription(owner, buddy);
@@ -459,6 +379,12 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	protected Node getNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
 		Node<T> node = this.nodes.get(key);
+
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}",
+							 new Object[] { serviceJid, nodeName, key, node } );
+		}
+
 		if (node == null) {
 			T nodeId = this.dao.getNodeId(serviceJid, nodeName);
 			if (nodeId == null) {
@@ -496,17 +422,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return node;
 	}
 	
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public IAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
@@ -514,17 +429,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return (node == null) ? null : node.getNodeAffiliations();
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
@@ -538,36 +442,18 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
 		Node<T> node = this.nodes.get(key);		
 		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
+							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
+		}
 		return new Items(nodeId, serviceJid, nodeName, this.dao);
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public ISubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
@@ -575,29 +461,18 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return (node == null) ? null : node.getNodeSubscriptions();
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @return
-	 */
 	@Override
 	public IPubSubDAO getPubSubDAO() {
 		return this.dao;
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public String[] getRootCollection(BareJID serviceJid) throws RepositoryException {
 		Set<String> rootCollection = getRootCollectionSet(serviceJid);
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting root collection, serviceJid: {0}",
+							 new Object[] { serviceJid } );
+		}
 		if (rootCollection == null)
 			return null;
 		return rootCollection.toArray(new String[rootCollection.size()]);
@@ -605,6 +480,10 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	
 	protected Set<String> getRootCollectionSet(BareJID serviceJid) throws RepositoryException {
 		Set<String> rootCollection = this.rootCollection.get(serviceJid);
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting root collection, serviceJid: {0}",
+							 new Object[] { serviceJid } );
+		}
 		if (rootCollection == null || rootCollection.isEmpty()) {
 			if (rootCollection == null) {
 				Set<String> oldRootCollection = this.rootCollection.putIfAbsent(serviceJid, Collections.synchronizedSet(new HashSet<String>()));				
@@ -626,16 +505,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return rootCollection;
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param owner
-	 * 
-	 * @return
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public Map<BareJID,RosterElement> getUserRoster(BareJID owner) throws RepositoryException {
 		return this.dao.getUserRoster(owner);
@@ -646,29 +515,20 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		return this.dao.getUserSubscriptions(serviceJid, userJid);
 	}
 	
-	/**
-	 * Method description
-	 * 
-	 */
 	@Override
 	public void init() {
 		log.config("Cached PubSubRepository initialising...");
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
 		Node<T> node = this.nodes.get(key);		
-		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);		
+		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
+							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
+		}
 		dao.removeFromRootCollection(serviceJid, nodeId);
 		Set<String> nodes = rootCollection.get(serviceJid);
 		if (nodes != null) {
@@ -676,16 +536,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * @param nodeConfig
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void update(BareJID serviceJid, String nodeName, AbstractNodeConfig nodeConfig) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
@@ -701,16 +551,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * @param nodeAffiliations
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void update(BareJID serviceJid, String nodeName, IAffiliations nodeAffiliations) throws RepositoryException {
 		if (nodeAffiliations instanceof NodeAffiliations) {
@@ -733,16 +573,6 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 	}
 
-	/**
-	 * Method description
-	 * 
-	 * 
-	 * @param serviceJid
-	 * @param nodeName
-	 * @param nodeSubscriptions
-	 * 
-	 * @throws RepositoryException
-	 */
 	@Override
 	public void update(BareJID serviceJid, String nodeName, ISubscriptions nodeSubscriptions) throws RepositoryException {
 		++updateSubscriptionsCalled;
