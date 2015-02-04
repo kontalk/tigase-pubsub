@@ -105,7 +105,8 @@ public class RetrieveItemsCommand implements AdHocCommand {
 							nodeItems = repository.getNodeItems( request.getIq().getTo().getBareJID(), nodeName );
 						}
 						if ( null != nodeId ){
-							if ( Arrays.asList( nodeItems.getItemsIds() ).contains( nodeId ) ){
+							final String[] itemsIds = nodeItems.getItemsIds();
+							if ( null != itemsIds && Arrays.asList(itemsIds).contains( nodeId ) ){
 								Element i = nodeItems.getItem( nodeId );
 								Element field = new Element( "field", new String[] { "var" }, new String[] { "item" } );
 								field.addChild( new Element( "value", new Element[] { i }, null, null ) );
