@@ -63,6 +63,7 @@ import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler.PresenceChangeEvent;
 import tigase.pubsub.repository.IAffiliations;
 import tigase.pubsub.repository.IItems;
+import tigase.pubsub.repository.IPubSubRepository;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
@@ -264,6 +265,44 @@ public class PublishItemModule extends AbstractPubSubModule {
 		}
 	}
 
+	public AbstractNodeConfig ensurePepNode(BareJID toJid, String nodeName, BareJID ownerJid) throws PubSubException {
+		AbstractNodeConfig nodeConfig;
+		try {
+			IPubSubRepository repo = getRepository();
+			nodeConfig = repo.getNodeConfig(toJid, nodeName);
+		} catch (RepositoryException ex) {
+			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
+		}
+
+		if (nodeConfig != null)
+			return nodeConfig;
+			
+		return createPepNode(toJid, nodeName, ownerJid);
+	}
+	
+	private AbstractNodeConfig createPepNode(BareJID toJid, String nodeName, BareJID ownerJid) 
+			throws PubSubException {
+		if (!toJid.equals(ownerJid))
+			throw new PubSubException(Authorization.FORBIDDEN);
+			
+		AbstractNodeConfig nodeConfig;
+		try {
+			IPubSubRepository repo = getRepository();
+			nodeConfig = new LeafNodeConfig(nodeName, defaultPepNodeConfig);
+			repo.createNode(toJid, nodeName, ownerJid, nodeConfig, NodeType.leaf, "");
+			nodeConfig = repo.getNodeConfig(toJid, nodeName);
+			IAffiliations nodeaAffiliations = repo.getNodeAffiliations(toJid, nodeName);
+			nodeaAffiliations.addAffiliation(ownerJid, Affiliation.owner);
+			ISubscriptions nodeaSubscriptions = repo.getNodeSubscriptions(toJid, nodeName);
+			nodeaSubscriptions.addSubscriberJid(toJid, Subscription.subscribed);
+			repo.update(toJid, nodeName, nodeaAffiliations);
+			repo.addToRootCollection(toJid, nodeName);
+		} catch (RepositoryException ex) {
+			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
+		}
+		return nodeConfig;
+	}
+	
 	public void doPublishItems(BareJID serviceJID, String nodeName, LeafNodeConfig leafNodeConfig,
 			IAffiliations nodeAffiliations, ISubscriptions nodeSubscriptions, String publisher, List<Element> itemsToSend)
 					throws RepositoryException {
@@ -458,24 +497,11 @@ public class PublishItemModule extends AbstractPubSubModule {
 			AbstractNodeConfig nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
 
 			if (nodeConfig == null) {
-				if (packet.getStanzaTo().getLocalpart() == null || !config.isPepPeristent() 
-						|| !toJid.equals(packet.getStanzaFrom().getBareJID())) {
+				if (packet.getStanzaTo().getLocalpart() == null || !config.isPepPeristent()) {
 					throw new PubSubException(element, Authorization.ITEM_NOT_FOUND);
 				} else {
 					// this is PubSub service for particular user - we should autocreate node
-					try {
-						nodeConfig = new LeafNodeConfig(nodeName, defaultPepNodeConfig);
-						getRepository().createNode(toJid, nodeName, packet.getStanzaFrom().getBareJID(), nodeConfig, NodeType.leaf, "");
-						nodeConfig = getRepository().getNodeConfig(toJid, nodeName);
-						IAffiliations nodeaAffiliations = getRepository().getNodeAffiliations(toJid, nodeName);
-						nodeaAffiliations.addAffiliation(packet.getStanzaFrom().getBareJID(), Affiliation.owner);
-						ISubscriptions nodeaSubscriptions = getRepository().getNodeSubscriptions(toJid, nodeName);
-						nodeaSubscriptions.addSubscriberJid(toJid, Subscription.subscribed);
-						getRepository().update(toJid, nodeName, nodeaAffiliations);
-						getRepository().addToRootCollection(toJid, nodeName);
-					} catch (RepositoryException ex) {
-						throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
-					}
+					nodeConfig = createPepNode(toJid, nodeName, packet.getStanzaFrom().getBareJID());
 				}
 			} else {
 				if (nodeConfig.getNodeType() == NodeType.collection) {
