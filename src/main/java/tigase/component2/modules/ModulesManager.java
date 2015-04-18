@@ -11,6 +11,7 @@ import tigase.component2.PacketWriter;
 import tigase.component2.exceptions.ComponentException;
 import tigase.criteria.Criteria;
 import tigase.server.Packet;
+import tigase.stats.StatisticsList;
 import tigase.util.TigaseStringprepException;
 
 public class ModulesManager {
@@ -29,6 +30,24 @@ public class ModulesManager {
 		this.writer = writer;
 	}
 
+	public void everyHour() {
+		for (Module m : modules) {
+			m.everyHour();
+		}		
+	}
+	
+	public void everyMinute() {
+		for (Module m : modules) {
+			m.everyMinute();
+		}		
+	}
+	
+	public void everySecond() {
+		for (Module m : modules) {
+			m.everySecond();
+		}		
+	}	
+	
 	@SuppressWarnings("unchecked")
 	protected <T extends Module> T getByClass(final Class<T> moduleClass) {
 		for (Module m : modules) {
@@ -52,6 +71,13 @@ public class ModulesManager {
 		return features;
 	}
 
+	public void getStatistics(String compName, StatisticsList list) {
+		for (Module m : modules) {
+			m.getStatistics(compName, list);
+		}
+	}
+	
+	
 	public boolean isRegistered(final Class<? extends Module> moduleClass) {
 		for (Module m : modules) {
 			if (moduleClass.isInstance(m)) {
@@ -81,6 +107,7 @@ public class ModulesManager {
 			Criteria criteria = module.getModuleCriteria();
 			if (criteria != null && criteria.match(packet.getElement())) {
 				handled = true;
+				long start = System.currentTimeMillis();
 				if (log.isLoggable(Level.FINER)) {
 					log.finer("Handled by module " + module.getClass());
 				}
@@ -88,6 +115,8 @@ public class ModulesManager {
 				if (log.isLoggable(Level.FINEST)) {
 					log.finest("Finished " + module.getClass());
 				}
+				long end = System.currentTimeMillis();
+				module.statisticExecutedIn(end - start);
 				break;
 			}
 		}
@@ -145,5 +174,5 @@ public class ModulesManager {
 		}
 
 	}
-
+	
 }

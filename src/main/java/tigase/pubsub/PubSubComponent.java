@@ -98,6 +98,8 @@ import tigase.xmpp.JID;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
+import tigase.stats.StatisticsList;
+
 /**
  * Class description
  *
