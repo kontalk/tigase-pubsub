@@ -4,10 +4,12 @@ import java.util.Map;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.repository.stateless.UsersSubscription;
+import tigase.stats.StatisticHolder;
+import tigase.stats.StatisticsList;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.impl.roster.RosterElement;
 
-public class PubSubRepositoryWrapper implements IPubSubRepository {
+public class PubSubRepositoryWrapper implements IPubSubRepository, StatisticHolder {
 
 	private IPubSubRepository repo;
 
@@ -114,5 +116,46 @@ public class PubSubRepositoryWrapper implements IPubSubRepository {
 	@Override
 	public void update(BareJID serviceJid, String nodeName, ISubscriptions subscriptions) throws RepositoryException {
 		repo.update(serviceJid, nodeName, subscriptions);
+	}
+
+	@Override
+	public void statisticExecutedIn(long executionTime) {
+		if (repo instanceof StatisticHolder) {
+			((StatisticHolder) repo).statisticExecutedIn(executionTime);
+		}
+	}
+
+	@Override
+	public void everyHour() {
+		if (repo instanceof StatisticHolder) {
+			((StatisticHolder) repo).everyHour();
+		}	
+	}
+
+	@Override
+	public void everyMinute() {
+		if (repo instanceof StatisticHolder) {
+			((StatisticHolder) repo).everyMinute();
+		}	}
+
+	@Override
+	public void everySecond() {
+		if (repo instanceof StatisticHolder) {
+			((StatisticHolder) repo).everySecond();
+		}
+	}
+
+	@Override
+	public void getStatistics(String compName, StatisticsList list) {
+		if (repo instanceof StatisticHolder) {
+			((StatisticHolder) repo).getStatistics(compName, list);
+		}
+	}
+
+	@Override
+	public void setStatisticsPrefix(String prefix) {
+		if (repo instanceof StatisticHolder) {
+			((StatisticHolder) repo).setStatisticsPrefix(prefix);
+		}
 	}
 }

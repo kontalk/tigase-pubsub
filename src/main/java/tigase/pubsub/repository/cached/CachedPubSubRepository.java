@@ -26,6 +26,9 @@ import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
+import tigase.stats.Counter;
+import tigase.stats.StatisticHolder;
+import tigase.stats.StatisticHolderImpl;
 import tigase.stats.StatisticsList;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.impl.roster.RosterElement;
@@ -37,7 +40,7 @@ import tigase.xmpp.impl.roster.RosterElement;
  * @version 5.0.0, 2010.03.27 at 05:20:46 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class CachedPubSubRepository<T> implements IPubSubRepository {
+public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHolder {
 
 	private class NodeSaver {
 
@@ -153,19 +156,67 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 	}
 
-	private class SizedCache extends LinkedHashMap<String, Node> {
+	private class SizedCache extends LinkedHashMap<String, Node> implements StatisticHolder {
 		private static final long serialVersionUID = 1L;
 
 		private int maxCacheSize = 1000;
 
+		private Counter requestsCounter = new Counter("cache/requests", Level.FINEST);
+		private Counter hitsCounter = new Counter("cache/hits", Level.FINEST);
+		
 		public SizedCache(int maxSize) {
 			super(maxSize, 0.1f, true);
 			maxCacheSize = maxSize;
 		}
 
 		@Override
+		public Node get(Object key) {
+			Node val = super.get(key);
+			requestsCounter.inc();
+			if (val != null)
+				hitsCounter.inc();
+			return val;
+		}
+		
+		@Override
+		public void getStatistics(String compName, StatisticsList list) {
+			requestsCounter.getStatistics(compName, list);
+			hitsCounter.getStatistics(compName, list);
+			list.add(compName, "cache/hit-miss ratio per minute", (requestsCounter.getPerMinute() == 0) ? 0 : ((float) hitsCounter.getPerMinute())/requestsCounter.getPerMinute(), Level.FINE);
+			list.add(compName, "cache/hit-miss ratio per second", (requestsCounter.getPerSecond() == 0) ? 0 : ((float) hitsCounter.getPerSecond())/requestsCounter.getPerSecond(), Level.FINE);
+		}
+		
+		@Override
 		protected boolean removeEldestEntry(Map.Entry<String, Node> eldest) {
 			return (size() > maxCacheSize) && !eldest.getValue().needsWriting();
+		}
+
+		@Override
+		public void statisticExecutedIn(long executionTime) {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
+
+		@Override
+		public void everyHour() {
+			requestsCounter.everyHour();
+			hitsCounter.everyHour();
+		}
+
+		@Override
+		public void everyMinute() {
+			requestsCounter.everyMinute();
+			hitsCounter.everyMinute();
+		}
+
+		@Override
+		public void everySecond() {
+			requestsCounter.everySecond();
+			hitsCounter.everySecond();
+		}
+
+		@Override
+		public void setStatisticsPrefix(String prefix) {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 		}
 	}
 
@@ -175,9 +226,10 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final Integer maxCacheSize;
 	// private final Object mutex = new Object();
+	// this
+	private final StatisticHolder cacheStats;
 	protected final Map<String, Node> nodes;
 	private long nodes_added = 0;
-	private final ConcurrentSkipListSet<Node> nodesToSave = new ConcurrentSkipListSet<Node>(new NodeComparator());
 
 	private long repo_writes = 0;
 
@@ -190,30 +242,32 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 	private long writingTime = 0;
 
+	private final Map<String,StatisticHolder> stats;
+	
 	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {	
 		this.dao = dao;
 		this.maxCacheSize = maxCacheSize;
-		nodes = Collections.synchronizedMap(new SizedCache(this.maxCacheSize));
+		final SizedCache cache = new SizedCache(this.maxCacheSize);
+		cacheStats = cache;
+		nodes = Collections.synchronizedMap(cache);
 
 		// Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
 		log.config("Initializing Cached Repository with cache size = " + ((maxCacheSize == null) ? "OFF" : maxCacheSize));
 		
  		nodeSaver = new NodeSaver();
 
+		this.stats = new ConcurrentHashMap<String, StatisticHolder>();
+		stats.put("getNodeItems", new StatisticHolderImpl("db/getNodeItems requests"));
+		
 		// Thread.dumpStack();
 	}
 
-	public void addStats(final String name, final StatisticsList stats) {
+	@Override
+	public void getStatistics(final String name, final StatisticsList stats) {
 		if (this.nodes.size() > 0) {
 			stats.add(name, "Cached nodes", this.nodes.size(), Level.FINE);
 		} else {
 			stats.add(name, "Cached nodes", this.nodes.size(), Level.FINEST);
-		}
-
-		if (this.nodesToSave.size() > 0) {
-			stats.add(name, "Unsaved nodes", this.nodesToSave.size(), Level.INFO);
-		} else {
-			stats.add(name, "Unsaved nodes", this.nodesToSave.size(), Level.FINEST);
 		}
 
 		long subscriptionsCount = 0;
@@ -276,8 +330,58 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 				stats.add(name, "Average DB write time [ms]", (writingTime / (nodes_added + repo_writes)), Level.FINEST);
 			}
 		}
+		
+		cacheStats.getStatistics(name, stats);
+	
+		for (StatisticHolder holder : this.stats.values()) {
+			holder.getStatistics(name, stats);
+		}		
 	}
 
+	@Override
+	public void statisticExecutedIn(long executionTime) {
+	}
+
+	@Override
+	public void everyHour() {
+		cacheStats.everyHour();
+			
+		for (StatisticHolder holder : stats.values()) {
+			holder.everyHour();
+		}		
+	}
+
+	@Override
+	public void everyMinute() {
+		cacheStats.everyMinute();
+			
+		for (StatisticHolder holder : stats.values()) {
+			holder.everyMinute();
+		}		
+	}
+
+	@Override
+	public void everySecond() {
+		cacheStats.everySecond();
+					
+		for (StatisticHolder holder : stats.values()) {
+			holder.everySecond();
+		}
+	}
+
+	@Override
+	public void setStatisticsPrefix(String prefix) {
+	}	
+	
+	/**
+	 * Method description
+	 * 
+	 * 
+	 * @param serviceJid
+	 * @param nodeName
+	 * 
+	 * @throws RepositoryException
+	 */
 	@Override
 	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		if ( log.isLoggable( Level.FINEST ) ){
@@ -445,12 +549,15 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	@Override
 	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
+		long start = System.currentTimeMillis();
 		Node<T> node = this.nodes.get(key);		
 		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
 							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
 		}
+		long end = System.currentTimeMillis();
+		this.stats.get("getNodeItems").statisticExecutedIn(end-start);
 		return new Items(nodeId, serviceJid, nodeName, this.dao);
 	}
 

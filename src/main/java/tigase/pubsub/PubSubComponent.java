@@ -98,6 +98,7 @@ import tigase.xmpp.JID;
 import tigase.xmpp.PacketErrorTypeException;
 import tigase.xmpp.StanzaType;
 
+import tigase.stats.StatisticHolder;
 import tigase.stats.StatisticsList;
 
 /**
@@ -384,6 +385,39 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		return "PubSub";
 	}
 
+	@Override
+	public void getStatistics(StatisticsList list) {
+		super.getStatistics(list);
+		
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).getStatistics(getName(), list);
+		}
+	}
+	
+	@Override
+	public void everyHour() {
+		super.everyHour();
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).everyHour();
+		}		
+	}
+	
+	@Override
+	public void everyMinute() {
+		super.everyMinute();
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).everyMinute();
+		}		
+	}
+	
+	@Override
+	public void everySecond() {
+		super.everySecond();
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).everySecond();
+		}
+	}
+	
 	@Override
 	public int hashCodeForPacket(Packet packet) {
 		int hash = packet.hashCode();
