@@ -478,10 +478,7 @@ public class StoredProcedures {
 		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
 		try {
-			PreparedStatement ps = conn.prepareStatement("select pj.jid, pa.affiliation"
-					+ " from tig_pubsub_affiliations pa"
-					+ " inner join tig_pubsub_jids pj on pa.jid_id = pj.jid_id"
-					+ " where pa.node_id = ?");
+			PreparedStatement ps = conn.prepareStatement("select configuration from tig_pubsub_nodes where node_id = ?" );
 			ps.setLong(1, nodeId);
 			data[0] = ps.executeQuery();
 		} catch (SQLException e) {
@@ -499,7 +496,10 @@ public class StoredProcedures {
 		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
 		try {
-			PreparedStatement ps = conn.prepareStatement("select configuration from tig_pubsub_nodes where node_id = ?");
+			PreparedStatement ps = conn.prepareStatement("select pj.jid, pa.affiliation"
+					+ " from tig_pubsub_affiliations pa"
+					+ " inner join tig_pubsub_jids pj on pa.jid_id = pj.jid_id"
+					+ " where pa.node_id = ?");
 			ps.setLong(1, nodeId);
 			data[0] = ps.executeQuery();
 		} catch (SQLException e) {
