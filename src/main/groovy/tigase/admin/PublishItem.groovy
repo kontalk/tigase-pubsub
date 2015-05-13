@@ -15,9 +15,6 @@
  * along with this program. Look for COPYING file in the top folder.
  * If not, see http://www.gnu.org/licenses/.
  *
- * $Rev: $
- * Last modified by $Author: $
- * $Date: $
  */
 
 /*
@@ -46,6 +43,7 @@ import tigase.pubsub.modules.PublishItemModule.ItemPublishedHandler
 try {
 def NODE = "node"
 def ID = "item-id";
+def EXPIRE = "expire-at";
 def ENTRY = "entry";
 
 IPubSubRepository pubsubRepository = component.pubsubRepository
@@ -57,7 +55,10 @@ def isServiceAdmin = admins.contains(stanzaFromBare)
 
 def node = Command.getFieldValue(packet, NODE)
 def id = Command.getFieldValue(packet, ID);
+def expire = Command.getFieldValue(packet, EXPIRE);
 def entry = Command.getFieldValues(packet, ENTRY);
+
+def dtf = new DateTimeFormatter();
 
 if (!node || !entry) {
 	def result = p.commandResult(Command.DataType.form);
@@ -69,6 +70,8 @@ if (!node || !entry) {
 			"The node to publish to")
 	Command.addFieldValue(result, ID, id ?: "", "text-single",
 			"ID of item")
+	Command.addFieldValue(result, EXPIRE, expire ?: "", "text-single",
+			"Expiry date of item (XEP-0082 format)")
 	Command.addFieldValue(result, ENTRY, entry ?: "", "text-multi",
 			"Entry")
 
@@ -96,6 +99,18 @@ try {
 		Element item = new Element("item");
 		if (!id) id = UUID.randomUUID().toString();
 		item.setAttribute("id", id);
+
+        if (expire) {
+            try {
+                    def parseDateTime = dtf.parseDateTime(expire);
+                    if (parseDateTime) {
+                        item.setAttribute(EXPIRE, dtf.formatDateTime(parseDateTime.getTime()));
+                    }
+            } catch (IllegalArgumentException e) {
+                throw new PubSubException(Authorization.BAD_REQUEST, "Expiration date " + expire  +
+                        " is malformed.");
+            }
+        }
 
 		def data = entry.join("\n")
 		data = ((String) data).toCharArray();
@@ -147,7 +162,10 @@ try {
 			component.addOutPacket(packet);
 		}
 
-			component.getEventBus().fire(
+        def itemsToSend = [];
+        itemsToSend += item;
+
+        component.getEventBus().fire(
 				new ItemPublishedHandler.ItemPublishedEvent(packet.getStanzaTo().getBareJID(), node, itemsToSend));
 
 		Command.addTextField(result, "Note", "Operation successful");

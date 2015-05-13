@@ -68,15 +68,22 @@ import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.RepositoryException;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
+
 import tigase.server.Message;
 import tigase.server.Packet;
+
 import tigase.xml.Element;
+
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 import tigase.xmpp.StanzaType;
 import tigase.xmpp.impl.roster.RosterAbstract.SubscriptionType;
 import tigase.xmpp.impl.roster.RosterElement;
+
+import tigase.util.DateTimeFormatter;
+
+import java.util.Calendar;
 
 /**
  * Class description
@@ -144,7 +151,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
-	/** Field description */
+	public final static String AMP_XMLNS = "http://jabber.org/protocol/amp";
+
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
 		"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
 
@@ -177,6 +185,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 		}
 
 	};
+
+	private final DateTimeFormatter dtf = new DateTimeFormatter();
 
 	private final LeafNodeConfig defaultPepNodeConfig;
 	private long idCounter = 0;
@@ -450,6 +460,15 @@ public class PublishItemModule extends AbstractPubSubModule {
 			if (!"item".equals(si.getName())) {
 				continue;
 			}
+			String expireAttr = si.getAttributeStaticStr( "expire-at");
+			if ( expireAttr != null ){
+				Calendar parseDateTime = dtf.parseDateTime( expireAttr );
+				if ( null != parseDateTime ){
+					si.setAttribute( "expire-at", dtf.formatDateTime( parseDateTime.getTime() ) );
+				} else {
+					si.removeAttribute( "expire-at" );
+				}
+			}
 			items.add(si);
 		}
 
@@ -585,10 +604,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 			Element items = new Element("items");
 			items.addAttribute("node", nodeConfig.getNodeName());
-			Element item = new Element("item");
-			item.addAttribute("id", lastID);
-			items.addChild(item);
-			item.addChild(payload);
+			items.addChild(payload);
 
 			sendNotifications(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid), nodeConfig,
 					nodeConfig.getNodeName(), null);
@@ -771,6 +787,15 @@ public class PublishItemModule extends AbstractPubSubModule {
 					new String[] { "http://jabber.org/protocol/pubsub#event" });
 
 			event.addChild(itemToSend);
+			String expireAttr = itemToSend.getAttributeStaticStr( new String[] {"items","item"}, "expire-at" );
+			if (expireAttr != null ) {
+				Element amp = new Element("amp");
+				amp.setXMLNS( AMP_XMLNS );
+				amp.addChild( new Element("rule",
+						new String[] {"condition", "action", "value"},
+						new String[] {"expire-at", "drop", expireAttr }));
+				message.addChild( amp );
+			}
 			message.addChild(event);
 			if ((headers != null) && (headers.size() > 0)) {
 				Element headElem = new Element("headers", new String[] { "xmlns" },

@@ -92,12 +92,18 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 
 		if (commandsManager.hasCommand(node)) {
 			try {
-				packetWriter.write(this.commandsManager.process(packet));
+				final Packet result = this.commandsManager.process(packet);
+				result.setXMLNS( Packet.CLIENT_XMLNS );
+				packetWriter.write(result);
 			} catch (AdHocCommandException e) {
 				throw new PubSubException(e.getErrorCondition(), e.getMessage());
 			}
 		} else {
-			packetWriter.write(scriptCommandManager.process(packet));
+			final List<Packet> result = scriptCommandManager.process(packet);
+			for ( Packet res : result) {
+				res.setXMLNS( Packet.CLIENT_XMLNS );
+			}
+			packetWriter.write(result);
 		}
 	}
 
