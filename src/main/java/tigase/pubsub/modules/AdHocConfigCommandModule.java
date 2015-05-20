@@ -21,8 +21,10 @@
  */
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
-import java.util.List;
+import tigase.server.Packet;
+
+import tigase.xmpp.Authorization;
+import tigase.xmpp.JID;
 
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
@@ -34,9 +36,10 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.server.Packet;
 import tigase.xml.Element;
-import tigase.xmpp.JID;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AdHocConfigCommandModule extends AbstractPubSubModule {
 
@@ -87,7 +90,8 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 		JID stanzaFrom = packet.getStanzaFrom();
 		
 		if ( !scriptCommandManager.canCallCommand( stanzaFrom, node ) ){
-			return;
+			throw new PubSubException(Authorization.NOT_AUTHORIZED,
+					"You don't have enought privileges to execute the command");
 		}
 
 		if (commandsManager.hasCommand(node)) {
