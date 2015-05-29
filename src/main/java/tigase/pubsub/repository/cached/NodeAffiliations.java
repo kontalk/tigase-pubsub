@@ -55,6 +55,11 @@ public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations 
 	}
 
 	@Override
+	public String toString() {
+		return "NodeAffiliations{" + super.toString() +  " :: changedAffs=" + changedAffs.get() + '}';
+	}
+
+	@Override
 	protected UsersAffiliation get(BareJID bareJid) {
 		Map<BareJID, UsersAffiliation> changedAffs = changedAffs();
 		UsersAffiliation us = changedAffs.get(bareJid);

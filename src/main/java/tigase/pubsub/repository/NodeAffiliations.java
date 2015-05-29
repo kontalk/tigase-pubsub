@@ -70,6 +70,11 @@ public abstract class NodeAffiliations implements IAffiliations {
 		return clone;
 	}
 
+	@Override
+	public String toString() {
+		return "NodeAffiliations{" + "affs=" + affs + ", changed=" + changed + '}';
+	}
+
 	protected UsersAffiliation get(final BareJID bareJid) {
 		return this.affs.get(bareJid);
 	}

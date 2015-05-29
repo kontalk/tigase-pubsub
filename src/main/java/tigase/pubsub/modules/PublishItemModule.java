@@ -214,6 +214,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 					// sending last published items for subscribed nodes
 					Map<String, UsersSubscription> subscrs = config.getPubSubRepository().getUserSubscriptions(serviceJid,
 							userJid.getBareJID());
+					log.log(Level.FINEST, "Sending last published items for subscribed nodes: {0}", subscrs);
 					for (Map.Entry<String, UsersSubscription> e : subscrs.entrySet()) {
 						if (e.getValue().getSubscription() != Subscription.subscribed)
 							continue;
@@ -307,6 +308,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 			nodeaSubscriptions.addSubscriberJid(toJid, Subscription.subscribed);
 			repo.update(toJid, nodeName, nodeaAffiliations);
 			repo.addToRootCollection(toJid, nodeName);
+			log.log(Level.FINEST, "Created new PEP node: {0}, conf: {1}, aff: {2}, subs: {3} ",
+														new Object[] {nodeName, nodeConfig, nodeaAffiliations, nodeaSubscriptions});
 		} catch (RepositoryException ex) {
 			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
 		}
@@ -326,7 +329,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 		List<String> parents = getParents(serviceJID, nodeName);
 
-		if ((parents != null) && (parents.size() > 0)) {
+			log.log(Level.FINEST, "Publishing item: {0}, node: {1}, conf: {2}, aff: {3}, subs: {4} ",
+														new Object[] {items, nodeName, leafNodeConfig, nodeAffiliations, nodeSubscriptions});
+
+			if ((parents != null) && (parents.size() > 0)) {
 			for (String collection : parents) {
 				Map<String, String> headers = new HashMap<String, String>();
 
@@ -425,7 +431,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 		ArrayList<JID> result = new ArrayList<JID>();
 		Map<BareJID, RosterElement> rosterJids = this.getRepository().getUserRoster(id);
 
-		if (rosterJids != null) {
+			if (rosterJids != null) {
 			for (Entry<BareJID, RosterElement> e : rosterJids.entrySet()) {
 				SubscriptionType sub = e.getValue().getSubscription();
 
@@ -598,7 +604,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 		IItems nodeItems = this.getRepository().getNodeItems(serviceJid, nodeConfig.getNodeName());
 		String[] ids = nodeItems.getItemsIds();
 
-		if (ids != null && ids.length > 0) {
+			if (ids != null && ids.length > 0) {
 			String lastID = ids[ids.length - 1];
 			Element payload = nodeItems.getItem(lastID);
 
@@ -659,6 +665,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 			tmp.add(JID.jidInstance(j));
 		}
 		boolean updateSubscriptions = false;
+
+		log.log(Level.FINEST, "Sending notifications[1] item: {0}, node: {1}, conf: {2}, aff: {3}, subs: {4} ",
+													new Object[] {itemToSend, publisherNodeName, nodeConfig,
+																																			 nodeAffiliations, nodesSubscriptions});
 
 		if (nodeConfig.isPresenceExpired()) {
 			Iterator<JID> it = tmp.iterator();
@@ -752,6 +762,9 @@ public class PublishItemModule extends AbstractPubSubModule {
 	public void sendNotifications(final JID[] subscribers, final Element itemToSend, final JID jidFrom,
 			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
 		List<Element> body = null;
+
+		log.log(Level.FINEST, "Sending notifications[2] item: {0}, node: {1}, conf: {2}, subs: {3} ",
+													new Object[] {itemToSend, publisherNodeName, nodeConfig, Arrays.asList( subscribers )  });
 
 		if ((this.xslTransformer != null) && (nodeConfig != null)) {
 			try {

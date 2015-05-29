@@ -85,6 +85,11 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 		}
 	}
 
+	@Override
+	public String toString() {
+		return "NodeSubscriptions{" + "changed=" + changed + ", subs=" + subs + '}';
+	}
+
 	protected UsersSubscription get(final BareJID bareJid) {
 		return this.subs.get(bareJid);
 	}
