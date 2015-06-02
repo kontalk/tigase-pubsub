@@ -144,16 +144,27 @@ public abstract class AbstractPubSubModule extends StatisticHolderImpl implement
 		Set<BareJID> result = new HashSet<BareJID>();
 		final boolean presenceExpired = nodeConfig.isPresenceExpired();
 
+		logAbstract.log( Level.FINEST,
+						 "getActiveSubscribers[2,1] subscriptions: {0}, jids: {1}, presenceExpired: {2}",
+						 new Object[] { subscriptions, jids, presenceExpired} );
+
+
 		if (jids != null) {
 			for (BareJID jid : jids) {
 				if (presenceExpired) {
 				}
 
 				UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
+				logAbstract.log( Level.FINEST,
+												 "getActiveSubscribers[2,2] jid: {0}, affiliation: {1}}",
+												 new Object[] { jid, affiliation } );
 
 				// /* && affiliation.getAffiliation() != Affiliation.none */
 				if (affiliation.getAffiliation() != Affiliation.outcast) {
 					Subscription subscription = subscriptions.getSubscription(jid);
+					logAbstract.log( Level.FINEST,
+													 "getActiveSubscribers[2,2] jid: {0}, subscription: {1}}",
+													 new Object[] { jid, subscription } );
 
 					if (subscription == Subscription.subscribed) {
 						result.add(jid);
@@ -180,6 +191,10 @@ public abstract class AbstractPubSubModule extends StatisticHolderImpl implement
 	public static Collection<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig,
 			final IAffiliations affiliations, final ISubscriptions subscriptions) throws RepositoryException {
 		UsersSubscription[] subscribers = subscriptions.getSubscriptionsForPublish();
+
+		logAbstract.log( Level.FINEST,
+						 "getActiveSubscribers[1] subscriptions: {0}, subscribers: {1}",
+						 new Object[] { subscriptions, subscribers, } );
 
 		if (subscribers == null) {
 			return Collections.emptyList();
@@ -235,6 +250,7 @@ public abstract class AbstractPubSubModule extends StatisticHolderImpl implement
 
 	/** Field description */
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
+	protected final static Logger logAbstract = Logger.getLogger(AbstractPubSubModule.class.getName());
 
 	protected final PacketWriter packetWriter;
 	

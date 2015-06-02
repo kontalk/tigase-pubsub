@@ -666,9 +666,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 		}
 		boolean updateSubscriptions = false;
 
-		log.log(Level.FINEST, "Sending notifications[1] item: {0}, node: {1}, conf: {2}, aff: {3}, subs: {4} ",
-													new Object[] {itemToSend, publisherNodeName, nodeConfig,
-																																			 nodeAffiliations, nodesSubscriptions});
+		log.log( Level.FINEST,
+						 "Sending notifications[1] item: {0}, node: {1}, conf: {2}, aff: {3}, subs: {4}, getActiveSubscribers: {5} ",
+						 new Object[] { itemToSend, publisherNodeName, nodeConfig,
+														nodeAffiliations, nodesSubscriptions, tmp } );
 
 		if (nodeConfig.isPresenceExpired()) {
 			Iterator<JID> it = tmp.iterator();
