@@ -43,7 +43,24 @@ class PubSubHandler extends tigase.http.rest.Handler {
     def DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
 
     public PubSubHandler() {
-        regex = /\/(?:([^@\/]+)@){0,1}([^@\/]+)/
+		description = [
+			regex : "/{pubsub_jid}",
+			GET : [ info:'Retrieve list of PubSub adhoc commands', 
+				description: """To retrieve a list of available PubSub adhoc commands execute HTTP GET request with PubSub service jid passed as {pubsub_jid}.
+
+Example response:
+\${util.formatData([items:[[jid:'pubsub.example.com',node:'create-node',name:'Create node'],[jid:'pubsub.example.com',node:'delete-node',name:'Delete node']]])}
+"""],
+			POST : [ info:'Execute PubSub adhoc command',
+				description: """As part of url you need to pass PubSub component jid as {pubsub_jid} parameter.
+For a content of a HTTP POST request you need to pass XML or JSON in following form passing command node and list of fields and values needed to pass to PubSub component for proper adhoc command execution:
+\${util.formatData([command:[node:'create-node', fields:[[var:'node',value:'princely_musings'],[var:'owner',value:'user@example.com']]]])}
+
+As a result you will receive response in form of JSON or XML similar to following one which is just other representation of XMPP form result of adhoc command execution:
+\${util.formatData([command:[jid:'pubsub.example.com',node:'create-node', fields:[[var:'node',value:'princely_musings'],[var:'owner',value:'user@example.com']]]])}
+"""]
+		];
+		regex = /\/(?:([^@\/]+)@){0,1}([^@\/]+)/
         isAsync = true
 
         execGet = { Service service, callback, localPart, domain ->
