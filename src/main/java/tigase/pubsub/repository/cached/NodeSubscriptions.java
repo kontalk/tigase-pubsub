@@ -65,11 +65,6 @@ public class NodeSubscriptions extends tigase.pubsub.repository.NodeSubscription
 	}
 
 	@Override
-	public String toString() {
-		return "NodeSubscriptions{" + super.toString() + " :: changedSubs=" + changedSubs.get() + '}';
-	}
-
-	@Override
 	protected UsersSubscription get(final BareJID bareJid) {
 		UsersSubscription us = null;
 

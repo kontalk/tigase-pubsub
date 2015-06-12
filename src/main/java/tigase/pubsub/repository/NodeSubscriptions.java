@@ -10,7 +10,12 @@ import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.pubsub.utils.FragmentedMap;
+
 import tigase.xmpp.BareJID;
+
+import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class description
@@ -22,6 +27,7 @@ import tigase.xmpp.BareJID;
 public abstract class NodeSubscriptions implements ISubscriptions {
 
 	protected final static String DELIMITER = ";";
+	protected final Logger log = Logger.getLogger(this.getClass().getName());
 
 	/** Field description */
 //	public final static int MAX_FRAGMENT_SIZE = 10000;
@@ -87,7 +93,7 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 
 	@Override
 	public String toString() {
-		return "NodeSubscriptions{" + "changed=" + changed + ", subs=" + subs + '}';
+		return "NodeSubscriptions: " + subs;
 	}
 
 	protected UsersSubscription get(final BareJID bareJid) {
@@ -141,13 +147,25 @@ public abstract class NodeSubscriptions implements ISubscriptions {
 	@Override
 	public UsersSubscription[] getSubscriptions() {
 		synchronized (this.subs) {
-			return this.subs.values().toArray(new UsersSubscription[] {});
+			final UsersSubscription[] toArray = this.subs.values().toArray( new UsersSubscription[] {} );
+			if ( log.isLoggable( Level.FINEST ) ){
+				log.log( Level.FINEST, "getSubscriptions: {0}, toArray:{1}", new Object[] { subs, Arrays.toString( toArray ) } );
+			}
+			return toArray;
 		}
 	}
 
 	@Override
 	public UsersSubscription[] getSubscriptionsForPublish() {
-		return getSubscriptions();
+
+		UsersSubscription[] subscriptions = getSubscriptions();
+
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "getSubscriptionsForPublish, subs: {0}, subscriptions: {1}",
+																			 new Object[] {subs, Arrays.toString( subscriptions )  } );
+		}
+
+		return subscriptions;
 	}	
 	
 	/**

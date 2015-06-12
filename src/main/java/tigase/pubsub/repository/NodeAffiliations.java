@@ -72,7 +72,7 @@ public abstract class NodeAffiliations implements IAffiliations {
 
 	@Override
 	public String toString() {
-		return "NodeAffiliations{" + "affs=" + affs + ", changed=" + changed + '}';
+		return "NodeAffiliations:" + affs;
 	}
 
 	protected UsersAffiliation get(final BareJID bareJid) {

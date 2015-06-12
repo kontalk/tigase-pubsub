@@ -35,8 +35,9 @@ public class Node<T> {
 	public Node(T nodeId, BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations,
 			NodeSubscriptions nodeSubscriptions) {
 		if ( log.isLoggable( Level.FINEST ) ){
-			log.log( Level.FINEST, "Constructing Node, serviceJid: {0}, nodeConfig: {1}, nodeId: {2}, nodeAffiliations: {3}",
-							 new Object[] { serviceJid, nodeConfig, nodeId, nodeAffiliations } );
+			log.log( Level.FINEST,
+							 "Constructing Node, serviceJid: {0}, nodeConfig: {1}, nodeId: {2}, nodeAffiliations: {3}, nodeSubscriptions: {4}",
+							 new Object[] { serviceJid, nodeConfig, nodeId, nodeAffiliations, nodeSubscriptions } );
 		}
 
 		this.nodeId = nodeId;
@@ -171,5 +172,11 @@ public class Node<T> {
 		nodeAffiliations.resetChangedFlag();
 		nodeSubscriptions.resetChangedFlag();
 	}
-	
+
+	@Override
+	public String toString() {
+		return "Node{" + "creationTime=" + creationTime + ", deleted=" + deleted + ", name=" + name + ", nodeId=" + nodeId
+					 + ", nodeAffiliations=" + nodeAffiliations + ", nodeSubscriptions=" + nodeSubscriptions
+					 + ", serviceJid=" + serviceJid + '}';
+	}
 }
