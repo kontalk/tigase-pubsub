@@ -537,6 +537,10 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
 
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node config, serviceJid: {0}, nodeName: {1}",
+							 new Object[] { serviceJid, nodeName } );
+		}
 		try {
 			return (node == null) ? null : node.getNodeConfig().clone();
 		} catch (CloneNotSupportedException e) {
@@ -685,7 +689,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 		++updateSubscriptionsCalled;
 		Node node = getNode(serviceJid, nodeName);
 
-		if (node != null) {
+		if ( node != null ){
 			// node.setNodeSubscriptionsChangeTimestamp();
 			// synchronized (mutex) {
 			log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
