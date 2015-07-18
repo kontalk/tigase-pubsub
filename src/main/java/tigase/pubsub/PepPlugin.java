@@ -194,8 +194,9 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 				log.log(Level.FINEST, "got <iq/> packet with no 'to' attribute = {0}", packet);
 				return;
 			}
-		} else if (packet.getStanzaTo().getResource() == null && packet.getType() == StanzaType.error) {
-			// we are dropping packet of type error if they are sent in from user
+		} else if (packet.getStanzaTo().getResource() == null 
+				&& packet.getType() == StanzaType.error && packet.getType() == StanzaType.result) {
+			// we are dropping packet of type error or result if they are sent in from user
 			return;
 		}
 				
@@ -206,6 +207,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 			JID userJid = JID.jidInstance(session.getBareJID());
 			result.initVars(packet.getStanzaFrom() != null ? packet.getStanzaFrom() : session.getJID(), userJid);
 		}
+		result.setPacketFrom(packet.getFrom());
 		result.setPacketTo(pubsubJid);
 		
 		results.offer(result);
