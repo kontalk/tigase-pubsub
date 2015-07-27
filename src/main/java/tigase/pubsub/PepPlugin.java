@@ -235,11 +235,12 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 			return;
 		
 		// if presence is to local user then forward it to PubSub component
-		if (session == null || packet.getStanzaTo() == null 
-				|| (session.isUserId(packet.getStanzaTo().getBareJID())) && packet.getStanzaTo().getResource() == null) {
-			
+		if ((packet.getStanzaTo() == null && session != null && session.isAuthorized())
+				|| (packet.getStanzaTo() != null && packet.getStanzaTo().getResource() == null 
+					&& (session == null || !session.isAuthorized() || session.isUserId(packet.getStanzaTo().getBareJID())))) {
+
 			Packet result = packet.copyElementOnly();
-			if (packet.getStanzaTo() == null && session != null) {
+			if (packet.getStanzaTo() == null) {
 				// in case if packet is from local user without from/to
 				JID userJid = JID.jidInstance(session.getBareJID());
 				result.initVars(session.getJID(), userJid);
