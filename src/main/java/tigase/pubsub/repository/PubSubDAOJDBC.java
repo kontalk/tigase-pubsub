@@ -317,7 +317,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 	@Override
 	public Element getItem( BareJID serviceJid, Long nodeId, String id ) throws RepositoryException {
-		return itemDataToElement( getStringFromItem( serviceJid, nodeId, id, 1 ).toCharArray() );
+		String data = getStringFromItem( serviceJid, nodeId, id, 1 );
+		if (data == null)
+			return null;
+		return itemDataToElement( data.toCharArray() );
 	}
 
 	@Override

@@ -318,6 +318,7 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 			}
 
 			List<String> requestedId = extractItemsIds(items);
+			boolean requestedExactItems = requestedId != null;
 			final Element rpubsub = new Element("pubsub", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/pubsub" });
 			final Element ritems = new Element("items", new String[] { "node" }, new String[] { nodeName });
@@ -411,15 +412,17 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 					if (beforeId != null && beforeId.equals(id))
 						break;
 
-					if (c == 0) {
-						rsmResponse.addChild(new Element("first", id, new String[] { "index" }, new String[] { ""
-								+ (i + offset) }));
-					}
 					Element item = nodeItems.getItem(id);
+					if (item != null) {
+						if (c == 0) {
+							rsmResponse.addChild(new Element("first", id, new String[]{"index"}, new String[]{""
+								+ (i + offset)}));
+						}
 
-					lastId = id;
-					ritemsList.add(item);
-					++c;
+						lastId = id;
+						ritemsList.add(item);
+						++c;
+					}
 				}
 				if (lastId != null)
 					rsmResponse.addChild(new Element("last", lastId));
@@ -427,8 +430,10 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 				Collections.reverse(ritemsList);
 				ritems.addChildren(ritemsList);
 
-				if (maxItems != requestedId.size())
-					rpubsub.addChild(rsmResponse);
+				if (!(ritemsList.isEmpty() && requestedExactItems)) {
+					if (maxItems != requestedId.size())
+						rpubsub.addChild(rsmResponse);
+				}
 
 			}
 
