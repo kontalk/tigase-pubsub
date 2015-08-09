@@ -131,7 +131,7 @@ public class PubSubConfig extends ComponentConfig {
 			}
 		}
 
-		return false;
+		return super.component.isTrusted(jid.toString());
 	}
 
 	public boolean isAdmin(final JID jid) {
