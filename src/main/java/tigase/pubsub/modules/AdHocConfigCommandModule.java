@@ -104,8 +104,10 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 			}
 		} else {
 			final List<Packet> result = scriptCommandManager.process(packet);
-			for ( Packet res : result) {
-				res.setXMLNS( Packet.CLIENT_XMLNS );
+			if ( result != null && !result.isEmpty() ){
+				for ( Packet res : result ) {
+					res.setXMLNS( Packet.CLIENT_XMLNS );
+				}
 			}
 			packetWriter.write(result);
 		}
