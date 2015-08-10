@@ -66,7 +66,7 @@ if (node == null) {
 
 def result = p.commandResult(Command.DataType.result)
 try {
-	if (isServiceAdmin) {
+	if (isServiceAdmin || component.componentConfig.isAdmin(stanzaFromBare)) {
 		def toJid = p.getStanzaTo().getBareJID();
 		
 		AbstractNodeConfig nodeConfig = pubsubRepository.getNodeConfig(toJid, node);
