@@ -228,7 +228,7 @@ create function TigPubSubEnsureServiceJid(_service_jid varchar(2049)) returns bi
 begin
 	declare _service_id bigint;
 	declare _service_jid_sha1 char(40);
-	
+
 	select SHA1(_service_jid) into _service_jid_sha1;
 	select service_id into _service_id from tig_pubsub_service_jids where service_jid_sha1 = _service_jid_sha1;
 	if _service_id is null then
@@ -261,26 +261,35 @@ end //
 -- QUERY END:
 
 -- QUERY START:
-create procedure TigPubSubCreateNode(_service_jid varchar(2049), _node_name varchar(1024), _node_type int, 
-	_node_creator varchar(2049), _node_conf text, _collection_id bigint) 
+create procedure TigPubSubCreateNode(_service_jid varchar(2049), _node_name varchar(1024), _node_type int,
+	_node_creator varchar(2049), _node_conf text, _collection_id bigint)
 begin
 	declare _service_id bigint;
 	declare _node_creator_id bigint;
 	declare _node_id bigint;
+	declare _exists int;
 
 	DECLARE exit handler for sqlexception
 		BEGIN
 			-- ERROR
 		ROLLBACK;
+		select node_id from tig_pubsub_nodes where node_id = _node_id and service_id = _service_id;
 	END;
 
 	START TRANSACTION;
 	select TigPubSubEnsureServiceJid(_service_jid) into _service_id;
 	select TigPubSubEnsureJid(_node_creator) into _node_creator_id;
-	insert into tig_pubsub_nodes (service_id,name,name_sha1,`type`,creator_id,configuration,collection_id)
-		values (_service_id, _node_name, SHA1(_node_name), _node_type, _node_creator_id, _node_conf, _collection_id);
-	select LAST_INSERT_ID() into _node_id;	
-	select _node_id as node_id;
+
+	select node_id into _exists from tig_pubsub_nodes where node_id = _node_id and service_id = _service_id;
+	if _exists is not null then
+		select _node_id as node_id;
+	else
+		insert into tig_pubsub_nodes (service_id,name,name_sha1,`type`,creator_id,configuration,collection_id)
+			values (_service_id, _node_name, SHA1(_node_name), _node_type, _node_creator_id, _node_conf, _collection_id);
+		select LAST_INSERT_ID() into _node_id;
+		select _node_id as node_id;
+	end if;
+
 	COMMIT;
 end //
 -- QUERY END:
@@ -298,7 +307,7 @@ begin
 	delete from tig_pubsub_items where node_id = _node_id;
 	delete from tig_pubsub_subscriptions where node_id = _node_id;
 	delete from tig_pubsub_affiliations where node_id = _node_id;
-	delete from tig_pubsub_nodes where node_id = _node_id;	
+	delete from tig_pubsub_nodes where node_id = _node_id;
 	COMMIT;
 end //
 -- QUERY END:
@@ -306,10 +315,10 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetItem(_node_id bigint, _item_id varchar(1024))
 begin
-	select `data`, p.jid, creation_date, update_date 
-		from tig_pubsub_items pi 
-		inner join tig_pubsub_jids p on p.jid_id = pi.publisher_id 
-		where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;	
+	select `data`, p.jid, creation_date, update_date
+		from tig_pubsub_items pi
+		inner join tig_pubsub_jids p on p.jid_id = pi.publisher_id
+		where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;
 end //
 -- QUERY END:
 
@@ -325,11 +334,11 @@ begin
 	END;
 
 	START TRANSACTION;
-	
+
 	select TigPubSubEnsureJid(_publisher) into _publisher_id;
 	insert into tig_pubsub_items (node_id, id_sha1, id, creation_date, update_date, publisher_id, data)
 		values (_node_id, SHA1(_item_id), _item_id, now(), now(), _publisher_id, _item_data)
-		on duplicate key update publisher_id = _publisher_id, data = _item_data, update_date = now();	
+		on duplicate key update publisher_id = _publisher_id, data = _item_data, update_date = now();
 	COMMIT;
 end //
 -- QUERY END:
@@ -342,26 +351,26 @@ end //
 -- QUERY END:
 
 -- QUERY START:
-create procedure TigPubSubGetNodeId(_service_jid varchar(2049), _node_name varchar(1024)) 
+create procedure TigPubSubGetNodeId(_service_jid varchar(2049), _node_name varchar(1024))
 begin
-	select n.node_id from tig_pubsub_nodes n 
+	select n.node_id from tig_pubsub_nodes n
 		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
 		where sj.service_jid_sha1 = SHA1(_service_jid) and n.name_sha1 = SHA1(_node_name)
-			and sj.service_jid = _service_jid and n.name = _node_name;	
+			and sj.service_jid = _service_jid and n.name = _node_name;
 end //
 -- QUERY END:
 
 -- QUERY START:
 create procedure TigPubSubGetNodeItemsIds(_node_id bigint)
-begin 
+begin
 	select id from tig_pubsub_items where node_id = _node_id order by creation_date;
 end //
 -- QUERY END:
 
 -- QUERY START:
 create procedure TigPubSubGetNodeItemsIdsSince(_node_id bigint,_since datetime)
-begin 
-	select id from tig_pubsub_items where node_id = _node_id 
+begin
+	select id from tig_pubsub_items where node_id = _node_id
 		and creation_date >= _since order by creation_date;
 end //
 -- QUERY END:
@@ -369,8 +378,8 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetAllNodes(_service_jid varchar(2049))
 begin
-	select n.name, n.node_id from tig_pubsub_nodes n 
-		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 
+	select n.name, n.node_id from tig_pubsub_nodes n
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
 		where sj.service_jid_sha1 = SHA1(_service_jid) and sj.service_jid = _service_jid;
 end //
 -- QUERY END:
@@ -378,8 +387,8 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetRootNodes(_service_jid varchar(2049))
 begin
-	select n.name, n.node_id from tig_pubsub_nodes n 
-		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 
+	select n.name, n.node_id from tig_pubsub_nodes n
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
 		where sj.service_jid_sha1 = SHA1(_service_jid) and sj.service_jid = _service_jid
 			and n.collection_id is null;
 end //
@@ -388,8 +397,8 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetChildNodes(_service_jid varchar(2049),_node_name varchar(1024))
 begin
-	select n.name, n.node_id from tig_pubsub_nodes n 
-		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id 
+	select n.name, n.node_id from tig_pubsub_nodes n
+		inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id
 		inner join tig_pubsub_nodes p on p.node_id = n.collection_id and p.service_id = sj.service_id
 		where sj.service_jid_sha1 = SHA1(_service_jid) and p.name_sha1 = SHA1(_node_name)
 			and sj.service_jid = _service_jid and p.name = _node_name;
@@ -408,7 +417,7 @@ begin
 
 	START TRANSACTION;
 
-	select service_id into _service_id from tig_pubsub_service_jids 
+	select service_id into _service_id from tig_pubsub_service_jids
 		where service_jid_sha1 = SHA1(_service_jid) and service_jid = _service_jid;
 	delete from tig_pubsub_items where node_id in (
 		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
@@ -417,7 +426,7 @@ begin
 	delete from tig_pubsub_subscriptions where node_id in (
 		select n.node_id from tig_pubsub_nodes n where n.service_id = _service_id);
 	delete from tig_pubsub_nodes where service_id = _service_id;
-	
+
 	COMMIT;
 end //
 -- QUERY END:
@@ -434,7 +443,7 @@ create procedure TigPubSubSetNodeAffiliation(_node_id bigint, _jid varchar(2049)
 begin
 	declare _jid_id bigint;
 	declare _exists int;
-	
+
 	DECLARE exit handler for sqlexception
 		BEGIN
 			-- ERROR
@@ -444,7 +453,7 @@ begin
 	START TRANSACTION;
 
 	select jid_id into _jid_id from tig_pubsub_jids where jid_sha1 = SHA1(_jid) and jid = _jid;
-	if _jid_id is not null then 
+	if _jid_id is not null then
 		select 1 into _exists from tig_pubsub_affiliations pa where pa.node_id = _node_id and pa.jid_id = _jid_id;
 	end if;
 	if _affil != 'none' then
@@ -453,7 +462,7 @@ begin
 		end if;
 		if _exists is not null then
 			update tig_pubsub_affiliations set affiliation = _affil where node_id = _node_id and jid_id = _jid_id;
-		else 
+		else
 			insert into tig_pubsub_affiliations (node_id, jid_id, affiliation)
 				values (_node_id, _jid_id, _affil);
 		end if;
@@ -461,8 +470,8 @@ begin
 		if _exists is not null then
 			delete from tig_pubsub_affiliations where node_id = _node_id and jid_id = _jid_id;
 		end if;
-	end if;	
-	
+	end if;
+
 	COMMIT;
 end //
 -- QUERY END:
@@ -477,7 +486,7 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetNodeAffiliations(_node_id bigint)
 begin
-	select pj.jid, pa.affiliation from tig_pubsub_affiliations pa 
+	select pj.jid, pa.affiliation from tig_pubsub_affiliations pa
 		inner join tig_pubsub_jids pj on pa.jid_id = pj.jid_id
 		where pa.node_id = _node_id;
 end //
@@ -486,8 +495,8 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetNodeSubscriptions(_node_id bigint)
 begin
-	select pj.jid, ps.subscription, ps.subscription_id 
-		from tig_pubsub_subscriptions ps 
+	select pj.jid, ps.subscription, ps.subscription_id
+		from tig_pubsub_subscriptions ps
 		inner join tig_pubsub_jids pj on ps.jid_id = pj.jid_id
 		where ps.node_id = _node_id;
 end //
@@ -499,7 +508,7 @@ create procedure TigPubSubSetNodeSubscription(_node_id bigint, _jid varchar(2049
 begin
 	declare _jid_id bigint;
 	declare _exists int;
-	
+
 	DECLARE exit handler for sqlexception
 		BEGIN
 			-- ERROR
@@ -511,13 +520,13 @@ begin
 	select TigPubSubEnsureJid(_jid) into _jid_id;
 	select 1 into _exists from tig_pubsub_subscriptions where node_id = _node_id and jid_id = _jid_id;
 	if _exists is not null then
-		update tig_pubsub_subscriptions set subscription = _subscr 
+		update tig_pubsub_subscriptions set subscription = _subscr
 			where node_id = _node_id and jid_id = _jid_id;
 	else
 		insert into tig_pubsub_subscriptions (node_id,jid_id,subscription,subscription_id)
 			values (_node_id,_jid_id,_subscr,_subscr_id);
 	end if;
-	
+
 	COMMIT;
 end //
 -- QUERY END:
@@ -534,11 +543,11 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetUserAffiliations(_service_jid varchar(2049), _jid varchar(2049))
 begin
-	select n.name, pa.affiliation from tig_pubsub_nodes n 
+	select n.name, pa.affiliation from tig_pubsub_nodes n
 		inner join tig_pubsub_service_jids sj on sj.service_id = n.service_id
 		inner join tig_pubsub_affiliations pa on pa.node_id = n.node_id
 		inner join tig_pubsub_jids pj on pj.jid_id = pa.jid_id
-		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid) 
+		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid)
 			and pj.jid = _jid and sj.service_jid = _service_jid;
 end //
 -- QUERY END:
@@ -546,11 +555,11 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetUserSubscriptions(_service_jid varchar(2049), _jid varchar(2049))
 begin
-	select n.name, ps.subscription, ps.subscription_id from tig_pubsub_nodes n 
+	select n.name, ps.subscription, ps.subscription_id from tig_pubsub_nodes n
 		inner join tig_pubsub_service_jids sj on sj.service_id = n.service_id
 		inner join tig_pubsub_subscriptions ps on ps.node_id = n.node_id
 		inner join tig_pubsub_jids pj on pj.jid_id = ps.jid_id
-		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid) 
+		where pj.jid_sha1 = SHA1(_jid) and sj.service_jid_sha1 = SHA1(_service_jid)
 			and pj.jid = _jid and sj.service_jid = _service_jid;
 end //
 -- QUERY END:
@@ -558,7 +567,7 @@ end //
 -- QUERY START:
 create procedure TigPubSubGetNodeItemsMeta(_node_id bigint)
 begin
-	select id, creation_date, update_date from tig_pubsub_items where node_id = _node_id order by creation_date;	
+	select id, creation_date, update_date from tig_pubsub_items where node_id = _node_id order by creation_date;
 end //
 -- QUERY END:
 
@@ -570,7 +579,7 @@ end //
 -- QUERY END:
 
 -- QUERY START:
-create procedure TigPubSubFixItem(_node_id bigint, _item_id varchar(1024), 
+create procedure TigPubSubFixItem(_node_id bigint, _item_id varchar(1024),
 	_creation_date datetime, _update_date datetime)
 begin
 	update tig_pubsub_items set creation_date = _creation_date, update_date = _update_date
