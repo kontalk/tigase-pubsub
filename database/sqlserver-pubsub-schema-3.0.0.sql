@@ -260,23 +260,13 @@ begin
 	declare @_service_id bigint;
 	declare @_node_creator_id bigint;
 
-	BEGIN TRY
-	   BEGIN TRANSACTION
-   
-		exec TigPubSubEnsureServiceJid @_service_jid=@_service_jid, @_service_id=@_service_id output;
-		exec TigPubSubEnsureJid @_jid=@_node_creator, @_jid_id=@_node_creator_id output;
+	exec TigPubSubEnsureServiceJid @_service_jid=@_service_jid, @_service_id=@_service_id output;
+	exec TigPubSubEnsureJid @_jid=@_node_creator, @_jid_id=@_node_creator_id output;
 
-		insert into dbo.tig_pubsub_nodes (service_id, name, name_sha1, type, creator_id, creation_date, configuration, collection_id)
-			values (@_service_id, @_node_name, HASHBYTES('SHA1', @_node_name), @_node_type, @_node_creator_id, getdate(), @_node_conf, @_collection_id);
+	insert into dbo.tig_pubsub_nodes (service_id, name, name_sha1, type, creator_id, creation_date, configuration, collection_id)
+		values (@_service_id, @_node_name, HASHBYTES('SHA1', @_node_name), @_node_type, @_node_creator_id, getdate(), @_node_conf, @_collection_id);
 
-		select @@IDENTITY as node_id;
-	
-	   COMMIT
-	END TRY
-	BEGIN CATCH
-	  IF @@TRANCOUNT > 0
-		 ROLLBACK
-	END CATCH
+	select @@IDENTITY as node_id;
 end
 -- QUERY END:
 GO
@@ -293,18 +283,10 @@ create procedure dbo.TigPubSubRemoveNode
 	@_node_id bigint
 AS	
 begin
-	BEGIN TRY
-		 BEGIN TRANSACTION
-		  delete from dbo.tig_pubsub_items where node_id = @_node_id;
-		  delete from dbo.tig_pubsub_subscriptions where node_id = @_node_id;
-		  delete from dbo.tig_pubsub_affiliations where node_id = @_node_id;
-		  delete from dbo.tig_pubsub_nodes where node_id = @_node_id;
-	   COMMIT
-	END TRY
-	BEGIN CATCH
-	  IF @@TRANCOUNT > 0
-		 ROLLBACK
-	END CATCH
+  delete from dbo.tig_pubsub_items where node_id = @_node_id;
+  delete from dbo.tig_pubsub_subscriptions where node_id = @_node_id;
+  delete from dbo.tig_pubsub_affiliations where node_id = @_node_id;
+  delete from dbo.tig_pubsub_nodes where node_id = @_node_id;
 end
 -- QUERY END:
 GO
@@ -346,29 +328,19 @@ begin
     SET NOCOUNT ON;
 	declare @_publisher_id bigint;
 
-	BEGIN TRY
-		BEGIN TRANSACTION
-
-		exec TigPubSubEnsureJid @_jid=@_publisher, @_jid_id=@_publisher_id output;
-		-- Update the row if it exists.    
-		UPDATE tig_pubsub_items
-			SET publisher_id = @_publisher_id, data = @_item_data, update_date = getdate()
-			WHERE tig_pubsub_items.node_id = @_node_id 
-				and tig_pubsub_items.id_index = CAST(@_item_id as nvarchar(255))
-				and tig_pubsub_items.id = @_item_id;
-		-- Insert the row if the UPDATE statement failed.	
-		IF (@@ROWCOUNT = 0 )
-		BEGIN
-			insert into tig_pubsub_items (node_id, id, id_sha1, creation_date, update_date, publisher_id, data)
-			values (@_node_id, @_item_id, HASHBYTES('SHA1',@_item_id), getdate(), getdate(), @_publisher_id, @_item_data)
-		END
-	
-		COMMIT
-	END TRY
-	BEGIN CATCH
-	  IF @@TRANCOUNT > 0
-		 ROLLBACK
-	END CATCH		
+	exec TigPubSubEnsureJid @_jid=@_publisher, @_jid_id=@_publisher_id output;
+	-- Update the row if it exists.    
+    UPDATE tig_pubsub_items
+		SET publisher_id = @_publisher_id, data = @_item_data, update_date = getdate()
+		WHERE tig_pubsub_items.node_id = @_node_id 
+			and tig_pubsub_items.id_index = CAST(@_item_id as nvarchar(255))
+			and tig_pubsub_items.id = @_item_id;
+	-- Insert the row if the UPDATE statement failed.	
+	IF (@@ROWCOUNT = 0 )
+	BEGIN
+		insert into tig_pubsub_items (node_id, id, id_sha1, creation_date, update_date, publisher_id, data)
+		values (@_node_id, @_item_id, HASHBYTES('SHA1',@_item_id), getdate(), getdate(), @_publisher_id, @_item_data)
+	END
 end
 -- QUERY END:
 GO
@@ -517,24 +489,16 @@ AS
 begin
 	declare @_service_id bigint;
   
-	BEGIN TRY
-		 BEGIN TRANSACTION
-		select @_service_id=service_id from tig_pubsub_service_jids where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
+	select @_service_id=service_id from tig_pubsub_service_jids where service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
   
-		delete from dbo.tig_pubsub_items where node_id in (
-			select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);
-		delete from dbo.tig_pubsub_subscriptions where node_id in (
-			select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);;
-		delete from dbo.tig_pubsub_affiliations where node_id in (
-			select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);
-		delete from dbo.tig_pubsub_nodes where node_id in (
-			select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);
-	   COMMIT
-	END TRY
-	BEGIN CATCH
-	  IF @@TRANCOUNT > 0
-		 ROLLBACK
-	END CATCH
+	delete from dbo.tig_pubsub_items where node_id in (
+		select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);
+	delete from dbo.tig_pubsub_subscriptions where node_id in (
+		select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);;
+	delete from dbo.tig_pubsub_affiliations where node_id in (
+		select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);
+	delete from dbo.tig_pubsub_nodes where node_id in (
+		select n.node_id from tig_pubsub_nodes n where n.service_id = @_service_id);
 end
 -- QUERY END:
 GO
@@ -574,32 +538,24 @@ begin
 	declare @_jid_id bigint;
 	declare @_exists int;
 
-	BEGIN TRY
-		 BEGIN TRANSACTION
-			select @_jid_id = jid_id from tig_pubsub_jids where jid_index = CAST(@_jid as NVARCHAR(255)) and jid = @_jid;
-			if @_jid_id is not null
-				select @_exists = 1 from tig_pubsub_affiliations where node_id = @_node_id and jid_id = @_jid_id;
-			if @_affil != 'none'
-			begin
-				if @_jid_id is null
-					exec TigPubSubEnsureJid @_jid=@_jid, @_jid_id=@_jid_id output;
-				if @_exists is not null
-					update tig_pubsub_affiliations set affiliation = @_affil where node_id = @_node_id and jid_id = @_jid_id;
-				else
-					insert into tig_pubsub_affiliations (node_id, jid_id, affiliation)
-						values (@_node_id, @_jid_id, @_affil);
-			end
-			else
-			begin
-				if @_exists is not null
-					delete from tig_pubsub_affiliations where node_id = @_node_id and jid_id = @_jid_id;
-			end
-	   COMMIT
-	END TRY
-	BEGIN CATCH
-	  IF @@TRANCOUNT > 0
-		 ROLLBACK
-	END CATCH
+	select @_jid_id = jid_id from tig_pubsub_jids where jid_index = CAST(@_jid as NVARCHAR(255)) and jid = @_jid;
+	if @_jid_id is not null
+		select @_exists = 1 from tig_pubsub_affiliations where node_id = @_node_id and jid_id = @_jid_id;
+	if @_affil != 'none'
+	begin
+		if @_jid_id is null
+			exec TigPubSubEnsureJid @_jid=@_jid, @_jid_id=@_jid_id output;
+		if @_exists is not null
+			update tig_pubsub_affiliations set affiliation = @_affil where node_id = @_node_id and jid_id = @_jid_id;
+		else
+			insert into tig_pubsub_affiliations (node_id, jid_id, affiliation)
+				values (@_node_id, @_jid_id, @_affil);
+	end
+	else
+	begin
+		if @_exists is not null
+			delete from tig_pubsub_affiliations where node_id = @_node_id and jid_id = @_jid_id;
+	end
 end
 -- QUERY END:
 GO
@@ -673,24 +629,16 @@ AS
 begin
     SET NOCOUNT ON;
 	declare @_jid_id bigint;
-	BEGIN TRY
-		 BEGIN TRANSACTION
-			exec TigPubSubEnsureJid @_jid=@_jid, @_jid_id=@_jid_id output;
-			-- Update the row if it exists.    
-			UPDATE tig_pubsub_subscriptions
-				SET subscription = @_subscr where node_id = @_node_id and jid_id = @_jid_id;
-			-- Insert the row if the UPDATE statement failed.	
-			IF (@@ROWCOUNT = 0 )
-			BEGIN
-				insert into tig_pubsub_subscriptions (node_id, jid_id, subscription, subscription_id)
-					values (@_node_id, @_jid_id, @_subscr, @_subscr_id);
-			END
-	   COMMIT
-	END TRY
-	BEGIN CATCH
-	  IF @@TRANCOUNT > 0
-		 ROLLBACK
-	END CATCH
+	exec TigPubSubEnsureJid @_jid=@_jid, @_jid_id=@_jid_id output;
+	-- Update the row if it exists.    
+    UPDATE tig_pubsub_subscriptions
+		SET subscription = @_subscr where node_id = @_node_id and jid_id = @_jid_id;
+	-- Insert the row if the UPDATE statement failed.	
+	IF (@@ROWCOUNT = 0 )
+	BEGIN
+		insert into tig_pubsub_subscriptions (node_id, jid_id, subscription, subscription_id)
+			values (@_node_id, @_jid_id, @_subscr, @_subscr_id);
+	END
 end
 -- QUERY END:
 GO
