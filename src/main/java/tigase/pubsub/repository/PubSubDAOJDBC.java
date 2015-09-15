@@ -72,7 +72,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	 * Connection validation helper.
 	 */
 	private long connectionValidateInterval = 1000 * 60;
-	private PreparedStatement create_node_sp = null;
+	private CallableStatement create_node_sp = null;
 	/**
 	 * Database connection string.
 	 */
@@ -179,16 +179,15 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 						switch (this.database) {
 							case sqlserver:
 								create_node_sp.executeUpdate();
-								rs = create_node_sp.getGeneratedKeys();
-								break;
+								return getNodeId(serviceJid, nodeName);
 
 							default:
 								rs = create_node_sp.executeQuery();
 								break;
 						}
 
-						if ( rs.next() ){
-							nodeId = rs.getLong( 1 );
+						if (rs.next()) {
+							nodeId = rs.getLong(1);
 						}
 					}
 				} finally {
@@ -749,15 +748,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 		conn_valid_st = conn.prepareStatement( query );
 
 		query = "{ call TigPubSubCreateNode(?, ?, ?, ?, ?, ?) }";
-		switch ( database ) {
-			case sqlserver:
-				create_node_sp = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS );
-				break;
-			default:
-				create_node_sp = conn.prepareCall( query );
-				break;
-		}
-
+		create_node_sp = conn.prepareCall( query );
 
 		query = "{ call TigPubSubRemoveNode(?) }";
 		remove_node_sp = conn.prepareCall( query );
