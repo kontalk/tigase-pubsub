@@ -178,6 +178,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 					if (db_conn != null) {
 						switch (this.database) {
 							case sqlserver:
+							case jtds:
 								create_node_sp.executeUpdate();
 								return getNodeId(serviceJid, nodeName);
 
@@ -186,8 +187,8 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 								break;
 						}
 
-						if (rs.next()) {
-							nodeId = rs.getLong(1);
+						if ( rs.next() ){
+							nodeId = rs.getLong( 1 );
 						}
 					}
 				} finally {
@@ -748,7 +749,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 		conn_valid_st = conn.prepareStatement( query );
 
 		query = "{ call TigPubSubCreateNode(?, ?, ?, ?, ?, ?) }";
-		create_node_sp = conn.prepareCall( query );
+				create_node_sp = conn.prepareCall( query );
 
 		query = "{ call TigPubSubRemoveNode(?) }";
 		remove_node_sp = conn.prepareCall( query );

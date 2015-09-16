@@ -17,12 +17,14 @@ if not exists (select * from sysobjects where name='tig_pubsub_service_jids' and
 GO
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_service_jids_service_jid ON [dbo].[tig_pubsub_service_jids](service_jid_index);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_service_jids') AND NAME ='IX_tig_pubsub_service_jids_service_jid')
+	CREATE INDEX IX_tig_pubsub_service_jids_service_jid ON [dbo].[tig_pubsub_service_jids](service_jid_index);
 -- QUERY END:
 GO
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_service_jids_service_jids_sha1 ON [dbo].[tig_pubsub_service_jids](service_jid_sha1);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_service_jids') AND NAME ='IX_tig_pubsub_service_jids_service_jids_sha1')
+	CREATE INDEX IX_tig_pubsub_service_jids_service_jids_sha1 ON [dbo].[tig_pubsub_service_jids](service_jid_sha1);
 -- QUERY END:
 GO
 
@@ -40,12 +42,14 @@ if not exists (select * from sysobjects where name='tig_pubsub_jids' and xtype='
 GO
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_jids_jid ON [dbo].[tig_pubsub_jids](jid_index);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_jids') AND NAME ='IX_tig_pubsub_jids_jid')
+	CREATE INDEX IX_tig_pubsub_jids_jid ON [dbo].[tig_pubsub_jids](jid_index);
 -- QUERY END:
 GO
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_jids_jid_sha1 ON [dbo].[tig_pubsub_jids](jid_sha1);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_jids') AND NAME ='IX_tig_pubsub_jids_jid_sha1')
+	CREATE INDEX IX_tig_pubsub_jids_jid_sha1 ON [dbo].[tig_pubsub_jids](jid_sha1);
 -- QUERY END:
 GO
 
@@ -79,19 +83,23 @@ if not exists (select * from sysobjects where name='tig_pubsub_nodes' and xtype=
 GO
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_nodes_service_id ON [dbo].[tig_pubsub_nodes](service_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_nodes') AND NAME ='IX_tig_pubsub_nodes_service_id')
+	CREATE INDEX IX_tig_pubsub_nodes_service_id ON [dbo].[tig_pubsub_nodes](service_id);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_nodes_name ON [dbo].[tig_pubsub_nodes](name_index);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_nodes') AND NAME ='IX_tig_pubsub_nodes_name')
+	CREATE INDEX IX_tig_pubsub_nodes_name ON [dbo].[tig_pubsub_nodes](name_index);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_nodes_service_id_name ON [dbo].[tig_pubsub_nodes](service_id,name_index);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_nodes') AND NAME ='IX_tig_pubsub_nodes_service_id_name')
+	CREATE INDEX IX_tig_pubsub_nodes_service_id_name ON [dbo].[tig_pubsub_nodes](service_id,name_index);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_nodes_collection_id ON [dbo].[tig_pubsub_nodes](collection_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_nodes') AND NAME ='IX_tig_pubsub_nodes_collection_id')
+	CREATE INDEX IX_tig_pubsub_nodes_collection_id ON [dbo].[tig_pubsub_nodes](collection_id);
 -- QUERY END:
 GO
 
@@ -112,15 +120,18 @@ if not exists (select * from sysobjects where name='tig_pubsub_affiliations' and
 GO
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_affiliations_node_id ON [dbo].[tig_pubsub_affiliations](node_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_affiliations') AND NAME ='IX_tig_pubsub_affiliations_node_id')
+	CREATE INDEX IX_tig_pubsub_affiliations_node_id ON [dbo].[tig_pubsub_affiliations](node_id);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_affiliations_jid_id ON [dbo].[tig_pubsub_affiliations](jid_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_affiliations') AND NAME ='IX_tig_pubsub_affiliations_jid_id')
+	CREATE INDEX IX_tig_pubsub_affiliations_jid_id ON [dbo].[tig_pubsub_affiliations](jid_id);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_affiliations_node_id_jid_id ON [dbo].[tig_pubsub_affiliations](node_id, jid_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_affiliations') AND NAME ='IX_tig_pubsub_affiliations_node_id_jid_id')
+	CREATE INDEX IX_tig_pubsub_affiliations_node_id_jid_id ON [dbo].[tig_pubsub_affiliations](node_id, jid_id);
 -- QUERY END:
 GO
 
@@ -143,15 +154,18 @@ GO
 
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_subscriptions_node_id ON [dbo].[tig_pubsub_subscriptions](node_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_subscriptions') AND NAME ='IX_tig_pubsub_subscriptions_node_id')
+	CREATE INDEX IX_tig_pubsub_subscriptions_node_id ON [dbo].[tig_pubsub_subscriptions](node_id);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_subscriptions_jid_id ON [dbo].[tig_pubsub_subscriptions](jid_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_subscriptions') AND NAME ='IX_tig_pubsub_subscriptions_jid_id')
+	CREATE INDEX IX_tig_pubsub_subscriptions_jid_id ON [dbo].[tig_pubsub_subscriptions](jid_id);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_subscription_node_id_jid_id ON [dbo].[tig_pubsub_subscriptions](node_id, jid_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_subscriptions') AND NAME ='IX_tig_pubsub_subscription_node_id_jid_id')
+	CREATE INDEX IX_tig_pubsub_subscription_node_id_jid_id ON [dbo].[tig_pubsub_subscriptions](node_id, jid_id);
 -- QUERY END:
 GO
 
@@ -177,11 +191,13 @@ if not exists (select * from sysobjects where name='tig_pubsub_items' and xtype=
 GO
 
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_items_node_id ON [dbo].[tig_pubsub_items](node_id);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_items') AND NAME ='IX_tig_pubsub_items_node_id')
+	CREATE INDEX IX_tig_pubsub_items_node_id ON [dbo].[tig_pubsub_items](node_id);
 -- QUERY END:
 GO
 -- QUERY START:
-CREATE INDEX IX_tig_pubsub_items_node_id_id ON [dbo].[tig_pubsub_items](node_id, id_index);
+IF NOT EXISTS(SELECT * FROM sys.indexes WHERE object_id = object_id('dbo.tig_pubsub_items') AND NAME ='IX_tig_pubsub_items_node_id_id')
+	CREATE INDEX IX_tig_pubsub_items_node_id_id ON [dbo].[tig_pubsub_items](node_id, id_index);
 -- QUERY END:
 GO
 
@@ -201,15 +217,25 @@ AS
 begin
 	declare @_service_jid_sha1 varbinary(20);
 
-	set @_service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
-	select @_service_id=service_id from tig_pubsub_service_jids 
-		where service_jid_sha1 = @_service_jid_sha1 and service_jid = @_service_jid;
-	if @_service_id is null
-	begin
-		insert into tig_pubsub_service_jids (service_jid,service_jid_sha1)
-			values (@_service_jid, @_service_jid_sha1);
-		set @_service_id = @@IDENTITY
-	end
+		set @_service_jid_sha1 = HASHBYTES('SHA1', @_service_jid);
+		select @_service_id=service_id from tig_pubsub_service_jids
+			where service_jid_sha1 = @_service_jid_sha1 and service_jid = @_service_jid;
+		if @_service_id is null
+		begin
+	BEGIN TRY
+			insert into tig_pubsub_service_jids (service_jid,service_jid_sha1)
+				select @_service_jid, @_service_jid_sha1 where not exists(
+							select 1 from tig_pubsub_service_jids where service_jid_sha1 = @_service_jid_sha1 and service_jid = @_service_jid);
+			set @_service_id = @@IDENTITY
+			END TRY
+			BEGIN CATCH
+					IF ERROR_NUMBER() = 2627
+						select @_service_id=service_id from tig_pubsub_service_jids
+							where service_jid_sha1 = @_service_jid_sha1 and service_jid = @_service_jid;
+					ELSE
+					THROW
+			END CATCH
+		end
 end
 -- QUERY END:
 GO
@@ -228,15 +254,25 @@ AS
 begin
 	declare @_jid_sha1 varbinary(20);
 
-	set @_jid_sha1 = HASHBYTES('SHA1', @_jid);
-	select @_jid_id=jid_id from tig_pubsub_jids 
-		where jid_sha1 = @_jid_sha1 and jid = @_jid;
-	if @_jid_id is null
-	begin
-		insert into tig_pubsub_jids (jid,jid_sha1)
-			values (@_jid, @_jid_sha1);
-		set @_jid_id = @@IDENTITY
-	end
+		set @_jid_sha1 = HASHBYTES('SHA1', @_jid);
+		select @_jid_id=jid_id from tig_pubsub_jids
+			where jid_sha1 = @_jid_sha1 and jid = @_jid;
+		if @_jid_id is null
+		begin
+			BEGIN TRY
+			insert into tig_pubsub_jids (jid,jid_sha1)
+				select @_jid, @_jid_sha1 where not exists(
+							select 1 from tig_pubsub_jids where jid_sha1 = @_jid_sha1 and jid = @_jid);
+			set @_jid_id = @@IDENTITY
+			END TRY
+			BEGIN CATCH
+					IF ERROR_NUMBER() = 2627
+						select @_jid_id=jid_id from tig_pubsub_jids
+							where jid_sha1 = @_jid_sha1 and jid = @_jid;
+					ELSE
+						THROW
+			END CATCH
+		end
 end
 -- QUERY END:
 GO
@@ -263,10 +299,21 @@ begin
 	exec TigPubSubEnsureServiceJid @_service_jid=@_service_jid, @_service_id=@_service_id output;
 	exec TigPubSubEnsureJid @_jid=@_node_creator, @_jid_id=@_node_creator_id output;
 
-	insert into dbo.tig_pubsub_nodes (service_id, name, name_sha1, type, creator_id, creation_date, configuration, collection_id)
-		values (@_service_id, @_node_name, HASHBYTES('SHA1', @_node_name), @_node_type, @_node_creator_id, getdate(), @_node_conf, @_collection_id);
+	BEGIN TRY
+		insert into dbo.tig_pubsub_nodes (service_id, name, name_sha1, type, creator_id, creation_date, configuration, collection_id)
+				select @_service_id, @_node_name, HASHBYTES('SHA1', @_node_name), @_node_type, @_node_creator_id, getdate(), @_node_conf, @_collection_id where not exists(
+							select 1 from tig_pubsub_nodes where service_id=@_service_id AND name_sha1=HASHBYTES('SHA1', @_node_name));
 
-	select @@IDENTITY as node_id;
+		select @@IDENTITY as node_id;
+
+  END TRY
+  BEGIN CATCH
+      IF ERROR_NUMBER() = 2627
+				select node_id from tig_pubsub_nodes where service_id=@_service_id AND name_sha1=HASHBYTES('SHA1', @_node_name)
+			ELSE
+				THROW
+  END CATCH
+
 end
 -- QUERY END:
 GO
@@ -323,23 +370,30 @@ create procedure dbo.TigPubSubWriteItem
 	@_item_id nvarchar(1024),
 	@_publisher nvarchar(2049),
 	@_item_data ntext
-AS	
+AS
 begin
     SET NOCOUNT ON;
 	declare @_publisher_id bigint;
 
 	exec TigPubSubEnsureJid @_jid=@_publisher, @_jid_id=@_publisher_id output;
-	-- Update the row if it exists.    
+	-- Update the row if it exists.
     UPDATE tig_pubsub_items
 		SET publisher_id = @_publisher_id, data = @_item_data, update_date = getdate()
-		WHERE tig_pubsub_items.node_id = @_node_id 
+		WHERE tig_pubsub_items.node_id = @_node_id
 			and tig_pubsub_items.id_index = CAST(@_item_id as nvarchar(255))
 			and tig_pubsub_items.id = @_item_id;
-	-- Insert the row if the UPDATE statement failed.	
+	-- Insert the row if the UPDATE statement failed.
 	IF (@@ROWCOUNT = 0 )
 	BEGIN
-		insert into tig_pubsub_items (node_id, id, id_sha1, creation_date, update_date, publisher_id, data)
-		values (@_node_id, @_item_id, HASHBYTES('SHA1',@_item_id), getdate(), getdate(), @_publisher_id, @_item_data)
+		BEGIN TRY
+				insert into tig_pubsub_items (node_id, id, id_sha1, creation_date, update_date, publisher_id, data)
+				select @_node_id, @_item_id, HASHBYTES('SHA1',@_item_id), getdate(), getdate(), @_publisher_id, @_item_data where not exists(
+					select 1 from tig_pubsub_items where node_id = @_node_id AND id_sha1 = HASHBYTES('SHA1',@_item_id));
+		END TRY
+		BEGIN CATCH
+				IF ERROR_NUMBER() <> 2627
+				THROW
+		END CATCH
 	END
 end
 -- QUERY END:
@@ -543,14 +597,21 @@ begin
 		select @_exists = 1 from tig_pubsub_affiliations where node_id = @_node_id and jid_id = @_jid_id;
 	if @_affil != 'none'
 	begin
-		if @_jid_id is null
-			exec TigPubSubEnsureJid @_jid=@_jid, @_jid_id=@_jid_id output;
-		if @_exists is not null
-			update tig_pubsub_affiliations set affiliation = @_affil where node_id = @_node_id and jid_id = @_jid_id;
-		else
-			insert into tig_pubsub_affiliations (node_id, jid_id, affiliation)
-				values (@_node_id, @_jid_id, @_affil);
-	end
+			if @_jid_id is null
+				exec TigPubSubEnsureJid @_jid=@_jid, @_jid_id=@_jid_id output;
+			if @_exists is not null
+				update tig_pubsub_affiliations set affiliation = @_affil where node_id = @_node_id and jid_id = @_jid_id;
+			else
+				BEGIN TRY
+					insert into tig_pubsub_affiliations (node_id, jid_id, affiliation)
+					select @_node_id, @_jid_id, @_affil where not exists(
+						select 1 from tig_pubsub_affiliations where node_id = @_node_id AND jid_id = @_jid_id);
+				END TRY
+				BEGIN CATCH
+						IF ERROR_NUMBER() <> 2627
+							THROW
+				END CATCH
+		end
 	else
 	begin
 		if @_exists is not null
@@ -636,8 +697,15 @@ begin
 	-- Insert the row if the UPDATE statement failed.	
 	IF (@@ROWCOUNT = 0 )
 	BEGIN
-		insert into tig_pubsub_subscriptions (node_id, jid_id, subscription, subscription_id)
-			values (@_node_id, @_jid_id, @_subscr, @_subscr_id);
+		BEGIN TRY
+			insert into tig_pubsub_subscriptions (node_id, jid_id, subscription, subscription_id)
+				select @_node_id, @_jid_id, @_subscr, @_subscr_id where not exists(
+					select 1 from tig_pubsub_subscriptions where node_id = @_node_id AND jid_id = @_jid_id);
+		END TRY
+		BEGIN CATCH
+				IF ERROR_NUMBER() <> 2627
+					THROW
+		END CATCH
 	END
 end
 -- QUERY END:
