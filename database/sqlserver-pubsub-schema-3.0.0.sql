@@ -233,7 +233,9 @@ begin
 						select @_service_id=service_id from tig_pubsub_service_jids
 							where service_jid_sha1 = @_service_jid_sha1 and service_jid = @_service_jid;
 					ELSE
-					THROW
+						declare @ErrorMessage nvarchar(max), @ErrorSeverity int, @ErrorState int;
+						select @ErrorMessage = ERROR_MESSAGE() + ' Line ' + cast(ERROR_LINE() as nvarchar(5)), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+						raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
 			END CATCH
 		end
 end
@@ -270,7 +272,9 @@ begin
 						select @_jid_id=jid_id from tig_pubsub_jids
 							where jid_sha1 = @_jid_sha1 and jid = @_jid;
 					ELSE
-						THROW
+						declare @ErrorMessage nvarchar(max), @ErrorSeverity int, @ErrorState int;
+						select @ErrorMessage = ERROR_MESSAGE() + ' Line ' + cast(ERROR_LINE() as nvarchar(5)), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+						raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
 			END CATCH
 		end
 end
@@ -311,7 +315,9 @@ begin
       IF ERROR_NUMBER() = 2627
 				select node_id from tig_pubsub_nodes where service_id=@_service_id AND name_sha1=HASHBYTES('SHA1', @_node_name)
 			ELSE
-				THROW
+					declare @ErrorMessage nvarchar(max), @ErrorSeverity int, @ErrorState int;
+					select @ErrorMessage = ERROR_MESSAGE() + ' Line ' + cast(ERROR_LINE() as nvarchar(5)), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+					raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
   END CATCH
 
 end
@@ -392,7 +398,9 @@ begin
 		END TRY
 		BEGIN CATCH
 				IF ERROR_NUMBER() <> 2627
-				THROW
+						declare @ErrorMessage nvarchar(max), @ErrorSeverity int, @ErrorState int;
+						select @ErrorMessage = ERROR_MESSAGE() + ' Line ' + cast(ERROR_LINE() as nvarchar(5)), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+						raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
 		END CATCH
 	END
 end
@@ -609,7 +617,9 @@ begin
 				END TRY
 				BEGIN CATCH
 						IF ERROR_NUMBER() <> 2627
-							THROW
+						declare @ErrorMessage nvarchar(max), @ErrorSeverity int, @ErrorState int;
+						select @ErrorMessage = ERROR_MESSAGE() + ' Line ' + cast(ERROR_LINE() as nvarchar(5)), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+						raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
 				END CATCH
 		end
 	else
@@ -704,7 +714,9 @@ begin
 		END TRY
 		BEGIN CATCH
 				IF ERROR_NUMBER() <> 2627
-					THROW
+						declare @ErrorMessage nvarchar(max), @ErrorSeverity int, @ErrorState int;
+						select @ErrorMessage = ERROR_MESSAGE() + ' Line ' + cast(ERROR_LINE() as nvarchar(5)), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
+						raiserror (@ErrorMessage, @ErrorSeverity, @ErrorState);
 		END CATCH
 	END
 end
