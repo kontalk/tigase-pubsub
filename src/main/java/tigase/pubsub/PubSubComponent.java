@@ -47,6 +47,9 @@ import tigase.db.RepositoryFactory;
 import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.db.UserRepository;
+import tigase.disteventbus.EventBus;
+import tigase.disteventbus.EventBusFactory;
+import tigase.disteventbus.EventHandler;
 import tigase.osgi.ModulesManagerImpl;
 import tigase.pubsub.modules.AdHocConfigCommandModule;
 import tigase.pubsub.modules.CapsModule;
@@ -223,6 +226,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	private XsltTool xslTransformer;
 
+	private RemoveUserEventHandler removeUserEventHandler = new RemoveUserEventHandler();
+	
 	/**
 	 * Constructs ...
 	 *
@@ -715,6 +720,42 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			e.printStackTrace();
 		}
 	}
+
+	@Override
+	public void start() {
+		super.start();
+		EventBus eventBus = EventBusFactory.getInstance();
+		eventBus.addHandler("remove", "tigase:user", removeUserEventHandler);
+	}
+
+	@Override
+	public void stop() {
+		super.stop();
+		EventBus eventBus = EventBusFactory.getInstance();
+		eventBus.removeHandler("remove", "tigase:user", removeUserEventHandler);
+	}
+	
+	private class RemoveUserEventHandler implements EventHandler {
+
+		private final String[] JID_PATH = { "user", "jid" };
+		
+		@Override
+		public void onEvent(String name, String xmlns, Element event) {
+			if (!("remove".equals(name) && "tigase:user".equals(xmlns)))
+				return;
+			
+			String jidStr = event.getChildCData(JID_PATH);
+			BareJID jid = BareJID.bareJIDInstanceNS(jidStr);
+			// handle removal of pep service etc..
+			try {
+				pubsubRepository.onUserRemoved(jid);
+			} catch (RepositoryException ex) {
+				log.log(Level.WARNING, "could not remove PubSub data for removed user " + jidStr, ex);
+			}
+		}
+		
+	}
+	
 }
 
 // ~ Formatted in Tigase Code Convention on 13/10/16

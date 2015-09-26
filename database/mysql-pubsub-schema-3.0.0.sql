@@ -586,3 +586,5 @@ begin
 		where node_id = _node_id and id_sha1 = SHA1(_item_id) and id = _item_id;
 end //
 -- QUERY END:
+
+delimiter ;

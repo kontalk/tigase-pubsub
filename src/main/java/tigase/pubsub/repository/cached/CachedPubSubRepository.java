@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import tigase.pubsub.AbstractNodeConfig;
+import tigase.pubsub.Affiliation;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.Subscription;
 import tigase.pubsub.Utils;
@@ -695,6 +697,22 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 			log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
 			nodeSaver.save(node);
 			// }
+		}
+	}
+	
+	@Override
+	public void onUserRemoved(BareJID userJid) throws RepositoryException {
+		dao.removeService(userJid);
+		rootCollection.remove(userJid);
+		Iterator<Node> nodesIter = this.nodes.values().iterator();
+		while (nodesIter.hasNext()) {
+			Node node = nodesIter.next();
+			NodeSubscriptions nodeSubscriptions = node.getNodeSubscriptions();			
+			nodeSubscriptions.changeSubscription(userJid, Subscription.none);
+			nodeSubscriptions.merge();
+			NodeAffiliations nodeAffiliations = node.getNodeAffiliations();
+			nodeAffiliations.changeAffiliation(userJid, Affiliation.none);
+			nodeAffiliations.merge();
 		}
 	}
 }

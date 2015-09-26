@@ -119,6 +119,11 @@ public class PubSubRepositoryWrapper implements IPubSubRepository, StatisticHold
 	}
 
 	@Override
+	public void onUserRemoved(BareJID userJid) throws RepositoryException {
+		
+	}
+
+	@Override
 	public void statisticExecutedIn(long executionTime) {
 		if (repo instanceof StatisticHolder) {
 			((StatisticHolder) repo).statisticExecutedIn(executionTime);

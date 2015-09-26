@@ -213,6 +213,8 @@ public interface IPubSubDAO<T> extends Repository {
 	
 	public void removeAllFromRootCollection(BareJID serviceJid) throws RepositoryException;
 	
+	void removeService(BareJID serviceJid) throws RepositoryException;
+	
 	/**
 	 * Method description
 	 * 
@@ -224,7 +226,7 @@ public interface IPubSubDAO<T> extends Repository {
 	public void removeFromRootCollection(BareJID serviceJid, T nodeId) throws RepositoryException;
 
 	public void removeNodeSubscription(BareJID serviceJid, T nodeId, BareJID jid) throws RepositoryException;
-	
+
 	/**
 	 * Method description
 	 * 
@@ -264,4 +266,5 @@ public interface IPubSubDAO<T> extends Repository {
 	 */
 	public abstract void writeItem(BareJID serviceJid, T nodeId, long timeInMilis, final String id,
 			final String publisher, final Element item) throws RepositoryException;
+	
 }

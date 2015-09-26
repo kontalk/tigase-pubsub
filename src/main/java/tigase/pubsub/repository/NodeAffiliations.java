@@ -53,7 +53,7 @@ public abstract class NodeAffiliations implements IAffiliations {
 		if (a != null) {
 			a.setAffiliation(affiliation);
 			changed = true;
-		} else {
+		} else if (affiliation != Affiliation.none) {
 			a = new UsersAffiliation(bareJid, affiliation);
 			affs.put(bareJid, a);
 			changed = true;

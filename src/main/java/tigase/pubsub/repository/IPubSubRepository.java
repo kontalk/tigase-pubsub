@@ -223,4 +223,6 @@ public interface IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	public void update(BareJID serviceJid, String nodeName, ISubscriptions subscriptions) throws RepositoryException;
+	
+	public void onUserRemoved(BareJID userJid) throws RepositoryException;
 }

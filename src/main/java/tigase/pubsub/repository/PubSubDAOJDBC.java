@@ -99,6 +99,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	 */
 	private long lastConnectionValidated = 0;
 	private CallableStatement remove_node_sp = null;
+	private CallableStatement remove_service_sp = null;
 	private CallableStatement set_node_affiliations_sp = null;
 	private CallableStatement set_node_configuration_sp = null;
 	private CallableStatement set_node_subscriptions_sp = null;
@@ -753,6 +754,9 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 		query = "{ call TigPubSubRemoveNode(?) }";
 		remove_node_sp = conn.prepareCall( query );
+		
+		query = "{ call TigPubSubRemoveService(?) }";
+		remove_service_sp = conn.prepareCall( query );
 
 		query = "{ call TigPubSubGetNodeId(?, ?) }";
 		get_node_id_sp = conn.prepareCall( query );
@@ -947,6 +951,19 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 		}
 	}
 
+	@Override
+	public void removeService( BareJID serviceJid ) throws RepositoryException {
+		try {
+			checkConnection();
+			synchronized ( remove_service_sp ) {
+				remove_service_sp.setString( 1, serviceJid.toString() );
+				remove_service_sp.execute();
+			}
+		} catch ( SQLException e ) {
+			throw new RepositoryException( "Node subscribers fragment removing error", e );
+		}
+	}
+	
 	@Override
 	public void updateNodeAffiliation( BareJID serviceJid, Long nodeId, String nodeName, UsersAffiliation affiliation ) throws RepositoryException {
 		if (log.isLoggable(Level.FINEST)) {

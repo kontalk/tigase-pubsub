@@ -710,4 +710,52 @@ public class StoredProcedures {
 		}						
 	}
 	
+	public static void tigPubSubRemoveService(String serviceJid, ResultSet[] data) throws SQLException {	
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+
+		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+
+		try {
+			PreparedStatement ps = conn.prepareStatement("delete from tig_pubsub_items where node_id in ("
+					+ "select n.node_id from tig_pubsub_nodes n"
+					+ " inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id"
+					+ " where sj.service_jid = ?)");
+			ps.setString(1, serviceJid);
+			ps.executeUpdate();
+			ps = conn.prepareStatement("delete from tig_pubsub_affiliations where node_id in ("
+					+ "select n.node_id from tig_pubsub_nodes n"
+					+ " inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id"
+					+ " where sj.service_jid = ?)");
+			ps.setString(1, serviceJid);
+			ps.executeUpdate();
+			ps = conn.prepareStatement("delete from tig_pubsub_subscriptions where node_id in ("
+					+ "select n.node_id from tig_pubsub_nodes n"
+					+ " inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id"
+					+ " where sj.service_jid = ?)");
+			ps.setString(1, serviceJid);
+			ps.executeUpdate();
+			ps = conn.prepareStatement("delete from tig_pubsub_nodes where node_id in ("
+					+ "select n.node_id from tig_pubsub_nodes n"
+					+ " inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id"
+					+ " where sj.service_jid = ?)");	
+			ps.setString(1, serviceJid);
+			ps.executeUpdate();
+
+			ps = conn.prepareStatement("delete from tig_pubsub_service_jids where service_jid = ?");	
+			ps.setString(1, serviceJid);
+			ps.executeUpdate();
+			ps = conn.prepareStatement("delete from tig_pubsub_affiliations where jid_id in (select j.jid_id from tig_pubsub_jids j where j.jid = ?)");	
+			ps.setString(1, serviceJid);
+			ps.executeUpdate();
+			ps = conn.prepareStatement("delete from tig_pubsub_subscriptions where jid_id in (select j.jid_id from tig_pubsub_jids j where j.jid = ?)");	
+			ps.setString(1, serviceJid);
+			ps.executeUpdate();		
+		} catch (SQLException e) {
+			// e.printStackTrace();
+			// log.log(Level.SEVERE, "SP error", e);
+			throw e;
+		} finally {
+			conn.close();
+		}			
+	}	
 }

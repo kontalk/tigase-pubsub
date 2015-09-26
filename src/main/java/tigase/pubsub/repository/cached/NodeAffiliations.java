@@ -34,7 +34,7 @@ public class NodeAffiliations extends tigase.pubsub.repository.NodeAffiliations 
 		if (a != null) {
 			a.setAffiliation(affiliation);
 			changedAffs.put(bareJid, a);
-		} else {
+		} else if (affiliation != Affiliation.none) {
 			a = new UsersAffiliation(bareJid, affiliation);
 			changedAffs.put(bareJid, a);
 		}

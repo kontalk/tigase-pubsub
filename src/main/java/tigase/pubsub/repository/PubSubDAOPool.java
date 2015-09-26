@@ -533,4 +533,17 @@ public class PubSubDAOPool<T> extends PubSubDAO<T> {
 		}
 	}
 
+	@Override
+	public void removeService(BareJID serviceJid) throws RepositoryException {
+		IPubSubDAO dao = takeDao(serviceJid);
+		if (dao != null) {
+			try {
+				dao.removeService(serviceJid);
+			} finally {
+				offerDao(serviceJid, dao);
+			}
+		} else {
+			log.warning("dao is NULL, pool empty? - " + getPoolDetails(serviceJid));
+		}	}
+
 }
