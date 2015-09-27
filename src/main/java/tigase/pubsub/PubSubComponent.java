@@ -737,7 +737,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	
 	private class RemoveUserEventHandler implements EventHandler {
 
-		private final String[] JID_PATH = { "user", "jid" };
+		private final String[] JID_PATH = { "remove", "jid" };
 		
 		@Override
 		public void onEvent(String name, String xmlns, Element event) {
