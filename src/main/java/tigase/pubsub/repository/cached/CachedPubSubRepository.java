@@ -63,6 +63,10 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 						return;
 					}
 
+					if ( log.isLoggable( Level.FINEST ) ){
+						log.log( Level.FINEST, "Saving node: {0}", new Object[] { node } );
+					}
+
 					if (node.configNeedsWriting()) {
 						String collection = node.getNodeConfig().getCollection();
 						T collectionId = null;
@@ -427,6 +431,11 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 
 		long end = System.currentTimeMillis();
 
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Creating node[2], serviceJid: {0}, nodeName: {1}, nodeAffiliations: {2}, nodeSubscriptions: {3}, node: {4}",
+							 new Object[] { serviceJid, nodeName, nodeAffiliations, nodeSubscriptions, node } );
+		}
+
 		++nodes_added;
 		writingTime += (end - start);
 	}
@@ -442,7 +451,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
 
 		if ( log.isLoggable( Level.FINEST ) ){
-			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
+			log.log( Level.FINEST, "Deleting node, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
 							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
 		}
 
@@ -494,12 +503,20 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 		if (node == null) {
 			T nodeId = this.dao.getNodeId(serviceJid, nodeName);
 			if (nodeId == null) {
+				if ( log.isLoggable( Level.FINEST ) ){
+					log.log( Level.FINEST, "Getting node[1] -- nodeId null! serviceJid: {0}, nodeName: {1}, nodeId: {2}",
+							 new Object[] { serviceJid, nodeName, nodeId } );
+				}
 				return null;
 			}
 			String cfgData = this.dao.getNodeConfig(serviceJid, nodeId);
 			AbstractNodeConfig nodeConfig = this.dao.parseConfig(nodeName, cfgData);
 
 			if (nodeConfig == null) {
+				if ( log.isLoggable( Level.FINEST ) ){
+					log.log( Level.FINEST, "Getting node[2] -- config null! serviceJid: {0}, nodeName: {1}, cfgData: {2}",
+							 new Object[] { serviceJid, nodeName, cfgData } );
+				}
 				return null;
 			}
 
@@ -508,23 +525,14 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 
 			node = new Node(nodeId, serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
 
-			// if (maxCacheSize != null && this.nodes.size() > maxCacheSize) {
-			// Iterator<Entry<String, Node>> it =
-			// this.nodes.entrySet().iterator();
-			// int count = 0;
-			// while (it.hasNext() && count < 10) {
-			// Entry<String, Node> e = it.next();
-			// if (nodesToSave.contains(e.getValue())) {
-			// continue;
-			// }
-			// count++;
-			// it.remove();
-			// }
-			//
-			// }
 			this.nodes.put(key, node);
-		}
 
+			if ( log.isLoggable( Level.FINEST ) ){
+				log.log( Level.FINEST, "Getting node[2], serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeAffiliations {4}, nodeSubscriptions: {5}",
+						 new Object[] { serviceJid, nodeName, key, node, nodeAffiliations, nodeSubscriptions } );
+			}
+
+		}
 		return node;
 	}
 
@@ -540,8 +548,8 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 		Node node = getNode(serviceJid, nodeName);
 
 		if ( log.isLoggable( Level.FINEST ) ){
-			log.log( Level.FINEST, "Getting node config, serviceJid: {0}, nodeName: {1}",
-							 new Object[] { serviceJid, nodeName } );
+			log.log( Level.FINEST, "Getting node config, serviceJid: {0}, nodeName: {1}, node: {2}",
+							 new Object[] { serviceJid, nodeName, node } );
 		}
 		try {
 			return (node == null) ? null : node.getNodeConfig().clone();
@@ -570,6 +578,11 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 	@Override
 	public ISubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
+
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node subscriptions, serviceJid: {0}, nodeName: {1}, node: {2}, node.getNodeConfig(): {3}",
+							 new Object[] { serviceJid, nodeName, node, node.getNodeConfig() } );
+		}
 
 		return (node == null) ? null : node.getNodeSubscriptions();
 	}
@@ -669,6 +682,11 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 		if (nodeAffiliations instanceof NodeAffiliations) {
 			Node node = getNode(serviceJid, nodeName);
 
+			if ( log.isLoggable( Level.FINEST ) ){
+				log.log( Level.FINEST, "Updating node affiliations, serviceJid: {0}, nodeName: {1}, node: {2}, nodeAffiliations: {3}",
+								 new Object[] { serviceJid, nodeName, node, nodeAffiliations } );
+			}
+
 			if (node != null) {
 				if (node.getNodeAffiliations() != nodeAffiliations) {
 					throw new RuntimeException("INCORRECT");
@@ -676,7 +694,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 
 				// node.setNodeAffiliationsChangeTimestamp();
 				// synchronized (mutex) {
-				log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations)");
+				log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations), node: " + node);
 				nodeSaver.save(node);
 
 				// }

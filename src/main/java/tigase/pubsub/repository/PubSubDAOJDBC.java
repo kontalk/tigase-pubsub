@@ -447,7 +447,12 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 					get_node_id_sp.setString(2, nodeName);
 					rs = get_node_id_sp.executeQuery();
 					if (rs.next()) {
-						return rs.getLong(1);
+						final long nodeId = rs.getLong(1);
+						if ( log.isLoggable( Level.FINEST ) ){
+							log.log( Level.FINEST, "Getting Node ID: serviceJid: {0}, nodeName: {1}, nodeId: {2}, get_node_id_sp: {3}",
+											 new Object[] { serviceJid, nodeName, nodeId, get_node_id_sp } );
+						}
+						return nodeId;
 					}
 					return null;
 				} finally {
