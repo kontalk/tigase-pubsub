@@ -44,17 +44,17 @@ begin
 	DECLARE exit handler for sqlexception
 		BEGIN
 			-- ERROR
-		ROLLBACK;
-		select node_id from tig_pubsub_nodes where node_id = _node_id and service_id = _service_id;
+		select node_id from tig_pubsub_nodes
+			where name = _node_name and service_id = (select service_id from tig_pubsub_service_jids where service_jid = _service_id);
 	END;
 
 	START TRANSACTION;
 	select TigPubSubEnsureServiceJid(_service_jid) into _service_id;
 	select TigPubSubEnsureJid(_node_creator) into _node_creator_id;
 
-	select node_id into _exists from tig_pubsub_nodes where node_id = _node_id and service_id = _service_id;
+	select node_id into _exists from tig_pubsub_nodes where name = _node_name and service_id = _service_id;
 	if _exists is not null then
-		select _node_id as node_id;
+		select _exists as node_id;
 	else
 		insert into tig_pubsub_nodes (service_id,name,name_sha1,`type`,creator_id,configuration,collection_id)
 			values (_service_id, _node_name, SHA1(_node_name), _node_type, _node_creator_id, _node_conf, _collection_id);
