@@ -23,6 +23,7 @@
 package tigase.pubsub.modules;
 
 import java.util.Map;
+
 import tigase.component2.PacketWriter;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
@@ -33,9 +34,18 @@ import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IPubSubDAO;
 import tigase.pubsub.repository.ISubscriptions;
 import tigase.pubsub.repository.stateless.UsersSubscription;
+
 import tigase.server.Packet;
+
+import tigase.xmpp.Authorization;
+
 import tigase.xml.Element;
+
 import tigase.xmpp.BareJID;
+
+import tigase.pubsub.AbstractNodeConfig;
+
+import java.util.logging.Level;
 
 /**
  * Class description
@@ -118,8 +128,18 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 					subscriptionsResult.addChild(a);					
 				}
 			} else {
+				AbstractNodeConfig nodeConfig = getRepository().getNodeConfig( serviceJid, nodeName );
+
+				if ( nodeConfig == null ){
+					throw new PubSubException( packet.getElement(), Authorization.ITEM_NOT_FOUND );
+				}
+
 				ISubscriptions nodeSubscriptions = getRepository().getNodeSubscriptions(serviceJid, nodeName);
 
+				if ( log.isLoggable( Level.FINEST ) ){
+					log.log( Level.FINEST, "Getting node subscription, serviceJid: {0}, nodeName: {1}, nodeConfig: {2}, nodeSubscriptions: {3}",
+							 new Object[] { serviceJid, nodeName, nodeConfig, nodeSubscriptions } );
+				}
 				subscriptionsResult.addAttribute("node", nodeName);
 
 				UsersSubscription[] subscribers = nodeSubscriptions.getSubscriptions();
@@ -134,6 +154,8 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 			}
 
 			packetWriter.write(result);
+		} catch (PubSubException e1) {
+			throw e1;
 		} catch (Exception e) {
 			e.printStackTrace();
 
