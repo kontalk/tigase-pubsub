@@ -1,6 +1,6 @@
--- QUERY START:
 \i database/postgresql-pubsub-schema-3.0.0.sql
--- QUERY END:s
+
+-- LOAD FILE: database/postgresql-pubsub-schema-3.0.0.sql
 
 -- QUERY START:
 create or replace function TigPubSubRemoveService(varchar(2049)) returns void as $$

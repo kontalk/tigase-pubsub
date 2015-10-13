@@ -1,6 +1,6 @@
--- QUERY START:
 source database/mysql-pubsub-schema-3.0.0.sql;
--- QUERY END:
+
+-- LOAD FILE: database/mysql-pubsub-schema-3.0.0.sql
 
 -- QUERY START:
 drop procedure if exists TigPubSubCreateNode;

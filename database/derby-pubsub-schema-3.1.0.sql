@@ -1,6 +1,6 @@
--- QUERY START:
 run 'database/derby-pubsub-schema-3.0.0.sql';
--- QUERY END:
+
+-- LOAD FILE: database/derby-pubsub-schema-3.0.0.sql
 
 -- QUERY START:
 create procedure TigPubSubRemoveService(service_jid varchar(2049))

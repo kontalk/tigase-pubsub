@@ -1,3 +1,5 @@
+-- LOAD FILE: database/sqlserver-pubsub-schema-3.0.0.sql
+
 -- QUERY START:
 SET QUOTED_IDENTIFIER ON
 -- QUERY END:
