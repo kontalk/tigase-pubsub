@@ -655,11 +655,11 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
 							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
 		}
-		dao.removeFromRootCollection(serviceJid, nodeId);
-		Set<String> nodes = rootCollection.get(serviceJid);
-		if (nodes != null) {
-			nodes.remove(nodeName);
+		Set<String> rootCollectionNodes = getRootCollectionSet(serviceJid );
+		if (rootCollectionNodes != null) {
+			rootCollectionNodes.remove(nodeName);
 		}
+		this.nodes.remove( key );
 	}
 
 	@Override
@@ -720,6 +720,12 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 	
 	@Override
 	public void onUserRemoved(BareJID userJid) throws RepositoryException {
+		String[] rootCollectionNodes = getRootCollection( userJid );
+		if ( rootCollectionNodes != null ){
+			for ( String node : rootCollectionNodes ) {
+				removeFromRootCollection( userJid, node );
+			}
+		}
 		dao.removeService(userJid);
 		rootCollection.remove(userJid);
 		Iterator<Node> nodesIter = this.nodes.values().iterator();
