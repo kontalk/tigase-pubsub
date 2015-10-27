@@ -323,6 +323,7 @@ public class RetrieveItemsModule extends AbstractPubSubModule {
 					new String[] { "http://jabber.org/protocol/pubsub" });
 			final Element ritems = new Element("items", new String[] { "node" }, new String[] { nodeName });
 			final Packet iq = packet.okResult(rpubsub, 0);
+			iq.setXMLNS( Packet.CLIENT_XMLNS );
 
 			rpubsub.addChild(ritems);
 
