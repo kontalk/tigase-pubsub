@@ -22,6 +22,7 @@
 
 package tigase.pubsub;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,8 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	
 	private static final String ID = "pep";
 	
+	private static final String CAPS_XMLNS = "http://jabber.org/protocol/caps";
+	
 	protected static final Element[] DISCO_FEATURES = { new Element("feature", new String[] {
 			"var" }, new String[] { PUBSUB_XMLNS }),
 			new Element("feature", new String[] { "var" }, new String[] { PUBSUB_XMLNS + "#owner" }),
@@ -72,9 +75,15 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 					"pep" }), };	
 	
 	protected static final String[][] ELEMENTS = { Iq.IQ_PUBSUB_PATH, new String[] { Presence.ELEM_NAME }, Iq.IQ_QUERY_PATH, Iq.IQ_QUERY_PATH };
-	
+	private static final String[]   PRESENCE_C_PATH         = { Presence.ELEM_NAME, "c" };	
 	protected static final String[] XMLNSS = { PUBSUB_XMLNS, Presence.CLIENT_XMLNS, DISCO_ITEMS_XMLNS, DISCO_INFO_XMLNS };
 	
+	private static final Set<StanzaType> TYPES = new HashSet<StanzaType>(Arrays.asList(
+			// stanza types for presences
+			null, StanzaType.available, StanzaType.unavailable, 
+			// stanza types for iq
+			StanzaType.get, StanzaType.set, StanzaType.result, StanzaType.error));
+
 	protected JID pubsubJid = null;
 	
 	protected boolean simplePepEnabled = false;
@@ -122,11 +131,13 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 
 	@Override
 	public void process(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings) throws XMPPException {
-		if (packet.getElemName() == Iq.ELEM_NAME) {
-			processIq(packet, session, results);
-		}
-		if (packet.getElemName() == Presence.ELEM_NAME) {
-			processPresence(packet, session, results);
+		switch (packet.getElemName()) {
+			case Iq.ELEM_NAME:
+				processIq(packet, session, results);
+				break;
+			case Presence.ELEM_NAME:
+				processPresence(packet, session, results);
+				break;
 		}
 	}
 
@@ -144,6 +155,11 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	public String[] supNamespaces() {
 		return XMLNSS;
 	}
+	
+	@Override
+	public Set<StanzaType> supTypes() {
+		return TYPES;
+	}
 
 	protected void processIq(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws XMPPException {
 		if (session != null && session.isServerSession()) {
@@ -152,12 +168,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		
 		Element pubsubEl = packet.getElement().findChildStaticStr(Iq.IQ_PUBSUB_PATH);
 		if (pubsubEl != null && simplePepEnabled) {
-			List<Element> children = pubsubEl.getChildren();
-			boolean simple = false;
-			for (Element child : children) {
-				String node = child.getAttributeStaticStr("node");
-				simple |= simpleNodes.contains(node);
-			}
+			boolean simple = pubsubEl.findChild(c -> simpleNodes.contains(c.getAttributeStaticStr("node"))) != null;
 			if (simple) {
 				// if simple and simple support is enabled we are leaving support
 				// for this node to default pep plugin (not presistent pep)
@@ -230,8 +241,16 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	}
 	
 	protected void processPresence(Packet packet, XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException {
+		boolean forward = false;
+		if (packet.getType() == null || packet.getType() == StanzaType.available) {
+			// forward only available packets with CAPS as without there is no point in doing this
+			forward = packet.getElement().getXMLNSStaticStr(PRESENCE_C_PATH) == CAPS_XMLNS;	
+		} else if (packet.getType() == StanzaType.unavailable) {
+			forward = true;
+		}
+		
 		// is there a point in forwarding <presence/> of type error? we should forward only online/offline
-		if (packet.getType() != null && packet.getType() != StanzaType.available && packet.getType() != StanzaType.unavailable) 
+		if (!forward) 
 			return;
 		
 		// if presence is to local user then forward it to PubSub component
