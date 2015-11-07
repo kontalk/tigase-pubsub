@@ -625,17 +625,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	@Override
 	public void processPacket(Packet packet) {
-		// if stanza is addressed to getName()@domain then we need to return
-		// SERVICE_UNAVAILABLE error
-		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart()) && packet.getType() != StanzaType.result) {
-			try {
-				Packet result = Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, true);
-				addOutPacket(result);
-			} catch (PacketErrorTypeException ex) {
-				log.log(Level.FINE, "Packet already of type=error, while preparing error response", ex);
-			}
+		if (!checkPubSubServiceJid(packet))
 			return;
-		}
 
 		super.processPacket(packet);
 	}
@@ -733,6 +724,37 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		super.stop();
 		EventBus eventBus = EventBusFactory.getInstance();
 		eventBus.removeHandler("remove", "tigase:user", removeUserEventHandler);
+	}
+	
+	@Override
+	protected boolean processScriptCommand(Packet pc, Queue<Packet> results) {
+		if (!checkPubSubServiceJid(pc))
+			return true;
+		return super.processScriptCommand(pc, results);
+	}
+	
+	/**
+	 * Method checks if packet is sent to pubsub@xxx and if so then it returns error
+	 * as we no longer allow usage of pubsub@xxx address as pubsub service jid 
+	 * since we added support to use PEP and we have multiple domains support
+	 * with separated nodes.
+	 * 
+	 * @param packet
+	 * @return true - if packet service jid is ok and should be processed
+	 */
+	protected boolean checkPubSubServiceJid(Packet packet) {
+		// if stanza is addressed to getName()@domain then we need to return
+		// SERVICE_UNAVAILABLE error
+		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart()) && packet.getType() != StanzaType.result) {
+			try {
+				Packet result = Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, true);
+				addOutPacket(result);
+			} catch (PacketErrorTypeException ex) {
+				log.log(Level.FINE, "Packet already of type=error, while preparing error response", ex);
+			}
+			return false;
+		}
+		return true;
 	}
 	
 	private class RemoveUserEventHandler implements EventHandler {
