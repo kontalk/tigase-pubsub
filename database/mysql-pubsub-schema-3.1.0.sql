@@ -227,3 +227,32 @@ end //
 -- QUERY END:
 
 delimiter ;
+
+-- QUERY START:
+drop procedure if exists TigPubSubWriteItem;
+-- QUERY END:
+
+delimiter //
+
+-- QUERY START:
+create procedure TigPubSubWriteItem(_node_id bigint, _item_id varchar(1024), _publisher varchar(2049),
+	 _item_data mediumtext)
+begin
+	declare _publisher_id bigint;
+	DECLARE exit handler for sqlexception
+		BEGIN
+			-- ERROR
+		ROLLBACK;
+	END;
+
+	START TRANSACTION;
+
+	select TigPubSubEnsureJid(_publisher) into _publisher_id;
+	insert into tig_pubsub_items (node_id, id_sha1, id, creation_date, update_date, publisher_id, data)
+		values (_node_id, SHA1(_item_id), _item_id, UTC_TIMESTAMP(), UTC_TIMESTAMP(), _publisher_id, _item_data)
+		on duplicate key update publisher_id = _publisher_id, data = _item_data, update_date = UTC_TIMESTAMP();
+	COMMIT;
+end //
+-- QUERY END:
+
+delimiter ;

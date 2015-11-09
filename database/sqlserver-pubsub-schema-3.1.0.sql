@@ -87,7 +87,7 @@ begin
 	exec TigPubSubEnsureJid @_jid=@_publisher, @_jid_id=@_publisher_id output;
 	-- Update the row if it exists.
     UPDATE tig_pubsub_items
-		SET publisher_id = @_publisher_id, data = @_item_data, update_date = getdate()
+		SET publisher_id = @_publisher_id, data = @_item_data, update_date = getutcdate()
 		WHERE tig_pubsub_items.node_id = @_node_id
 			and tig_pubsub_items.id_index = CAST(@_item_id as nvarchar(255))
 			and tig_pubsub_items.id = @_item_id;
@@ -96,7 +96,7 @@ begin
 	BEGIN
 		BEGIN TRY
 				insert into tig_pubsub_items (node_id, id, id_sha1, creation_date, update_date, publisher_id, data)
-				select @_node_id, @_item_id, HASHBYTES('SHA1',@_item_id), getdate(), getdate(), @_publisher_id, @_item_data where not exists(
+				select @_node_id, @_item_id, HASHBYTES('SHA1',@_item_id), getutcdate(), getutcdate(), @_publisher_id, @_item_data where not exists(
 					select 1 from tig_pubsub_items where node_id = @_node_id AND id_sha1 = HASHBYTES('SHA1',@_item_id));
 		END TRY
 		BEGIN CATCH
