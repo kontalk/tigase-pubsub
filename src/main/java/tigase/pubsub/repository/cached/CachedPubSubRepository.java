@@ -421,6 +421,12 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 		}
 
 		T nodeId = this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collectionId);
+		if (null == nodeId ) {
+			nodeId = this.dao.getNodeId( serviceJid, nodeName );
+			if (null == nodeId ) {
+				throw new RepositoryException("Creating node failed!");
+			}
+		}
 
 		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create((Queue<UsersAffiliation>) null);
 		NodeSubscriptions nodeSubscriptions = wrapNodeSubscriptions ( tigase.pubsub.repository.NodeSubscriptions.create() );
