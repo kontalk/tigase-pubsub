@@ -15,37 +15,36 @@
  * along with this program. Look for COPYING file in the top folder.
  * If not, see http://www.gnu.org/licenses/.
  *
- * $Rev$
- * Last modified by $Author$
- * $Date$
  */
 
 package tigase.pubsub;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import tigase.db.NonAuthUserRepository;
 import tigase.db.TigaseDBException;
+
 import tigase.server.Iq;
 import tigase.server.Packet;
 import tigase.server.Presence;
-import tigase.util.DNSResolver;
-import tigase.xml.Element;
+
 import tigase.xmpp.Authorization;
 import tigase.xmpp.JID;
-import tigase.xmpp.NoConnectionIdException;
 import tigase.xmpp.NotAuthorizedException;
 import tigase.xmpp.StanzaType;
 import tigase.xmpp.XMPPException;
 import tigase.xmpp.XMPPProcessor;
 import tigase.xmpp.XMPPProcessorIfc;
 import tigase.xmpp.XMPPResourceConnection;
+
+import tigase.util.DNSResolverFactory;
+import tigase.xml.Element;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Implements PubSub support for every local user account on it's bare jid using
@@ -116,7 +115,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		this.simpleNodes.add("urn:xmpp:avatar:data");
 		this.simpleNodes.add("urn:xmpp:avatar:metadata");
 		
-		String defHost = DNSResolver.getDefaultHostname();
+		String defHost = DNSResolverFactory.getInstance().getDefaultHost();
 		pubsubJid = JID.jidInstanceNS("pubsub", defHost, null);
 		
 		if (settings.containsKey("simplePepEnabled")) {
