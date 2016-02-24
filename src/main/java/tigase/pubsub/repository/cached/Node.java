@@ -1,19 +1,43 @@
+/*
+ * Node.java
+ *
+ * Tigase PubSub Component
+ * Copyright (C) 2004-2016 "Tigase, Inc." <office@tigase.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. Look for COPYING file in the top folder.
+ * If not, see http://www.gnu.org/licenses/.
+ *
+ */
 package tigase.pubsub.repository.cached;
 
 import tigase.pubsub.AbstractNodeConfig;
 
+import tigase.pubsub.repository.INodeMeta;
 import tigase.xmpp.BareJID;
 
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Node<T> {
+public class Node<T> implements INodeMeta<T> {
 
 	private static final Logger log = Logger.getLogger(Node.class.getName());
 
 	//private boolean affNeedsWriting = false;
 	private boolean conNeedsWriting = false;
-	private long creationTime = System.currentTimeMillis();
+	private final Date creationTime;
+	private final BareJID creator;
 
 	private boolean deleted = false;
 	private String name;
@@ -33,7 +57,7 @@ public class Node<T> {
 	// private Long nodeSubscriptionsChangeTimestamp;
 
 	public Node(T nodeId, BareJID serviceJid, AbstractNodeConfig nodeConfig, NodeAffiliations nodeAffiliations,
-			NodeSubscriptions nodeSubscriptions) {
+			NodeSubscriptions nodeSubscriptions, BareJID creator, Date creationTime) {
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST,
 							 "Constructing Node, serviceJid: {0}, nodeConfig: {1}, nodeId: {2}, nodeAffiliations: {3}, nodeSubscriptions: {4}",
@@ -46,6 +70,8 @@ public class Node<T> {
 		this.nodeAffiliations = nodeAffiliations;
 		this.nodeSubscriptions = nodeSubscriptions;
 		this.name = nodeConfig.getNodeName();
+		this.creator = creator;
+		this.creationTime = creationTime;
 	}
 	
 	public T getNodeId() {
@@ -84,8 +110,12 @@ public class Node<T> {
 	// return nodeAffiliationsChangeTimestamp;
 	// }
 
-	public long getCreationTime() {
+	public Date getCreationTime() {
 		return creationTime;
+	}
+
+	public BareJID getCreator() {
+		return creator;
 	}
 
 	public String getName() {

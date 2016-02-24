@@ -1,5 +1,6 @@
 /*
  * Tigase Jabber/XMPP Publish Subscribe Component
+ * Copyright (C) 2009-2016 "Tigase, Inc." <office@tigase.com>
  * Copyright (C) 2009 "Tomasz Sterna" <tomek@xiaoka.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,8 +26,10 @@ import tigase.db.DBInitException;
 import tigase.db.DataRepository;
 import tigase.db.Repository;
 
+import tigase.pubsub.repository.stateless.NodeMeta;
 import tigase.server.XMPPServer;
 
+import tigase.util.TigaseStringprepException;
 import tigase.xmpp.BareJID;
 
 import tigase.pubsub.AbstractNodeConfig;
@@ -90,6 +93,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 	private CallableStatement get_node_items_ids_since_sp = null;
 	private CallableStatement get_node_items_ids_sp = null;
 	private CallableStatement get_node_items_meta_sp = null;
+	private CallableStatement get_node_meta_sp = null;
 	private CallableStatement get_node_subscriptions_sp = null;
 	private CallableStatement get_root_nodes_sp = null;
 	private CallableStatement get_user_affiliations_sp = null;
@@ -463,7 +467,45 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 			throw new RepositoryException( "Retrieving node id error", e );
 		}
 	}
-	
+
+	@Override
+	public NodeMeta<Long> getNodeMeta(BareJID serviceJid, String nodeName) throws RepositoryException {
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting Node ID: serviceJid: {0}, nodeName: {1}",
+					new Object[] { serviceJid, nodeName } );
+		}
+		try {
+			ResultSet rs = null;
+			checkConnection();
+			synchronized (get_node_meta_sp) {
+				try {
+					get_node_meta_sp.setString(1, serviceJid.toString());
+					get_node_meta_sp.setString(2, nodeName);
+					rs = get_node_meta_sp.executeQuery();
+					if (rs.next()) {
+						final long nodeId = rs.getLong(1);
+						final String configStr = rs.getString(2);
+						final String creator = rs.getString(3);
+						final Date creationTime = rs.getTimestamp(4);
+						final NodeMeta<Long> nodeMeta = new NodeMeta(nodeId, parseConfig(nodeName, configStr), creator != null ? BareJID.bareJIDInstance(creator) : null, creationTime);
+
+
+						if ( log.isLoggable( Level.FINEST ) ){
+							log.log( Level.FINEST, "Getting Node ID: serviceJid: {0}, nodeName: {1}, nodeId: {2}, get_node_id_sp: {3}",
+									new Object[] { serviceJid, nodeName, nodeId, get_node_id_sp } );
+						}
+						return nodeMeta;
+					}
+					return null;
+				} finally {
+					release(null, rs);
+				}
+			}
+		} catch (TigaseStringprepException | SQLException e) {
+			throw new RepositoryException( "Retrieving node meta data error", e );
+		}
+	}
+
 	@Override
 	public NodeAffiliations getNodeAffiliations( BareJID serviceJid, Long nodeId ) throws RepositoryException {
 		if ( log.isLoggable( Level.FINEST ) ){
@@ -673,7 +715,7 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 			return;
 		
 		try {
-			CallableStatement testCall = conn.prepareCall("{ call TigPubSubGetNodeId(?,?) }");
+			CallableStatement testCall = conn.prepareCall("{ call TigPubSubGetNodeMeta(?,?) }");
 			testCall.setString(1, "tigase-pubsub");
 			testCall.setString(2, "tigase-pubsub");
 			testCall.execute();
@@ -765,7 +807,10 @@ public class PubSubDAOJDBC extends PubSubDAO<Long> {
 
 		query = "{ call TigPubSubGetNodeId(?, ?) }";
 		get_node_id_sp = conn.prepareCall( query );
-		
+
+		query = "{ call TigPubSubGetNodeMeta(?, ?) }";
+		get_node_meta_sp = conn.prepareCall( query );
+
 		query = "{ call TigPubSubGetItem(?, ?) }";
 		get_item_sp = conn.prepareCall( query );
 

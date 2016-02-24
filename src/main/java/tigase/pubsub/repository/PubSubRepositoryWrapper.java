@@ -69,6 +69,11 @@ public class PubSubRepositoryWrapper implements IPubSubRepository, StatisticHold
 	}
 
 	@Override
+	public INodeMeta getNodeMeta(BareJID serviceJid, String nodeName) throws RepositoryException {
+		return repo.getNodeMeta(serviceJid, nodeName);
+	}
+
+	@Override
 	public ISubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		return repo.getNodeSubscriptions(serviceJid, nodeName);
 	}

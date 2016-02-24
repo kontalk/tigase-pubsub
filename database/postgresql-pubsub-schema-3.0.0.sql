@@ -4,7 +4,7 @@
 
 -- Table to store service jids
 -- QUERY START:
-create table tig_pubsub_service_jids (
+create table if not exists tig_pubsub_service_jids (
 	service_id bigserial,
 	service_jid varchar(2049) not null,
 	
@@ -13,12 +13,17 @@ create table tig_pubsub_service_jids (
 -- QUERY END:
 
 -- QUERY START:
-create unique index tig_pubsub_service_jids_service_jid on tig_pubsub_service_jids ( service_jid );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_service_jids_service_jid')) is null) then
+    create unique index tig_pubsub_service_jids_service_jid on tig_pubsub_service_jids ( service_jid );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
 -- Table to store jids of node owners, subscribers and affiliates
-create table tig_pubsub_jids (
+create table if not exists tig_pubsub_jids (
 	jid_id bigserial,
 	jid varchar(2049) not null,
 
@@ -27,12 +32,17 @@ create table tig_pubsub_jids (
 -- QUERY END:
 
 -- QUERY START:
-create unique index tig_pubsub_jids_jid on tig_pubsub_jids ( jid );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_jids_jid')) is null) then
+    create unique index tig_pubsub_jids_jid on tig_pubsub_jids ( jid );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
 -- Table to store nodes configuration
-create table tig_pubsub_nodes (
+create table if not exists tig_pubsub_nodes (
 	node_id bigserial,
 	service_id bigint not null references tig_pubsub_service_jids ( service_id ),
 	name varchar(1024) not null,
@@ -49,24 +59,44 @@ create table tig_pubsub_nodes (
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_nodes_service_id on tig_pubsub_nodes ( service_id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_nodes_service_id')) is null) then
+    create index tig_pubsub_nodes_service_id on tig_pubsub_nodes ( service_id );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_nodes_name on tig_pubsub_nodes using hash ( name );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_nodes_name')) is null) then
+    create index tig_pubsub_nodes_name on tig_pubsub_nodes using hash ( name );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
-create unique index tig_pubsub_nodes_service_id_name on tig_pubsub_nodes ( service_id, name );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_nodes_service_id_name')) is null) then
+    create unique index tig_pubsub_nodes_service_id_name on tig_pubsub_nodes ( service_id, name );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_nodes_collection_id on tig_pubsub_nodes ( collection_id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_nodes_collection_id')) is null) then
+    create index tig_pubsub_nodes_collection_id on tig_pubsub_nodes ( collection_id );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
 -- Table to store user nodes affiliations
-create table tig_pubsub_affiliations (
+create table if not exists tig_pubsub_affiliations (
 	node_id bigint not null references tig_pubsub_nodes ( node_id ),
 	jid_id bigint not null references tig_pubsub_jids ( jid_id ),
 	affiliation varchar(20) not null,
@@ -76,16 +106,26 @@ create table tig_pubsub_affiliations (
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_affiliations_node_id on tig_pubsub_affiliations ( node_id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_affiliations_node_id')) is null) then
+    create index tig_pubsub_affiliations_node_id on tig_pubsub_affiliations ( node_id );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_affiliations_jid_id on tig_pubsub_affiliations ( jid_id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_affiliations_jid_id')) is null) then
+    create index tig_pubsub_affiliations_jid_id on tig_pubsub_affiliations ( jid_id );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
 -- Table to store user nodes subscriptions
-create table tig_pubsub_subscriptions (
+create table if not exists tig_pubsub_subscriptions (
 	node_id bigint not null references tig_pubsub_nodes ( node_id ),
 	jid_id bigint not null references tig_pubsub_jids ( jid_id ),
 	subscription varchar(20) not null,
@@ -96,16 +136,26 @@ create table tig_pubsub_subscriptions (
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_subscriptions_node_id on tig_pubsub_subscriptions ( node_id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_subscriptions_node_id')) is null) then
+    create index tig_pubsub_subscriptions_node_id on tig_pubsub_subscriptions ( node_id );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_subscriptions_jid_id on tig_pubsub_jids ( jid_id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_subscriptions_jid_id')) is null) then
+    create index tig_pubsub_subscriptions_jid_id on tig_pubsub_jids ( jid_id );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
 -- Table to store items
-create table tig_pubsub_items (
+create table if not exists tig_pubsub_items (
 	node_id bigint not null references tig_pubsub_nodes ( node_id ),
 	id varchar(1024) not null,
 	creation_date timestamp,
@@ -118,11 +168,21 @@ create table tig_pubsub_items (
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_items_node_id on tig_pubsub_items ( node_id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_items_node_id')) is null) then
+    create index tig_pubsub_items_node_id on tig_pubsub_items ( node_id );
+end if;
+end$$;
 -- QUERY END:
 
 -- QUERY START:
-create index tig_pubsub_items_id on tig_pubsub_items using hash ( id );
+do $$
+begin
+if exists (select 1 where (select to_regclass('public.tig_pubsub_items_id')) is null) then
+    create index tig_pubsub_items_id on tig_pubsub_items using hash ( id );
+end if;
+end$$;
 -- QUERY END:
 
 -- -----------------------------------------------------------------------------

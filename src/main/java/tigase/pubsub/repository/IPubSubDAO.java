@@ -167,9 +167,13 @@ public interface IPubSubDAO<T> extends Repository {
 	 * 
 	 * @throws RepositoryException
 	 */
+	@Deprecated
 	public String getNodeConfig(BareJID serviceJid, T nodeId) throws RepositoryException;
 
+	@Deprecated
 	public T getNodeId(BareJID serviceJid, String nodeName) throws RepositoryException;
+
+	public INodeMeta<T> getNodeMeta(BareJID serviceJid, String nodeName) throws RepositoryException;
 	
 	/**
 	 * Method description

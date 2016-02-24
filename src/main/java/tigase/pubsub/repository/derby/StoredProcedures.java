@@ -1,3 +1,24 @@
+/*
+ * StoredProcedures.java
+ *
+ * Tigase PubSub Component
+ * Copyright (C) 2004-2016 "Tigase, Inc." <office@tigase.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. Look for COPYING file in the top folder.
+ * If not, see http://www.gnu.org/licenses/.
+ *
+ */
 package tigase.pubsub.repository.derby;
 
 import java.sql.Connection;
@@ -92,19 +113,20 @@ public class StoredProcedures {
 			long serviceJidId = tigPubSubEnsureServiceJid(serviceJid);
 			long nodeCreatorId = tigPubSubEnsureJid(nodeCreator);
 			PreparedStatement ps =
-				conn.prepareStatement("insert into tig_pubsub_nodes (service_id,name,type,creator_id,configuration,collection_id)" +
-				" values (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+				conn.prepareStatement("insert into tig_pubsub_nodes (service_id,name,type,creator_id,creation_date,configuration,collection_id)" +
+				" values (?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
 
 			ps.setLong(1, serviceJidId);
 			ps.setString(2, nodeName);
 			ps.setInt(3, nodeType);
 			ps.setLong(4, nodeCreatorId);
-			ps.setString(5, nodeConf);
+			ps.setTimestamp(5, new java.sql.Timestamp(System.currentTimeMillis()));
+			ps.setString(6, nodeConf);
 			if (collectionId == null) {
-				ps.setNull(6, java.sql.Types.BIGINT);
+				ps.setNull(7, java.sql.Types.BIGINT);
 			}
 			else {
-				ps.setLong(6, collectionId);
+				ps.setLong(7, collectionId);
 			}
 			
 			ps.executeUpdate();
@@ -250,9 +272,32 @@ public class StoredProcedures {
 		} finally {
 			conn.close();
 		}			
-	}	
+	}
 
-	public static void tigPubSubGetNodeItemIds(Long nodeId, ResultSet[] data) throws SQLException {	
+	public static void tigPubSubGetNodeMeta(String serviceJid, String nodeName, ResultSet[] data) throws SQLException {
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+
+		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+
+		try {
+			PreparedStatement ps = conn.prepareStatement("select n.node_id, n.configuration, cj.jid, n.creation_date "
+					+ "from tig_pubsub_nodes n "
+					+ "inner join tig_pubsub_service_jids sj on n.service_id = sj.service_id "
+					+ "inner join tig_pubsub_jids cj on cj.jid_id = n.creator_id "
+					+ "where sj.service_jid = ? and n.name = ?");
+			ps.setString(1, serviceJid);
+			ps.setString(2, nodeName);
+			data[0] = ps.executeQuery();
+		} catch (SQLException e) {
+			// e.printStackTrace();
+			// log.log(Level.SEVERE, "SP error", e);
+			throw e;
+		} finally {
+			conn.close();
+		}
+	}
+
+	public static void tigPubSubGetNodeItemIds(Long nodeId, ResultSet[] data) throws SQLException {
 		Connection conn = DriverManager.getConnection("jdbc:default:connection");
 
 		conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
