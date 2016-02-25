@@ -150,6 +150,7 @@
 				<includes>
 					<include>**/*3.0.0*.sql</include>
 					<include>**/*3.1.0*.sql</include>
+					<include>**/*3.2.0*.sql</include>
 					<include>**/*.sh</include>
 					<include>**/*.cmd</include>
 					<include>**/*.txt</include>
