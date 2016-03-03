@@ -103,6 +103,11 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		}
 		return super.canHandle(packet, conn);
 	}
+
+	@Override
+	public int concurrentQueuesNo() {
+		return super.concurrentQueuesNo() * 2;
+	}
 	
 	@Override
 	public void init(Map<String, Object> settings) throws TigaseDBException {
