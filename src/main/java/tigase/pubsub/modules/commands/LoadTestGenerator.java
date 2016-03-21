@@ -1,6 +1,5 @@
 package tigase.pubsub.modules.commands;
 
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import tigase.server.AbstractMessageReceiver;
@@ -9,13 +8,10 @@ import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
-public class LoadTestGenerator implements Runnable {
+public class LoadTestGenerator extends AbstractLoadRunner {
 
 	private final AbstractMessageReceiver component;
 
-	private int counter = 0;
-
-	private final long delay;
 
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
 
@@ -29,22 +25,17 @@ public class LoadTestGenerator implements Runnable {
 
 	private BareJID serviceJid;
 
-	/**
-	 * Test time in seconds.
-	 */
-	private final long testTime;
 
 	private final boolean useBlockingMethod;
 
 	public LoadTestGenerator(AbstractMessageReceiver component, BareJID serviceJid, String node, BareJID publisher, long time,
 			long frequency, int messageLength, boolean useBlockingMethod) {
+		super(time, frequency);
 		this.component = component;
 		this.serviceJid = serviceJid;
 		this.nodeName = node;
 		this.publisher = publisher;
-		this.testTime = time;
 		this.useBlockingMethod = useBlockingMethod;
-		this.delay = (long) ((1.0 / frequency) * 1000.0);
 		this.packetFromJid = JID.jidInstanceNS("sess-man", serviceJid.getDomain(), null);
 
 		String x = "";
@@ -56,56 +47,33 @@ public class LoadTestGenerator implements Runnable {
 
 	}
 
-	@Override
-	public void run() {
-		try {
-			final long testStartTime = System.currentTimeMillis();
-			final long testEndTime = testStartTime + testTime * 1000;
-			long cst;
-			while (testEndTime >= (cst = System.currentTimeMillis())) {
-				++counter;
-				Element item = new Element("item", new String[] { "id" }, new String[] { counter + "-" + testEndTime });
-				item.addChild(payload);
 
-				Element iq = new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "set",
-						publisher.toString(), serviceJid.toString(), "pub-" + counter + "-" + testEndTime });
+	protected void doWork() throws Exception {
+		Element item = new Element("item", new String[] { "id" }, new String[] { getCounter() + "-" + getTestEndTime() });
+		item.addChild(payload);
 
-				Element pubsub = new Element("pubsub", new String[] { "xmlns" },
-						new String[] { "http://jabber.org/protocol/pubsub" });
-				iq.addChild(pubsub);
+		Element iq = new Element("iq", new String[] { "type", "from", "to", "id" }, new String[] { "set", publisher.toString(),
+				serviceJid.toString(), "pub-" + getCounter() + "-" + getTestEndTime() });
 
-				Element publish = new Element("publish", new String[] { "node" }, new String[] { nodeName });
-				pubsub.addChild(publish);
+		Element pubsub = new Element("pubsub", new String[] { "xmlns" }, new String[] { "http://jabber.org/protocol/pubsub" });
+		iq.addChild(pubsub);
 
-				publish.addChild(item);
+		Element publish = new Element("publish", new String[] { "node" }, new String[] { nodeName });
+		pubsub.addChild(publish);
 
-				Packet p = Packet.packetInstance(iq);
-				p.setXMLNS(Packet.CLIENT_XMLNS);
-				p.setPacketFrom(packetFromJid);
+		publish.addChild(item);
 
-				if (component != null) {
-					if (useBlockingMethod)
-						component.addPacket(p);
-					else
-						component.addPacketNB(p);
-				}
-				// publishItemModule.publish(serviceJid, publisher, nodeName,
-				// item);
+		Packet p = Packet.packetInstance(iq);
+		p.setXMLNS(Packet.CLIENT_XMLNS);
+		p.setPacketFrom(packetFromJid);
 
-				// do not add code under this line ;-)
-				final long now = System.currentTimeMillis();
-				final long dt = now - cst;
-				final long fix = (testStartTime + delay * (counter - 1)) - now;
-				final long sleepTime = delay - dt + fix;
-				// System.out.println(new Date() + " :: " + delay + ", " + dt +
-				// ", " + fix + ", " + sleepTime);
-				if (sleepTime > 0) {
-					Thread.sleep(sleepTime);
-				}
-			}
-		} catch (Exception e) {
-			log.log(Level.WARNING, "LoadTest generator stopped", e);
+		if (component != null) {
+			if (useBlockingMethod)
+				component.addPacket(p);
+			else
+				component.addPacketNB(p);
 		}
 	}
+
 
 }
