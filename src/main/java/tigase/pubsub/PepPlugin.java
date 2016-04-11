@@ -59,6 +59,7 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	protected static final String DISCO_INFO_XMLNS = "http://jabber.org/protocol/disco#info";
 	protected static final String DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
 	protected static final String PUBSUB_XMLNS = "http://jabber.org/protocol/pubsub";
+	protected static final String PUBSUB_XMLNS_OWNER = PUBSUB_XMLNS + "#owner";
 	
 	private static final String ID = "pep";
 	
@@ -66,16 +67,16 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 	
 	protected static final Element[] DISCO_FEATURES = { new Element("feature", new String[] {
 			"var" }, new String[] { PUBSUB_XMLNS }),
-			new Element("feature", new String[] { "var" }, new String[] { PUBSUB_XMLNS + "#owner" }),
+			new Element("feature", new String[] { "var" }, new String[] { PUBSUB_XMLNS_OWNER }),
 			new Element("feature", new String[] { "var" }, new String[] { PUBSUB_XMLNS +
 					"#publish" }),
 			new Element("identity", new String[] { "category", "type" }, new String[] {
 					"pubsub",
 					"pep" }), };	
 	
-	protected static final String[][] ELEMENTS = { Iq.IQ_PUBSUB_PATH, new String[] { Presence.ELEM_NAME }, Iq.IQ_QUERY_PATH, Iq.IQ_QUERY_PATH };
+	protected static final String[][] ELEMENTS = { Iq.IQ_PUBSUB_PATH, Iq.IQ_PUBSUB_PATH, new String[] { Presence.ELEM_NAME }, Iq.IQ_QUERY_PATH, Iq.IQ_QUERY_PATH };
 	private static final String[]   PRESENCE_C_PATH         = { Presence.ELEM_NAME, "c" };	
-	protected static final String[] XMLNSS = { PUBSUB_XMLNS, Presence.CLIENT_XMLNS, DISCO_ITEMS_XMLNS, DISCO_INFO_XMLNS };
+	protected static final String[] XMLNSS = { PUBSUB_XMLNS_OWNER, PUBSUB_XMLNS, Presence.CLIENT_XMLNS, DISCO_ITEMS_XMLNS, DISCO_INFO_XMLNS };
 	
 	private static final Set<StanzaType> TYPES = new HashSet<StanzaType>(Arrays.asList(
 			// stanza types for presences
@@ -182,7 +183,9 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		
 		// forwarding packet to particular resource
 		if (packet.getStanzaTo() != null && packet.getStanzaTo().getResource() != null) {	
-			if (pubsubEl != null && pubsubEl.getXMLNS() == PUBSUB_XMLNS) {
+			if ( pubsubEl != null
+					 && ( pubsubEl.getXMLNS() == PUBSUB_XMLNS
+								|| pubsubEl.getXMLNS() == PUBSUB_XMLNS ) ){
 				Packet result = null;
 				if (session != null) {
 					XMPPResourceConnection con = session.getParentSession().getResourceForResource(
@@ -220,7 +223,9 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 		if (packet.getStanzaTo() == null) {
 			// we should not forward disco#info or disco#items with no "to" set as they 
 			// need to be processed only by server
-			if (pubsubEl == null || pubsubEl.getXMLNS() != PUBSUB_XMLNS) {
+			if ( pubsubEl == null
+					 || pubsubEl.getXMLNS() != PUBSUB_XMLNS
+					 || pubsubEl.getXMLNS() != PUBSUB_XMLNS ){
 				// ignoring - disco#info or disco#items to server
 				log.log(Level.FINEST, "got <iq/> packet with no 'to' attribute = {0}", packet);
 				return;
