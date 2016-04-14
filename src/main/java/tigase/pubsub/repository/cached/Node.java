@@ -207,6 +207,8 @@ public class Node<T> implements INodeMeta<T> {
 	public String toString() {
 		return "Node{" + "creationTime=" + creationTime + ", deleted=" + deleted + ", name=" + name + ", nodeId=" + nodeId
 					 + ", nodeAffiliations=" + nodeAffiliations + ", nodeSubscriptions=" + nodeSubscriptions
-					 + ", serviceJid=" + serviceJid + '}';
+					 + ", serviceJid=" + serviceJid
+					 + ", creator=" + creator +
+					 '}';
 	}
 }
