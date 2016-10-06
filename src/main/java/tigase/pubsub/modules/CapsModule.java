@@ -6,9 +6,6 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Queue;
 import tigase.component2.PacketWriter;
 import tigase.component2.exceptions.ComponentException;
 import tigase.criteria.Criteria;
@@ -21,6 +18,10 @@ import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
 import tigase.xmpp.JID;
 import tigase.xmpp.impl.PresenceCapabilitiesManager;
+
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Queue;
 
 /**
  *
@@ -69,8 +70,15 @@ public class CapsModule extends AbstractPubSubModule {
 			if (caps != null) {
 				Arrays.sort(caps);
 			}
+
 			Queue<Packet> results = new ArrayDeque<>();
-			PresenceCapabilitiesManager.prepareCapsQueries(config.getComponentJID(), jid, caps, results);
+			JID pubSubJid = packet.getStanzaTo();
+			if (pubSubJid.getLocalpart() != null) {
+				String compName = config.getComponentJID().getLocalpart();
+				pubSubJid = JID.jidInstanceNS(compName + "." + pubSubJid.getDomain());
+			}
+
+			PresenceCapabilitiesManager.prepareCapsQueries(pubSubJid, jid, caps, results);
 			packetWriter.write(results);
 		}
 		return caps;
