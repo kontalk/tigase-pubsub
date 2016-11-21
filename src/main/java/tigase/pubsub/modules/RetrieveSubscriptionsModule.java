@@ -112,8 +112,6 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 			final Element pubsubResult = new Element("pubsub", new String[] { "xmlns" },
 					new String[] { "http://jabber.org/protocol/pubsub" });
 
-			Packet result = packet.okResult(pubsubResult, 0);
-
 			final Element subscriptionsResult = new Element("subscriptions");
 
 			pubsubResult.addChild(subscriptionsResult);
@@ -153,6 +151,7 @@ public class RetrieveSubscriptionsModule extends AbstractPubSubModule {
 				}
 			}
 
+			Packet result = packet.okResult(pubsubResult, 0);
 			packetWriter.write(result);
 		} catch (PubSubException e1) {
 			throw e1;
