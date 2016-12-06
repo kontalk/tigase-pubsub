@@ -22,58 +22,26 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import tigase.component2.PacketWriter;
 import tigase.component2.eventbus.Event;
 import tigase.component2.eventbus.EventHandler;
 import tigase.component2.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.AbstractPubSubModule;
-import tigase.pubsub.AccessModel;
-import tigase.pubsub.Affiliation;
-import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.NodeType;
-import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.PublisherModel;
-import tigase.pubsub.SendLastPublishedItem;
-import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
+import tigase.pubsub.*;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.PresenceCollectorModule.CapsChangeHandler;
 import tigase.pubsub.modules.PresenceCollectorModule.CapsChangeHandler.CapsChangeEvent;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler.PresenceChangeEvent;
-import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.*;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-
 import tigase.server.Message;
 import tigase.server.Packet;
-
+import tigase.util.DateTimeFormatter;
 import tigase.xml.Element;
-
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
@@ -81,9 +49,10 @@ import tigase.xmpp.StanzaType;
 import tigase.xmpp.impl.roster.RosterAbstract.SubscriptionType;
 import tigase.xmpp.impl.roster.RosterElement;
 
-import tigase.util.DateTimeFormatter;
-
-import java.util.Calendar;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class description
@@ -481,19 +450,28 @@ public class PublishItemModule extends AbstractPubSubModule {
 		return items;
 	}
 
-	private void pepProcess(final Packet packet, final Element pubSub, final Element publish) throws RepositoryException {
+	private void pepProcess(final Packet packet, final Element pubSub, final Element publish)
+			throws RepositoryException {
 		final JID senderJid = packet.getStanzaFrom();
-		final Element item = publish.getChild("item");
-		final Element items = new Element("items", new String[] { "node" },
-				new String[] { publish.getAttributeStaticStr("node") });
+		try {
+			JID[] subscribers = getValidBuddies(senderJid.getBareJID());
 
-		items.addChild(item);
+			final Element item = publish.getChild("item");
+			final Element items = new Element("items", new String[]{"node"},
+											  new String[]{publish.getAttributeStaticStr("node")});
 
-		JID[] subscribers = getValidBuddies(senderJid.getBareJID());
-		sendNotifications(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
+			items.addChild(item);
 
-		packetWriter.write(packet.okResult((Element) null, 0));
-		sendNotifications(new JID[] { senderJid }, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
+			sendNotifications(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
+
+			packetWriter.write(packet.okResult((Element) null, 0));
+			sendNotifications(new JID[]{senderJid}, items, senderJid, null, publish.getAttributeStaticStr("node"),
+							  null);
+		} catch (tigase.pubsub.repository.RepositoryException e) {
+			if (log.isLoggable(Level.FINER)) {
+				log.finer("Connot find roster of user " + senderJid + ". Probably anonymous user.");
+			}
+		}
 	}
 
 	/**
