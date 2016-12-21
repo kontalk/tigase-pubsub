@@ -157,7 +157,6 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 	 */
 	@Override
 	public void process(Packet packet) throws PubSubException {
-		final long time1 = System.currentTimeMillis();
 		final BareJID toJid = packet.getStanzaTo().getBareJID();
 		final Element element = packet.getElement();
 		final Element pubSub = element.getChild("pubsub", "http://jabber.org/protocol/pubsub");
@@ -277,9 +276,6 @@ public class NodeCreateModule extends AbstractConfigCreateNode {
 				result.getElement().addChild(ps);
 			}
 
-			final long time2 = System.currentTimeMillis();
-
-			result.getElement().addChild(new Element("text", "Created in " + (time2 - time1) + " ms"));
 			packetWriter.write(result);
 
 		} catch (PubSubException e1) {
