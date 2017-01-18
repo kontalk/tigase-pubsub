@@ -12,3 +12,4 @@ target
 /derby.log
 /init-pubsub.properties
 /.idea/
+docs
