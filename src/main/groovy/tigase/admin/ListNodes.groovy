@@ -30,16 +30,12 @@
 
 package tigase.admin
 
-import tigase.server.*
-import tigase.util.*
-import tigase.xmpp.*
-import tigase.db.*
-import tigase.xml.*
-import tigase.vhosts.*
-import tigase.pubsub.*
-import tigase.pubsub.repository.IPubSubRepository
 import tigase.pubsub.exceptions.PubSubException
-import tigase.pubsub.modules.NodeCreateModule.NodeCreateHandler.NodeCreateEvent;
+import tigase.pubsub.repository.IPubSubRepository
+import tigase.server.Command
+import tigase.server.Packet
+import tigase.xml.Element
+import tigase.xmpp.Authorization;
 
 IPubSubRepository pubsubRepository = component.pubsubRepository
 
@@ -54,10 +50,14 @@ Command.addTitle(result, "List of available nodes");
 try {
 	if (isServiceAdmin || component.componentConfig.isAdmin(stanzaFromBare)) {	
 		def serviceJid = p.getStanzaTo().getBareJID();
-		def nodes = pubsubRepository.getRootCollection(serviceJid);
+		try {
+			def nodes = pubsubRepository.getRootCollection(serviceJid);
 
-		Command.addFieldMultiValue(result, "nodes", nodes as List);
-		result.getElement().getChild('command').getChild('x').getChildren().find { e -> e.getAttribute("var") == "nodes" }?.setAttribute("label", "Nodes");
+			Command.addFieldMultiValue(result, "nodes", nodes as List);
+			result.getElement().getChild('command').getChild('x').getChildren().find { e -> e.getAttribute("var") == "nodes" }?.setAttribute("label", "Nodes");
+		} catch (tigase.pubsub.repository.cached.CachedPubSubRepository.RootCollectionSet.IllegalStateException ex) {
+			throw new PubSubException(Authorization.RESOURCE_CONSTRAINT);
+		}
 	} else {
 		throw new PubSubException(Authorization.FORBIDDEN, "You do not have enough " +
 			"permissions to list available nodes.");

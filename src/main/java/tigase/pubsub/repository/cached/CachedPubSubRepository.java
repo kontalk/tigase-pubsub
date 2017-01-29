@@ -225,7 +225,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 
 	private long repo_writes = 0;
 
-	private final ConcurrentHashMap<BareJID,Set<String>> rootCollection = new ConcurrentHashMap<BareJID,Set<String>>();
+	private final ConcurrentHashMap<BareJID,RootCollectionSet> rootCollection = new ConcurrentHashMap<>();
 	private NodeSaver nodeSaver;
 
 	// private final Object writeThreadMutex = new Object();
@@ -235,6 +235,8 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 	private long writingTime = 0;
 
 	private final Map<String,StatisticHolder> stats;
+
+	private boolean delayedRootCollectionLoading = false;
 
 	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {
 		this.dao = dao;
@@ -590,44 +592,46 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 
 	@Override
 	public String[] getRootCollection(BareJID serviceJid) throws RepositoryException {
-		Set<String> rootCollection = getRootCollectionSet(serviceJid);
+		RootCollectionSet rootCollection = getRootCollectionSet(serviceJid);
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting root collection, serviceJid: {0}",
 							 new Object[] { serviceJid } );
 		}
 		if (rootCollection == null)
 			return null;
-		return rootCollection.toArray(new String[rootCollection.size()]);
+
+		Set<String> nodes = rootCollection.values();
+		return nodes.toArray(new String[nodes.size()]);
 	}
 
-	protected Set<String> getRootCollectionSet(BareJID serviceJid) throws RepositoryException {
-		Set<String> rootCollection = this.rootCollection.get(serviceJid);
+	protected RootCollectionSet getRootCollectionSet(BareJID serviceJid) throws RepositoryException {
+		RootCollectionSet rootCollection = this.rootCollection.get(serviceJid);
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting root collection, serviceJid: {0}",
 							 new Object[] { serviceJid } );
 		}
-		if (rootCollection == null || rootCollection.isEmpty()) {
+		if (rootCollection == null || !rootCollection.checkState(RootCollectionSet.State.initialized)) {
 			if (rootCollection == null) {
-				rootCollection = Collections.synchronizedSet(new HashSet<String>());
-				Set<String> oldRootCollection = this.rootCollection.putIfAbsent(serviceJid, rootCollection);
+				rootCollection = new RootCollectionSet(serviceJid, this);
+				RootCollectionSet oldRootCollection = this.rootCollection.putIfAbsent(serviceJid, rootCollection);
 				if (oldRootCollection != null) {
 					rootCollection = oldRootCollection;
 				}
 			}
 
-			synchronized (rootCollection) {
-				if (rootCollection.isEmpty()) {
-					String[] x = dao.getChildNodes(serviceJid, null);
-
-					if (x != null) {
-						for (String string : x) {
-							rootCollection.add(string);
-						}
-					}
+			if (!delayedRootCollectionLoading) {
+				synchronized (rootCollection) {
+					loadRootCollections(rootCollection);
 				}
 			}
 		}
 		return rootCollection;
+	}
+
+	protected void loadRootCollections(RootCollectionSet rootCollection) throws RepositoryException {
+		BareJID serviceJid = rootCollection.getServiceJid();
+		String[] x = dao.getChildNodes(serviceJid, null);
+		rootCollection.loadData(x);
 	}
 
 	@Override
@@ -654,11 +658,16 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
 							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
 		}
-		Set<String> rootCollectionNodes = getRootCollectionSet(serviceJid );
-		if (rootCollectionNodes != null) {
-			rootCollectionNodes.remove(nodeName);
+		RootCollectionSet rootCollectionSet = getRootCollectionSet(serviceJid );
+		if (rootCollectionSet != null) {
+			rootCollectionSet.remove(nodeName);
 		}
 		this.nodes.remove( key );
+	}
+
+	@Override
+	public void setDelayedRootCollectionLoading(boolean delayedRootCollectionLoading) {
+		this.delayedRootCollectionLoading = delayedRootCollectionLoading;
 	}
 
 	@Override
@@ -719,18 +728,17 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 	
 	@Override
 	public void onUserRemoved(BareJID userJid) throws RepositoryException {
-		String[] rootCollectionNodes = getRootCollection( userJid );
-		if ( rootCollectionNodes != null ){
-			for ( String node : rootCollectionNodes ) {
-				removeFromRootCollection( userJid, node );
-			}
-		}
 		dao.removeService(userJid);
+		userRemoved(userJid);
+	}
+
+	protected void userRemoved(BareJID userJid) {
+		// clearing in memory caches
 		rootCollection.remove(userJid);
 		Iterator<Node> nodesIter = this.nodes.values().iterator();
 		while (nodesIter.hasNext()) {
 			Node node = nodesIter.next();
-			NodeSubscriptions nodeSubscriptions = node.getNodeSubscriptions();			
+			NodeSubscriptions nodeSubscriptions = node.getNodeSubscriptions();
 			nodeSubscriptions.changeSubscription(userJid, Subscription.none);
 			nodeSubscriptions.merge();
 			NodeAffiliations nodeAffiliations = node.getNodeAffiliations();
@@ -738,4 +746,142 @@ public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHo
 			nodeAffiliations.merge();
 		}
 	}
+
+	public static class RootCollectionSet {
+
+		private static final Logger log = Logger.getLogger(RootCollectionSet.class.getCanonicalName());
+
+		private CachedPubSubRepository cachedPubSubRepository;
+
+		private BareJID serviceJid;
+		private Set<String> rootCollections;
+
+		private Set<String> added;
+		private Set<String> removed;
+
+		private State state = State.uninitialized;
+
+		public RootCollectionSet(BareJID serviceJid, CachedPubSubRepository cachedPubSubRepository) {
+			this.serviceJid = serviceJid;
+			this.cachedPubSubRepository = cachedPubSubRepository;
+		}
+
+		public void add(String node) {
+			synchronized (this) {
+				switch (state) {
+					case initialized:
+						rootCollections.add(node);
+						break;
+					case loading:
+						added.add(node);
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		public boolean checkState(State state) {
+			synchronized (this) {
+				return this.state == state;
+			}
+		}
+
+		public BareJID getServiceJid() {
+			return serviceJid;
+		}
+
+		public void remove(String node) {
+			synchronized (this) {
+				switch (state) {
+					case initialized:
+						rootCollections.remove(node);
+						break;
+					case loading:
+						added.remove(node);
+						removed.add(node);
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		
+		public Set<String> values() throws IllegalStateException {
+			synchronized (this) {
+				switch (state) {
+					case initialized:
+						return rootCollections;
+					case loading:
+						throw new IllegalStateException(state);
+					case uninitialized:
+						added = new HashSet<>();
+						removed = new HashSet<>();
+						new Thread(this::startLoadOfData).start();
+						this.state = State.loading;
+						throw new IllegalStateException(state);
+				}
+			}
+			return null;
+		}
+
+		private void startLoadOfData() {
+			try {
+				cachedPubSubRepository.loadRootCollections(this);
+			} catch (Throwable ex) {
+				log.log(Level.FINE, "Could not load");
+				synchronized (this) {
+					switch (state) {
+						case loading:
+							added = null;
+							removed = null;
+							state = State.uninitialized;
+						default:
+							break;
+					}
+				}
+			}
+		}
+
+		private void loadData(String[] nodes) {
+			synchronized (this) {
+				if (nodes != null) {
+					rootCollections = Collections.synchronizedSet(new HashSet<>(nodes.length));
+				} else {
+					rootCollections = Collections.synchronizedSet(new HashSet<>());
+				}
+
+				if (added == null && removed == null) {
+					if (nodes != null) {
+						rootCollections.addAll(Arrays.asList(nodes));
+					}
+				} else {
+					rootCollections.addAll(added);
+					if (nodes != null) {
+						Arrays.stream(nodes).filter(node -> !removed.contains(node)).forEach(rootCollections::add);
+					}
+					added = null;
+					removed = null;
+				}
+				this.state = State.initialized;
+			}
+		}
+
+		public enum State {
+			uninitialized,
+			loading,
+			initialized
+		}
+
+		public static class IllegalStateException extends java.lang.IllegalStateException {
+
+			public final State state;
+
+			public IllegalStateException(State state) {
+				this.state = state;
+			}
+
+		}
+	}
+	
 }

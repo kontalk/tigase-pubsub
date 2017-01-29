@@ -193,6 +193,8 @@ public interface IPubSubRepository {
 	 */
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException;
 
+	public void setDelayedRootCollectionLoading(boolean delayed);
+
 	/**
 	 * Method description
 	 * 

@@ -24,85 +24,37 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.script.Bindings;
-
 import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
 import tigase.conf.Configurable;
 import tigase.conf.ConfigurationException;
-import tigase.db.DBInitException;
-import tigase.db.RepositoryFactory;
-import tigase.db.TigaseDBException;
-import tigase.db.UserNotFoundException;
-import tigase.db.UserRepository;
+import tigase.db.*;
 import tigase.disteventbus.EventBus;
 import tigase.disteventbus.EventBusFactory;
 import tigase.disteventbus.EventHandler;
 import tigase.osgi.ModulesManagerImpl;
-import tigase.pubsub.modules.AdHocConfigCommandModule;
-import tigase.pubsub.modules.CapsModule;
-import tigase.pubsub.modules.DefaultConfigModule;
-import tigase.pubsub.modules.DiscoverInfoModule;
-import tigase.pubsub.modules.DiscoverItemsModule;
-import tigase.pubsub.modules.JabberVersionModule;
-import tigase.pubsub.modules.ManageAffiliationsModule;
-import tigase.pubsub.modules.ManageSubscriptionModule;
-import tigase.pubsub.modules.NodeConfigModule;
-import tigase.pubsub.modules.NodeCreateModule;
-import tigase.pubsub.modules.NodeDeleteModule;
-import tigase.pubsub.modules.PendingSubscriptionModule;
-import tigase.pubsub.modules.PresenceCollectorModule;
-import tigase.pubsub.modules.PublishItemModule;
-import tigase.pubsub.modules.PurgeItemsModule;
-import tigase.pubsub.modules.RetractItemModule;
-import tigase.pubsub.modules.RetrieveAffiliationsModule;
-import tigase.pubsub.modules.RetrieveItemsModule;
-import tigase.pubsub.modules.RetrieveSubscriptionsModule;
-import tigase.pubsub.modules.SubscribeNodeModule;
-import tigase.pubsub.modules.UnsubscribeNodeModule;
-import tigase.pubsub.modules.XmppPingModule;
-import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.*;
+import tigase.pubsub.modules.commands.*;
 import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurationChangedHandler;
-import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
-import tigase.pubsub.modules.commands.LoadTestCommand;
-import tigase.pubsub.modules.commands.ReadAllNodesCommand;
-import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
-import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 import tigase.pubsub.modules.ext.presence.PresenceNodeSubscriptions;
 import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
-import tigase.pubsub.repository.IPubSubDAO;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.PubSubDAO;
-import tigase.pubsub.repository.PubSubDAOPool;
-import tigase.pubsub.repository.PubSubRepositoryWrapper;
-import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.*;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
-import tigase.xml.Element;
-import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
-import tigase.xmpp.JID;
-import tigase.xmpp.PacketErrorTypeException;
-import tigase.xmpp.StanzaType;
-
 import tigase.stats.StatisticHolder;
 import tigase.stats.StatisticsList;
+import tigase.xml.Element;
+import tigase.xmpp.*;
+
+import javax.script.Bindings;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class description
@@ -146,6 +98,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	private static final String COMPONENT = "component";
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
+
+	public static final String DELAYED_ROOT_COLLECTION_LOADING_KEY = "delayed-root-collection-loading";
 
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 	private static final Pattern PARAMETRIZED_PROPERTY_PATTERN = Pattern.compile("(.+)\\[(.*)\\]|(.+)");
@@ -381,6 +335,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			admins = new String[] { "admin@" + getDefHostName() };
 		}
 		props.put(ADMINS_KEY, admins);
+		props.put(DELAYED_ROOT_COLLECTION_LOADING_KEY, false);
 
 		return props;
 	}
@@ -523,7 +478,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	 * @throws UserNotFoundException
 	 */
 	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
-			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
+			LeafNodeConfig defaultNodeConfig, boolean delayedRootCollectionLoading) throws UserNotFoundException, TigaseDBException, RepositoryException {
 		this.componentConfig.setAdmins(admins);
 
 		// this.componentConfig.setServiceName("tigase-pubsub");
@@ -534,6 +489,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		}
 		this.directPubSubRepository = pubSubDAO;
 		this.pubsubRepository = createPubSubRepository(pubSubDAO);
+		this.pubsubRepository.setDelayedRootCollectionLoading(delayedRootCollectionLoading);
 		this.defaultNodeConfig = defaultNodeConfig;
 		this.defaultNodeConfig.read(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 		this.defaultNodeConfig.write(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
@@ -705,7 +661,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			// Object[]{cls_name, res_uri});
 			// }
 			PubSubDAO dao = createDAO(props);
-			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
+			boolean delayedRootCollectionLoading = (Boolean) props.get(DELAYED_ROOT_COLLECTION_LOADING_KEY);
+			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"), delayedRootCollectionLoading);
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
 			e.printStackTrace();

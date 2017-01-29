@@ -1,6 +1,5 @@
 package tigase.pubsub.repository;
 
-import java.util.Map;
 import tigase.pubsub.AbstractNodeConfig;
 import tigase.pubsub.NodeType;
 import tigase.pubsub.repository.stateless.UsersSubscription;
@@ -8,6 +7,8 @@ import tigase.stats.StatisticHolder;
 import tigase.stats.StatisticsList;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.impl.roster.RosterElement;
+
+import java.util.Map;
 
 public class PubSubRepositoryWrapper implements IPubSubRepository, StatisticHolder {
 
@@ -106,6 +107,11 @@ public class PubSubRepositoryWrapper implements IPubSubRepository, StatisticHold
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		repo.removeFromRootCollection(serviceJid, nodeName);
+	}
+
+	@Override
+	public void setDelayedRootCollectionLoading(boolean delayed) {
+		repo.setDelayedRootCollectionLoading(delayed);
 	}
 
 	@Override

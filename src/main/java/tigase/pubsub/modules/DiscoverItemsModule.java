@@ -34,6 +34,7 @@ import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.Utils;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.repository.IItems;
+import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.Packet;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
@@ -183,6 +184,8 @@ public class DiscoverItemsModule extends AbstractPubSubModule {
 			packetWriter.write(resultIq);
 		} catch (PubSubException e1) {
 			throw e1;
+		} catch (CachedPubSubRepository.RootCollectionSet.IllegalStateException e) {
+			throw new PubSubException(Authorization.RESOURCE_CONSTRAINT);
 		} catch (Exception e) {
 			e.printStackTrace();
 
