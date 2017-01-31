@@ -32,7 +32,7 @@ public class ReadAllNodesCommand implements AdHocCommand {
 			if (request.getAction() != null && "cancel".equals(request.getAction())) {
 				response.cancelSession();
 			} else if (data == null) {
-				Form form = new Form("result", "Reading all nodes", "To read all nodes from DB press finish");
+				Form form = new Form("form", "Reading all nodes", "To read all nodes from DB press finish");
 
 				response.getElements().add(form.getElement());
 				response.startSession();
@@ -41,7 +41,7 @@ public class ReadAllNodesCommand implements AdHocCommand {
 				Form form = new Form(data);
 				if ("submit".equals(form.getType())) {
 					startReading(request.getIq().getStanzaTo().getBareJID());
-					Form f = new Form(null, "Info", "Nodes tree has been readed");
+					Form f = new Form("result", "Info", "Nodes tree has been readed");
 					response.getElements().add(f.getElement());
 				}
 				response.completeSession();

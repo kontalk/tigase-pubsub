@@ -131,6 +131,8 @@ public interface IPubSubRepository {
 	 */
 	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException;
 
+	public INodeMeta getNodeMeta(BareJID serviceJid, String nodeName) throws RepositoryException;
+
 	/**
 	 * Method description
 	 * 
@@ -191,6 +193,8 @@ public interface IPubSubRepository {
 	 */
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException;
 
+	public void setDelayedRootCollectionLoading(boolean delayed);
+
 	/**
 	 * Method description
 	 * 
@@ -223,4 +227,6 @@ public interface IPubSubRepository {
 	 * @throws RepositoryException
 	 */
 	public void update(BareJID serviceJid, String nodeName, ISubscriptions subscriptions) throws RepositoryException;
+	
+	public void onUserRemoved(BareJID userJid) throws RepositoryException;
 }

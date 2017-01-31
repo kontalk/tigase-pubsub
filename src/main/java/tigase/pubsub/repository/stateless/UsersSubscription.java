@@ -110,7 +110,7 @@ public class UsersSubscription implements Cloneable {
 
 	@Override
 	public String toString() {
-		return "UsersSubscription{" + "jid=" + jid + ", subid=" + subid + ", subscription=" + subscription + '}';
+		return "{" + jid + "/" + subscription + '}';
 	}
 	
 }

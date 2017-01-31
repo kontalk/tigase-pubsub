@@ -2,12 +2,20 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.build.timestamp.format>yyyy-MM-dd/HH:mm:ss</maven.build.timestamp.format>
+
+		<sign-keystore>/path/to/jks.keystore</sign-keystore>
+		<sign-alias>alias</sign-alias>
+		<sign-storepass>storepass</sign-storepass>
+		<sign-keypass>keypass</sign-keypass>
+		<sign-skip>true</sign-skip>
+		<verbose-log>false</verbose-log>
+		<tsa>${tsa-uri}</tsa>
 	</properties>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>tigase</groupId>
 	<artifactId>tigase-pubsub</artifactId>
 	<name>Tigase PubSub</name>
-	<version>3.1.0</version>
+	<version>3.2.1-SNAPSHOT</version>
         <packaging>bundle</packaging>
 	<description>Publish Subscribe component for Tigase</description>
 	<url>http://www.tigase.org</url>
@@ -39,12 +47,23 @@
 		<connection>scm:git:https://repository.tigase.org/git/tigase-pubsub.git</connection>
 		<developerConnection>scm:git:https://repository.tigase.org/git/tigase-pubsub.git</developerConnection>
 		<url>https://projects.tigase.org/projects/tigase-pubsub/repository</url>
-	  <tag>tigase-pubsub-3.1.0</tag>
+	  <tag>HEAD</tag>
   </scm>
 	<organization>
 		<name>Tigase</name>
 		<url>http://www.tigase.org</url>
 	</organization>
+    <profiles>
+        <profile>
+            <id>disable-java8-doclint</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <properties>
+                <additionalparam>-Xdoclint:none</additionalparam>
+            </properties>
+        </profile>
+    </profiles>	
 	<build>
 		<plugins>
 			<plugin>
@@ -114,8 +133,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.5.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<encoding>UTF-8</encoding>
 				</configuration>
 			</plugin>
@@ -137,8 +156,38 @@
 						<Implementation-Build>${gitVersion}/${buildNumber} (${maven.build.timestamp})</Implementation-Build>
 						<Bundle-Activator>tigase.pubsub.Activator</Bundle-Activator>
 						<DynamicImport-Package>*</DynamicImport-Package>
-						<Export-Package>tigase.pubsub.*</Export-Package>
+						<Export-Package>tigase.pubsub.*;tigase.component2.*</Export-Package>
 					</instructions>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jarsigner-plugin</artifactId>
+				<version>1.4</version>
+				<executions>
+					<execution>
+						<id>sign</id>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<archiveDirectory>${project.basedir}</archiveDirectory>
+					<includes>
+						<include>target/tigase*.?ar</include>
+						<include>jars/tigase*.?ar</include>
+					</includes>
+					<processMainArtifact>false</processMainArtifact>
+					<processAttachedArtifacts>false</processAttachedArtifacts>
+					<tsa>${tsa-uri}</tsa>
+					<skip>${sign-skip}</skip>
+
+					<keystore>${sign-keystore}</keystore>
+					<alias>${sign-alias}</alias>
+					<storepass>${sign-storepass}</storepass>
+					<keypass>${sign-keypass}</keypass>
+					<verbose>${verbose-log}</verbose>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -149,6 +198,8 @@
 				<targetPath>database</targetPath>
 				<includes>
 					<include>**/*3.0.0*.sql</include>
+					<include>**/*3.1.0*.sql</include>
+					<include>**/*3.2.0*.sql</include>
 					<include>**/*.sh</include>
 					<include>**/*.cmd</include>
 					<include>**/*.txt</include>
@@ -162,31 +213,18 @@
 				</includes>
 			</resource>
 		</resources>
-		
-		<extensions>
-			<extension>
-				<groupId>org.apache.maven.wagon</groupId>
-				<artifactId>wagon-ssh-external</artifactId>
-				<version>2.2</version>
-			</extension>
-			<extension>
-				<groupId>org.apache.maven.wagon</groupId>
-				<artifactId>wagon-ssh</artifactId>
-				<version>2.2</version>
-			</extension>
-		</extensions>
 	</build>
 	<dependencies>
 		<dependency>
 			<groupId>tigase</groupId>
 			<artifactId>tigase-testsuite</artifactId>
-			<version>2.2.1</version>
+			<version>2.3.0</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>tigase</groupId>
 			<artifactId>tigase-server</artifactId>
-			<version>7.0.0</version>
+			<version>7.1.0</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -197,9 +235,33 @@
 			<type>bundle</type>
 		</dependency>
 		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>net.sourceforge.jtds</groupId>
+			<artifactId>jtds</artifactId>
+			<version>1.2.8</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>9.4.1207</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derby</artifactId>
+			<version>10.12.1.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.10</version>
+			<version>4.12</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -232,12 +294,12 @@
 		<repository>
 			<id>tigase</id>
 			<name>Tigase repository</name>
-			<url>http://maven.tigase.org</url>
+			<url>http://maven-repo.tigase.org/repository/release</url>
 		</repository>
 		<repository>
 			<id>tigase-snapshot</id>
 			<name>Tigase repository</name>
-			<url>http://build.xmpp-test.net/maven/</url>
+			<url>http://maven-repo.tigase.org/repository/snapshot</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -247,12 +309,12 @@
 		<repository>
 			<id>tigase</id>
 			<name>Tigase repository</name>
-			<url>scp://maven.tigase.org:/home/webapp/maven-repository</url>
+			<url>http://maven-repo.tigase.org/repository/release</url>
 		</repository>
 		<snapshotRepository>
 			<id>tigase-snapshot</id>
 			<name>Tigase snapshot repository</name>
-			<url>scp://build.xmpp-test.net:/home/maven/repository</url>
+			<url>http://maven-repo.tigase.org/repository/snapshot</url>
 		</snapshotRepository>
 	</distributionManagement>
 </project>

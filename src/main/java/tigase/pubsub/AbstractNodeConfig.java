@@ -85,6 +85,11 @@ public abstract class AbstractNodeConfig {
 		form.addField(f);
 	}
 
+	@Override
+	public String toString() {
+		return "AbstractNodeConfig{" + "form=" + form + ", nodeName=" + nodeName + '}';
+	}
+
 	protected String[] asStrinTable(Enum<?>[] values) {
 		String[] result = new String[values.length];
 		int i = 0;

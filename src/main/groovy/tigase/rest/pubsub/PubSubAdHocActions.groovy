@@ -43,6 +43,19 @@ class PubSubActionsHandler extends tigase.http.rest.Handler {
     def DISCO_ITEMS_XMLNS = "http://jabber.org/protocol/disco#items";
 
     public PubSubActionsHandler() {
+		description = [
+			regex : "/{pubsub_jid}/{adhoc_command_node}",
+			GET : [ info:'Retrieve PubSub adhoc command fields', 
+				description: """This is simplified version of adhoc command for PubSub component, which allows for easier management of PubSub component nodes and items than default adhoc command REST API.
+As part of url you need to pass PubSub component jid as {pubsub_jid} parameter and adhoc command node as {adhoc_command_node} for which you wish to retrieve list of fileds for.
+Retrieved XML after filling it with proper data and replacing external XML element name from result to data may be passed as content for POST request to execute this command with passed parameters for command.
+"""],
+			POST : [ info:'Execute PubSub adhoc command',
+				description: """This is simplified version of adhoc command for PubSub component, which allows for easier management of PubSub component nodes and items than default adhoc command REST API.
+As part of url you need to pass PubSub component jid as {pubsub_jid} parameter and adhoc command node as {adhoc_command_node} for which you wish to execute.
+For a content of a HTTP POST request you need to pass filled XML data retrieved using GET method with external element result name changed in data.
+"""]
+		];
         regex = /\/(?:([^@\/]+)@){0,1}([^@\/]+)\/([^\/]+)/
         isAsync = true
 		decodeContent = false;

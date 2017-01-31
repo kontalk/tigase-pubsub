@@ -1,50 +1,57 @@
+/*
+ * CachedPubSubRepository.java
+ *
+ * Tigase PubSub Component
+ * Copyright (C) 2004-2016 "Tigase, Inc." <office@tigase.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. Look for COPYING file in the top folder.
+ * If not, see http://www.gnu.org/licenses/.
+ *
+ */
 package tigase.pubsub.repository.cached;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.NodeType;
-import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
-import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubDAO;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.PubSubDAO;
-import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.*;
+import tigase.pubsub.repository.*;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
-import tigase.pubsub.utils.FragmentedMap;
+import tigase.stats.Counter;
+import tigase.stats.StatisticHolder;
+import tigase.stats.StatisticHolderImpl;
 import tigase.stats.StatisticsList;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.impl.roster.RosterElement;
 
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Class description
- * 
- * 
+ *
+ *
  * @version 5.0.0, 2010.03.27 at 05:20:46 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class CachedPubSubRepository<T> implements IPubSubRepository {
+public class CachedPubSubRepository<T> implements IPubSubRepository, StatisticHolder {
 
 	private class NodeSaver {
 
 		public void save(Node<T> node) throws RepositoryException {
 			save(node, 0);
 		}
-		
+
 		public void save(Node<T> node, int iteration) throws RepositoryException {
 			long start = System.currentTimeMillis();
 
@@ -58,6 +65,10 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 						return;
 					}
 
+					if ( log.isLoggable( Level.FINEST ) ){
+						log.log( Level.FINEST, "Saving node: {0}", new Object[] { node } );
+					}
+
 					if (node.configNeedsWriting()) {
 						String collection = node.getNodeConfig().getCollection();
 						T collectionId = null;
@@ -65,14 +76,14 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 							collectionId = dao.getNodeId(node.getServiceJid(), collection);
 							if (collectionId == null) {
 								throw new RepositoryException("Parent collection does not exists yet!");
-							}							
-						}					
+							}
+						}
 						dao.updateNodeConfig(node.getServiceJid(), node.getNodeId(),
-								node.getNodeConfig().getFormElement().toString(), 
+								node.getNodeConfig().getFormElement().toString(),
 								collectionId);
 						node.configSaved();
 					}
-					
+
 					if (node.affiliationsNeedsWriting()) {
 						Map<BareJID,UsersAffiliation> changedAffiliations = node.getNodeAffiliations().getChanged();
 						for (Map.Entry<BareJID,UsersAffiliation> entry : changedAffiliations.entrySet()) {
@@ -104,14 +115,14 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 						}
 						node.subscriptionsSaved();
 					}
-				} catch (Exception e) {					
+				} catch (Exception e) {
 					log.log(Level.WARNING, "Problem saving pubsub data: ", e);
 					// if we receive an exception here, I think we should clear any unsaved
-					// changes (at least for affiliations and subscriptions) and propagate 
-					// this exception to higher layer to return proper error response 
+					// changes (at least for affiliations and subscriptions) and propagate
+					// this exception to higher layer to return proper error response
 					//
 					// should we do the same for configuration?
-					node.resetChanges(); 
+					node.resetChanges();
 					throw new RepositoryException("Problem saving pubsub data", e);
 				}
 
@@ -119,7 +130,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 				// it back to the collection
 				if (node.needsWriting()) {
 					if (iteration >= 10) {
-						String msg = "Was not able to save data for node " + node.getName() 
+						String msg = "Was not able to save data for node " + node.getName()
 								+ " on " + iteration + " iteration"
 								+ ", config saved = " + (!node.configNeedsWriting())
 								+ ", affiliations saved = " + (!node.affiliationsNeedsWriting())
@@ -133,30 +144,17 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 			long end = System.currentTimeMillis();
 
-			writingTime += (end - start);						
+			writingTime += (end - start);
 		}
 	}
 
-	private class NodeComparator implements Comparator<Node> {
-
-		@Override
-		public int compare(Node o1, Node o2) {
-			if (o1.getCreationTime() < o2.getCreationTime()) {
-				return -1;
-			}
-
-			if (o1.getCreationTime() > o2.getCreationTime()) {
-				return 1;
-			}
-
-			return o1.getName().compareTo(o2.getName());
-		}
-	}
-
-	private class SizedCache extends LinkedHashMap<String, Node> {
+	private class SizedCache extends LinkedHashMap<String, Node> implements StatisticHolder {
 		private static final long serialVersionUID = 1L;
 
 		private int maxCacheSize = 1000;
+
+		private Counter requestsCounter = new Counter("cache/requests", Level.FINEST);
+		private Counter hitsCounter = new Counter("cache/hits", Level.FINEST);
 
 		public SizedCache(int maxSize) {
 			super(maxSize, 0.1f, true);
@@ -164,8 +162,53 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 
 		@Override
+		public Node get(Object key) {
+			Node val = super.get(key);
+			requestsCounter.inc();
+			if (val != null)
+				hitsCounter.inc();
+			return val;
+		}
+
+		@Override
+		public void getStatistics(String compName, StatisticsList list) {
+			requestsCounter.getStatistics(compName, list);
+			hitsCounter.getStatistics(compName, list);
+			list.add(compName, "cache/hit-miss ratio per minute", (requestsCounter.getPerMinute() == 0) ? 0 : ((float) hitsCounter.getPerMinute())/requestsCounter.getPerMinute(), Level.FINE);
+			list.add(compName, "cache/hit-miss ratio per second", (requestsCounter.getPerSecond() == 0) ? 0 : ((float) hitsCounter.getPerSecond())/requestsCounter.getPerSecond(), Level.FINE);
+		}
+
+		@Override
 		protected boolean removeEldestEntry(Map.Entry<String, Node> eldest) {
 			return (size() > maxCacheSize) && !eldest.getValue().needsWriting();
+		}
+
+		@Override
+		public void statisticExecutedIn(long executionTime) {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
+
+		@Override
+		public void everyHour() {
+			requestsCounter.everyHour();
+			hitsCounter.everyHour();
+		}
+
+		@Override
+		public void everyMinute() {
+			requestsCounter.everyMinute();
+			hitsCounter.everyMinute();
+		}
+
+		@Override
+		public void everySecond() {
+			requestsCounter.everySecond();
+			hitsCounter.everySecond();
+		}
+
+		@Override
+		public void setStatisticsPrefix(String prefix) {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 		}
 	}
 
@@ -175,13 +218,14 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	protected Logger log = Logger.getLogger(this.getClass().getName());
 	private final Integer maxCacheSize;
 	// private final Object mutex = new Object();
+	// this
+	private final StatisticHolder cacheStats;
 	protected final Map<String, Node> nodes;
 	private long nodes_added = 0;
-	private final ConcurrentSkipListSet<Node> nodesToSave = new ConcurrentSkipListSet<Node>(new NodeComparator());
 
 	private long repo_writes = 0;
 
-	private final ConcurrentHashMap<BareJID,Set<String>> rootCollection = new ConcurrentHashMap<BareJID,Set<String>>();
+	private final ConcurrentHashMap<BareJID,RootCollectionSet> rootCollection = new ConcurrentHashMap<>();
 	private NodeSaver nodeSaver;
 
 	// private final Object writeThreadMutex = new Object();
@@ -190,30 +234,34 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 	private long writingTime = 0;
 
-	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {	
+	private final Map<String,StatisticHolder> stats;
+
+	private boolean delayedRootCollectionLoading = false;
+
+	public CachedPubSubRepository(final PubSubDAO dao, final Integer maxCacheSize) {
 		this.dao = dao;
 		this.maxCacheSize = maxCacheSize;
-		nodes = Collections.synchronizedMap(new SizedCache(this.maxCacheSize));
+		final SizedCache cache = new SizedCache(this.maxCacheSize);
+		cacheStats = cache;
+		nodes = Collections.synchronizedMap(cache);
 
 		// Runtime.getRuntime().addShutdownHook(makeLazyWriteThread(true));
 		log.config("Initializing Cached Repository with cache size = " + ((maxCacheSize == null) ? "OFF" : maxCacheSize));
-		
+
  		nodeSaver = new NodeSaver();
+
+		this.stats = new ConcurrentHashMap<String, StatisticHolder>();
+		stats.put("getNodeItems", new StatisticHolderImpl("db/getNodeItems requests"));
 
 		// Thread.dumpStack();
 	}
 
-	public void addStats(final String name, final StatisticsList stats) {
+	@Override
+	public void getStatistics(final String name, final StatisticsList stats) {
 		if (this.nodes.size() > 0) {
 			stats.add(name, "Cached nodes", this.nodes.size(), Level.FINE);
 		} else {
 			stats.add(name, "Cached nodes", this.nodes.size(), Level.FINEST);
-		}
-
-		if (this.nodesToSave.size() > 0) {
-			stats.add(name, "Unsaved nodes", this.nodesToSave.size(), Level.INFO);
-		} else {
-			stats.add(name, "Unsaved nodes", this.nodesToSave.size(), Level.FINEST);
 		}
 
 		long subscriptionsCount = 0;
@@ -276,8 +324,58 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 				stats.add(name, "Average DB write time [ms]", (writingTime / (nodes_added + repo_writes)), Level.FINEST);
 			}
 		}
+
+		cacheStats.getStatistics(name, stats);
+
+		for (StatisticHolder holder : this.stats.values()) {
+			holder.getStatistics(name, stats);
+		}
 	}
 
+	@Override
+	public void statisticExecutedIn(long executionTime) {
+	}
+
+	@Override
+	public void everyHour() {
+		cacheStats.everyHour();
+
+		for (StatisticHolder holder : stats.values()) {
+			holder.everyHour();
+		}
+	}
+
+	@Override
+	public void everyMinute() {
+		cacheStats.everyMinute();
+
+		for (StatisticHolder holder : stats.values()) {
+			holder.everyMinute();
+		}
+	}
+
+	@Override
+	public void everySecond() {
+		cacheStats.everySecond();
+
+		for (StatisticHolder holder : stats.values()) {
+			holder.everySecond();
+		}
+	}
+
+	@Override
+	public void setStatisticsPrefix(String prefix) {
+	}
+
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param serviceJid
+	 * @param nodeName
+	 *
+	 * @throws RepositoryException
+	 */
 	@Override
 	public void addToRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		if ( log.isLoggable( Level.FINEST ) ){
@@ -285,7 +383,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 							 new Object[] { serviceJid, nodeName } );
 		}
 		this.dao.addToRootCollection(serviceJid, nodeName);
-		
+
 		this.getRootCollectionSet(serviceJid).add(nodeName);
 	}
 
@@ -295,7 +393,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 	@Override
 	public void createNode(BareJID serviceJid, String nodeName, BareJID ownerJid, AbstractNodeConfig nodeConfig,
-			NodeType nodeType, String collection) throws RepositoryException {
+	                       NodeType nodeType, String collection) throws RepositoryException {
 
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Creating node, serviceJid: {0}, nodeName: {1}, ownerJid: {2}, nodeConfig: {3}, nodeType: {4}, collection: {5}",
@@ -309,17 +407,28 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 				throw new RepositoryException("Parent collection does not exists yet!");
 			}
 		}
-		
+
 		T nodeId = this.dao.createNode(serviceJid, nodeName, ownerJid, nodeConfig, nodeType, collectionId);
+		if (null == nodeId ) {
+			nodeId = this.dao.getNodeId( serviceJid, nodeName );
+			if (null == nodeId ) {
+				throw new RepositoryException("Creating node failed!");
+			}
+		}
 
 		NodeAffiliations nodeAffiliations = tigase.pubsub.repository.NodeAffiliations.create((Queue<UsersAffiliation>) null);
 		NodeSubscriptions nodeSubscriptions = wrapNodeSubscriptions ( tigase.pubsub.repository.NodeSubscriptions.create() );
-		Node node = new Node(nodeId, serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
+		Node node = new Node(nodeId, serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions, ownerJid, new Date());
 
 		String key = createKey(serviceJid, nodeName);
 		this.nodes.put(key, node);
 
 		long end = System.currentTimeMillis();
+
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Creating node[2], serviceJid: {0}, nodeName: {1}, nodeAffiliations: {2}, nodeSubscriptions: {3}, node: {4}",
+							 new Object[] { serviceJid, nodeName, nodeAffiliations, nodeSubscriptions, node } );
+		}
 
 		++nodes_added;
 		writingTime += (end - start);
@@ -328,7 +437,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	protected NodeSubscriptions wrapNodeSubscriptions(tigase.pubsub.repository.NodeSubscriptions nodeSubscriptions) {
 		return new NodeSubscriptions(nodeSubscriptions);
 	}
-	
+
 	@Override
 	public void deleteNode(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
@@ -336,7 +445,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
 
 		if ( log.isLoggable( Level.FINEST ) ){
-			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
+			log.log( Level.FINEST, "Deleting node, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
 							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
 		}
 
@@ -386,42 +495,40 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		}
 
 		if (node == null) {
-			T nodeId = this.dao.getNodeId(serviceJid, nodeName);
-			if (nodeId == null) {
+			INodeMeta<T> nodeMeta = this.dao.getNodeMeta(serviceJid, nodeName);
+			if (nodeMeta == null) {
+				if ( log.isLoggable( Level.FINEST ) ){
+					log.log( Level.FINEST, "Getting node[1] -- nodeId null! serviceJid: {0}, nodeName: {1}, nodeId: {2}",
+							 new Object[] { serviceJid, nodeName, null } );
+				}
 				return null;
 			}
-			String cfgData = this.dao.getNodeConfig(serviceJid, nodeId);
-			AbstractNodeConfig nodeConfig = this.dao.parseConfig(nodeName, cfgData);
+			AbstractNodeConfig nodeConfig = nodeMeta.getNodeConfig();
 
 			if (nodeConfig == null) {
+				if ( log.isLoggable( Level.FINEST ) ){
+					log.log( Level.FINEST, "Getting node[2] -- config null! serviceJid: {0}, nodeName: {1}, cfgData: {2}",
+							 new Object[] { serviceJid, nodeName, null } );
+				}
 				return null;
 			}
 
-			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(serviceJid, nodeId));
-			NodeSubscriptions nodeSubscriptions = wrapNodeSubscriptions(this.dao.getNodeSubscriptions(serviceJid, nodeId));
+			NodeAffiliations nodeAffiliations = new NodeAffiliations(this.dao.getNodeAffiliations(serviceJid, nodeMeta.getNodeId()));
+			NodeSubscriptions nodeSubscriptions = wrapNodeSubscriptions(this.dao.getNodeSubscriptions(serviceJid, nodeMeta.getNodeId()));
 
-			node = new Node(nodeId, serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions);
+			node = new Node(nodeMeta.getNodeId(), serviceJid, nodeConfig, nodeAffiliations, nodeSubscriptions, nodeMeta.getCreator(), nodeMeta.getCreationTime());
 
-			// if (maxCacheSize != null && this.nodes.size() > maxCacheSize) {
-			// Iterator<Entry<String, Node>> it =
-			// this.nodes.entrySet().iterator();
-			// int count = 0;
-			// while (it.hasNext() && count < 10) {
-			// Entry<String, Node> e = it.next();
-			// if (nodesToSave.contains(e.getValue())) {
-			// continue;
-			// }
-			// count++;
-			// it.remove();
-			// }
-			//
-			// }
 			this.nodes.put(key, node);
-		}
 
+			if ( log.isLoggable( Level.FINEST ) ){
+				log.log( Level.FINEST, "Getting node[2], serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeAffiliations {4}, nodeSubscriptions: {5}",
+						 new Object[] { serviceJid, nodeName, key, node, nodeAffiliations, nodeSubscriptions } );
+			}
+
+		}
 		return node;
 	}
-	
+
 	@Override
 	public IAffiliations getNodeAffiliations(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
@@ -433,6 +540,10 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	public AbstractNodeConfig getNodeConfig(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
 
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node config, serviceJid: {0}, nodeName: {1}, node: {2}",
+							 new Object[] { serviceJid, nodeName, node } );
+		}
 		try {
 			return (node == null) ? null : node.getNodeConfig().clone();
 		} catch (CloneNotSupportedException e) {
@@ -443,20 +554,33 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	}
 
 	@Override
+	public INodeMeta getNodeMeta(BareJID serviceJid, String nodeName) throws RepositoryException {
+		return getNode(serviceJid, nodeName);
+	}
+
+	@Override
 	public IItems getNodeItems(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
-		Node<T> node = this.nodes.get(key);		
+		long start = System.currentTimeMillis();
+		Node<T> node = this.nodes.get(key);
 		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
 							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
 		}
+		long end = System.currentTimeMillis();
+		this.stats.get("getNodeItems").statisticExecutedIn(end-start);
 		return new Items(nodeId, serviceJid, nodeName, this.dao);
 	}
 
 	@Override
 	public ISubscriptions getNodeSubscriptions(BareJID serviceJid, String nodeName) throws RepositoryException {
 		Node node = getNode(serviceJid, nodeName);
+
+		if ( log.isLoggable( Level.FINEST ) ){
+			log.log( Level.FINEST, "Getting node subscriptions, serviceJid: {0}, nodeName: {1}, node: {2}, node.getNodeConfig(): {3}",
+							 new Object[] { serviceJid, nodeName, node, node.getNodeConfig() } );
+		}
 
 		return (node == null) ? null : node.getNodeSubscriptions();
 	}
@@ -468,41 +592,46 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 	@Override
 	public String[] getRootCollection(BareJID serviceJid) throws RepositoryException {
-		Set<String> rootCollection = getRootCollectionSet(serviceJid);
+		RootCollectionSet rootCollection = getRootCollectionSet(serviceJid);
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting root collection, serviceJid: {0}",
 							 new Object[] { serviceJid } );
 		}
 		if (rootCollection == null)
 			return null;
-		return rootCollection.toArray(new String[rootCollection.size()]);
+
+		Set<String> nodes = rootCollection.values();
+		return nodes.toArray(new String[nodes.size()]);
 	}
-	
-	protected Set<String> getRootCollectionSet(BareJID serviceJid) throws RepositoryException {
-		Set<String> rootCollection = this.rootCollection.get(serviceJid);
+
+	protected RootCollectionSet getRootCollectionSet(BareJID serviceJid) throws RepositoryException {
+		RootCollectionSet rootCollection = this.rootCollection.get(serviceJid);
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting root collection, serviceJid: {0}",
 							 new Object[] { serviceJid } );
 		}
-		if (rootCollection == null || rootCollection.isEmpty()) {
+		if (rootCollection == null || !rootCollection.checkState(RootCollectionSet.State.initialized)) {
 			if (rootCollection == null) {
-				Set<String> oldRootCollection = this.rootCollection.putIfAbsent(serviceJid, Collections.synchronizedSet(new HashSet<String>()));				
+				rootCollection = new RootCollectionSet(serviceJid, this);
+				RootCollectionSet oldRootCollection = this.rootCollection.putIfAbsent(serviceJid, rootCollection);
 				if (oldRootCollection != null) {
 					rootCollection = oldRootCollection;
 				}
 			}
-			String[] x = dao.getChildNodes(serviceJid, null);
 
-			if (rootCollection == null) {
-				rootCollection = Collections.synchronizedSet(new HashSet<String>());
-			}
-			if (x != null) {
-				for (String string : x) {
-					rootCollection.add(string);
+			if (!delayedRootCollectionLoading) {
+				synchronized (rootCollection) {
+					loadRootCollections(rootCollection);
 				}
 			}
 		}
 		return rootCollection;
+	}
+
+	protected void loadRootCollections(RootCollectionSet rootCollection) throws RepositoryException {
+		BareJID serviceJid = rootCollection.getServiceJid();
+		String[] x = dao.getChildNodes(serviceJid, null);
+		rootCollection.loadData(x);
 	}
 
 	@Override
@@ -514,7 +643,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	public Map<String,UsersSubscription> getUserSubscriptions(BareJID serviceJid, BareJID userJid) throws RepositoryException {
 		return this.dao.getUserSubscriptions(serviceJid, userJid);
 	}
-	
+
 	@Override
 	public void init() {
 		log.config("Cached PubSubRepository initialising...");
@@ -523,17 +652,22 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 	@Override
 	public void removeFromRootCollection(BareJID serviceJid, String nodeName) throws RepositoryException {
 		String key = createKey(serviceJid, nodeName);
-		Node<T> node = this.nodes.get(key);		
+		Node<T> node = this.nodes.get(key);
 		T nodeId = node != null ? node.getNodeId() : dao.getNodeId(serviceJid, nodeName);
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting node items, serviceJid: {0}, nodeName: {1}, key: {2}, node: {3}, nodeId: {4}",
 							 new Object[] { serviceJid, nodeName, key, node, nodeId } );
 		}
-		dao.removeFromRootCollection(serviceJid, nodeId);
-		Set<String> nodes = rootCollection.get(serviceJid);
-		if (nodes != null) {
-			nodes.remove(nodeName);
+		RootCollectionSet rootCollectionSet = getRootCollectionSet(serviceJid );
+		if (rootCollectionSet != null) {
+			rootCollectionSet.remove(nodeName);
 		}
+		this.nodes.remove( key );
+	}
+
+	@Override
+	public void setDelayedRootCollectionLoading(boolean delayedRootCollectionLoading) {
+		this.delayedRootCollectionLoading = delayedRootCollectionLoading;
 	}
 
 	@Override
@@ -556,6 +690,11 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		if (nodeAffiliations instanceof NodeAffiliations) {
 			Node node = getNode(serviceJid, nodeName);
 
+			if ( log.isLoggable( Level.FINEST ) ){
+				log.log( Level.FINEST, "Updating node affiliations, serviceJid: {0}, nodeName: {1}, node: {2}, nodeAffiliations: {3}",
+								 new Object[] { serviceJid, nodeName, node, nodeAffiliations } );
+			}
+
 			if (node != null) {
 				if (node.getNodeAffiliations() != nodeAffiliations) {
 					throw new RuntimeException("INCORRECT");
@@ -563,7 +702,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 
 				// node.setNodeAffiliationsChangeTimestamp();
 				// synchronized (mutex) {
-				log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations)");
+				log.finest("Node '" + nodeName + "' added to lazy write queue (affiliations), node: " + node);
 				nodeSaver.save(node);
 
 				// }
@@ -578,7 +717,7 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 		++updateSubscriptionsCalled;
 		Node node = getNode(serviceJid, nodeName);
 
-		if (node != null) {
+		if ( node != null ){
 			// node.setNodeSubscriptionsChangeTimestamp();
 			// synchronized (mutex) {
 			log.finest("Node '" + nodeName + "' added to lazy write queue (subscriptions)");
@@ -586,4 +725,163 @@ public class CachedPubSubRepository<T> implements IPubSubRepository {
 			// }
 		}
 	}
+	
+	@Override
+	public void onUserRemoved(BareJID userJid) throws RepositoryException {
+		dao.removeService(userJid);
+		userRemoved(userJid);
+	}
+
+	protected void userRemoved(BareJID userJid) {
+		// clearing in memory caches
+		rootCollection.remove(userJid);
+		Iterator<Node> nodesIter = this.nodes.values().iterator();
+		while (nodesIter.hasNext()) {
+			Node node = nodesIter.next();
+			NodeSubscriptions nodeSubscriptions = node.getNodeSubscriptions();
+			nodeSubscriptions.changeSubscription(userJid, Subscription.none);
+			nodeSubscriptions.merge();
+			NodeAffiliations nodeAffiliations = node.getNodeAffiliations();
+			nodeAffiliations.changeAffiliation(userJid, Affiliation.none);
+			nodeAffiliations.merge();
+		}
+	}
+
+	public static class RootCollectionSet {
+
+		private static final Logger log = Logger.getLogger(RootCollectionSet.class.getCanonicalName());
+
+		private CachedPubSubRepository cachedPubSubRepository;
+
+		private BareJID serviceJid;
+		private Set<String> rootCollections;
+
+		private Set<String> added;
+		private Set<String> removed;
+
+		private State state = State.uninitialized;
+
+		public RootCollectionSet(BareJID serviceJid, CachedPubSubRepository cachedPubSubRepository) {
+			this.serviceJid = serviceJid;
+			this.cachedPubSubRepository = cachedPubSubRepository;
+		}
+
+		public void add(String node) {
+			synchronized (this) {
+				switch (state) {
+					case initialized:
+						rootCollections.add(node);
+						break;
+					case loading:
+						added.add(node);
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		public boolean checkState(State state) {
+			synchronized (this) {
+				return this.state == state;
+			}
+		}
+
+		public BareJID getServiceJid() {
+			return serviceJid;
+		}
+
+		public void remove(String node) {
+			synchronized (this) {
+				switch (state) {
+					case initialized:
+						rootCollections.remove(node);
+						break;
+					case loading:
+						added.remove(node);
+						removed.add(node);
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		
+		public Set<String> values() throws IllegalStateException {
+			synchronized (this) {
+				switch (state) {
+					case initialized:
+						return rootCollections;
+					case loading:
+						throw new IllegalStateException(state);
+					case uninitialized:
+						added = new HashSet<>();
+						removed = new HashSet<>();
+						new Thread(this::startLoadOfData).start();
+						this.state = State.loading;
+						throw new IllegalStateException(state);
+				}
+			}
+			return null;
+		}
+
+		private void startLoadOfData() {
+			try {
+				cachedPubSubRepository.loadRootCollections(this);
+			} catch (Throwable ex) {
+				log.log(Level.FINE, "Could not load");
+				synchronized (this) {
+					switch (state) {
+						case loading:
+							added = null;
+							removed = null;
+							state = State.uninitialized;
+						default:
+							break;
+					}
+				}
+			}
+		}
+
+		private void loadData(String[] nodes) {
+			synchronized (this) {
+				if (nodes != null) {
+					rootCollections = Collections.synchronizedSet(new HashSet<>(nodes.length));
+				} else {
+					rootCollections = Collections.synchronizedSet(new HashSet<>());
+				}
+
+				if (added == null && removed == null) {
+					if (nodes != null) {
+						rootCollections.addAll(Arrays.asList(nodes));
+					}
+				} else {
+					rootCollections.addAll(added);
+					if (nodes != null) {
+						Arrays.stream(nodes).filter(node -> !removed.contains(node)).forEach(rootCollections::add);
+					}
+					added = null;
+					removed = null;
+				}
+				this.state = State.initialized;
+			}
+		}
+
+		public enum State {
+			uninitialized,
+			loading,
+			initialized
+		}
+
+		public static class IllegalStateException extends java.lang.IllegalStateException {
+
+			public final State state;
+
+			public IllegalStateException(State state) {
+				this.state = state;
+			}
+
+		}
+	}
+	
 }

@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import tigase.component2.PacketWriter;
 import tigase.component2.eventbus.EventBus;
@@ -42,12 +43,15 @@ import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.server.Iq;
 import tigase.server.Packet;
+import tigase.stats.StatisticHolderImpl;
 import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.impl.roster.RosterAbstract;
 import tigase.xmpp.impl.roster.RosterAbstract.SubscriptionType;
 import tigase.xmpp.impl.roster.RosterElement;
+
+import java.util.Arrays;
 
 /**
  * Class description
@@ -56,7 +60,7 @@ import tigase.xmpp.impl.roster.RosterElement;
  * @version 5.0.0, 2010.03.27 at 05:24:03 GMT
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public abstract class AbstractPubSubModule implements Module {
+public abstract class AbstractPubSubModule extends StatisticHolderImpl implements Module {
 
 	/**
 	 * Method description
@@ -142,6 +146,13 @@ public abstract class AbstractPubSubModule implements Module {
 		Set<BareJID> result = new HashSet<BareJID>();
 		final boolean presenceExpired = nodeConfig.isPresenceExpired();
 
+		if ( logAbstract.isLoggable( Level.FINEST ) ){
+			logAbstract.log( Level.FINEST,
+										 "getActiveSubscribers[2,1] subscriptions: {0}, jids: {1}, presenceExpired: {2}",
+										 new Object[] { subscriptions, Arrays.asList( jids ), presenceExpired } );
+		}
+
+
 		if (jids != null) {
 			for (BareJID jid : jids) {
 				if (presenceExpired) {
@@ -149,9 +160,20 @@ public abstract class AbstractPubSubModule implements Module {
 
 				UsersAffiliation affiliation = affiliations.getSubscriberAffiliation(jid);
 
+				if ( logAbstract.isLoggable( Level.FINEST ) ){
+					logAbstract.log( Level.FINEST,
+												 "getActiveSubscribers[2,2] jid: {0}, affiliation: {1}",
+												 new Object[] { jid, affiliation } );
+				}
+
 				// /* && affiliation.getAffiliation() != Affiliation.none */
 				if (affiliation.getAffiliation() != Affiliation.outcast) {
 					Subscription subscription = subscriptions.getSubscription(jid);
+					if ( logAbstract.isLoggable( Level.FINEST ) ){
+						logAbstract.log( Level.FINEST,
+														 "getActiveSubscribers[2,2] jid: {0}, subscription: {1}}",
+														 new Object[] { jid, subscription } );
+					}
 
 					if (subscription == Subscription.subscribed) {
 						result.add(jid);
@@ -178,6 +200,12 @@ public abstract class AbstractPubSubModule implements Module {
 	public static Collection<BareJID> getActiveSubscribers(final AbstractNodeConfig nodeConfig,
 			final IAffiliations affiliations, final ISubscriptions subscriptions) throws RepositoryException {
 		UsersSubscription[] subscribers = subscriptions.getSubscriptionsForPublish();
+
+		if ( logAbstract.isLoggable( Level.FINEST ) ){
+			logAbstract.log( Level.FINEST,
+											 "getActiveSubscribers[1] subscriptions: {0}, subscribers: {1}",
+											 new Object[] { subscriptions, Arrays.asList( subscribers ) } );
+		}
 
 		if (subscribers == null) {
 			return Collections.emptyList();
@@ -233,9 +261,10 @@ public abstract class AbstractPubSubModule implements Module {
 
 	/** Field description */
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
+	protected final static Logger logAbstract = Logger.getLogger(AbstractPubSubModule.class.getName());
 
 	protected final PacketWriter packetWriter;
-
+	
 	/**
 	 * Constructs ...
 	 * 
@@ -248,6 +277,7 @@ public abstract class AbstractPubSubModule implements Module {
 	public AbstractPubSubModule(final PubSubConfig config, PacketWriter packetWriter) {
 		this.config = config;
 		this.packetWriter = packetWriter;
+		this.setStatisticsPrefix(getClass().getSimpleName());
 	}
 
 	protected EventBus getEventBus() {
@@ -257,7 +287,7 @@ public abstract class AbstractPubSubModule implements Module {
 	protected IPubSubRepository getRepository() {
 		return config.getPubSubRepository();
 	}
-
+	
 	/**
 	 * Method description
 	 * 

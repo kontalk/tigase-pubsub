@@ -131,14 +131,15 @@ public class NodeConfigModule extends AbstractConfigCreateNode {
 				final String var = field.getVar();
 				Field cf = foo.get(var);
 				
-				if (!config.isSendLastPublishedItemOnPresence() && "pubsub#send_last_published_item".equals(var)){
-					if (SendLastPublishedItem.on_sub_and_presence.name().equals(cf.getValue())) {
-						throw new PubSubException(Authorization.NOT_ACCEPTABLE, "Requested on_sub_and_presence mode for sending last published item is disabled.");
+				if ( cf != null ){
+					if ( !config.isSendLastPublishedItemOnPresence() && "pubsub#send_last_published_item".equals( var ) ){
+						if ( SendLastPublishedItem.on_sub_and_presence.name().equals( cf.getValue() ) ){
+							throw new PubSubException( Authorization.NOT_ACCEPTABLE,
+									"Requested on_sub_and_presence mode for sending last published item is disabled." );
+						}
 					}
-				}
 
-				if (cf != null) {
-					field.setValues(cf.getValues());
+					field.setValues( cf.getValues() );
 				}
 			}
 		}

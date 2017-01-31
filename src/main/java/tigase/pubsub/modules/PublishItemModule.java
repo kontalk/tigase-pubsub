@@ -22,54 +22,25 @@
 
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import tigase.component2.PacketWriter;
 import tigase.component2.eventbus.Event;
 import tigase.component2.eventbus.EventHandler;
 import tigase.component2.eventbus.EventType;
 import tigase.criteria.Criteria;
 import tigase.criteria.ElementCriteria;
-import tigase.pubsub.AbstractNodeConfig;
-import tigase.pubsub.AbstractPubSubModule;
-import tigase.pubsub.AccessModel;
-import tigase.pubsub.Affiliation;
-import tigase.pubsub.LeafNodeConfig;
-import tigase.pubsub.NodeType;
-import tigase.pubsub.PubSubConfig;
-import tigase.pubsub.PublisherModel;
-import tigase.pubsub.SendLastPublishedItem;
-import tigase.pubsub.Subscription;
-import tigase.pubsub.Utils;
+import tigase.pubsub.*;
 import tigase.pubsub.exceptions.PubSubErrorCondition;
 import tigase.pubsub.exceptions.PubSubException;
 import tigase.pubsub.modules.PresenceCollectorModule.CapsChangeHandler;
 import tigase.pubsub.modules.PresenceCollectorModule.CapsChangeHandler.CapsChangeEvent;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler;
 import tigase.pubsub.modules.PresenceCollectorModule.PresenceChangeHandler.PresenceChangeEvent;
-import tigase.pubsub.repository.IAffiliations;
-import tigase.pubsub.repository.IItems;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.*;
 import tigase.pubsub.repository.stateless.UsersAffiliation;
 import tigase.pubsub.repository.stateless.UsersSubscription;
 import tigase.server.Message;
 import tigase.server.Packet;
+import tigase.util.DateTimeFormatter;
 import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
@@ -77,6 +48,11 @@ import tigase.xmpp.JID;
 import tigase.xmpp.StanzaType;
 import tigase.xmpp.impl.roster.RosterAbstract.SubscriptionType;
 import tigase.xmpp.impl.roster.RosterElement;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class description
@@ -144,7 +120,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 	private static final Criteria CRIT_PUBLISH = ElementCriteria.nameType("iq", "set").add(
 			ElementCriteria.name("pubsub", "http://jabber.org/protocol/pubsub")).add(ElementCriteria.name("publish"));
 
-	/** Field description */
+	public final static String AMP_XMLNS = "http://jabber.org/protocol/amp";
+
 	public final static String[] SUPPORTED_PEP_XMLNS = { "http://jabber.org/protocol/mood",
 		"http://jabber.org/protocol/geoloc", "http://jabber.org/protocol/activity", "http://jabber.org/protocol/tune" };
 
@@ -178,6 +155,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 	};
 
+	private final DateTimeFormatter dtf = new DateTimeFormatter();
+
 	private final LeafNodeConfig defaultPepNodeConfig;
 	private long idCounter = 0;
 
@@ -204,6 +183,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 					// sending last published items for subscribed nodes
 					Map<String, UsersSubscription> subscrs = config.getPubSubRepository().getUserSubscriptions(serviceJid,
 							userJid.getBareJID());
+					log.log(Level.FINEST, "Sending last published items for subscribed nodes: {0}", subscrs);
 					for (Map.Entry<String, UsersSubscription> e : subscrs.entrySet()) {
 						if (e.getValue().getSubscription() != Subscription.subscribed)
 							continue;
@@ -297,6 +277,8 @@ public class PublishItemModule extends AbstractPubSubModule {
 			nodeaSubscriptions.addSubscriberJid(toJid, Subscription.subscribed);
 			repo.update(toJid, nodeName, nodeaAffiliations);
 			repo.addToRootCollection(toJid, nodeName);
+			log.log(Level.FINEST, "Created new PEP node: {0}, conf: {1}, aff: {2}, subs: {3} ",
+														new Object[] {nodeName, nodeConfig, nodeaAffiliations, nodeaSubscriptions});
 		} catch (RepositoryException ex) {
 			throw new PubSubException(Authorization.INTERNAL_SERVER_ERROR, "Error occured during autocreation of node", ex);
 		}
@@ -316,7 +298,10 @@ public class PublishItemModule extends AbstractPubSubModule {
 
 		List<String> parents = getParents(serviceJID, nodeName);
 
-		if ((parents != null) && (parents.size() > 0)) {
+			log.log(Level.FINEST, "Publishing item: {0}, node: {1}, conf: {2}, aff: {3}, subs: {4} ",
+														new Object[] {items, nodeName, leafNodeConfig, nodeAffiliations, nodeSubscriptions});
+
+			if ((parents != null) && (parents.size() > 0)) {
 			for (String collection : parents) {
 				Map<String, String> headers = new HashMap<String, String>();
 
@@ -415,7 +400,7 @@ public class PublishItemModule extends AbstractPubSubModule {
 		ArrayList<JID> result = new ArrayList<JID>();
 		Map<BareJID, RosterElement> rosterJids = this.getRepository().getUserRoster(id);
 
-		if (rosterJids != null) {
+			if (rosterJids != null) {
 			for (Entry<BareJID, RosterElement> e : rosterJids.entrySet()) {
 				SubscriptionType sub = e.getValue().getSubscription();
 
@@ -450,25 +435,43 @@ public class PublishItemModule extends AbstractPubSubModule {
 			if (!"item".equals(si.getName())) {
 				continue;
 			}
+			String expireAttr = si.getAttributeStaticStr( "expire-at");
+			if ( expireAttr != null ){
+				Calendar parseDateTime = dtf.parseDateTime( expireAttr );
+				if ( null != parseDateTime ){
+					si.setAttribute( "expire-at", dtf.formatDateTime( parseDateTime.getTime() ) );
+				} else {
+					si.removeAttribute( "expire-at" );
+				}
+			}
 			items.add(si);
 		}
 
 		return items;
 	}
 
-	private void pepProcess(final Packet packet, final Element pubSub, final Element publish) throws RepositoryException {
+	private void pepProcess(final Packet packet, final Element pubSub, final Element publish)
+			throws RepositoryException {
 		final JID senderJid = packet.getStanzaFrom();
-		final Element item = publish.getChild("item");
-		final Element items = new Element("items", new String[] { "node" },
-				new String[] { publish.getAttributeStaticStr("node") });
+		try {
+			JID[] subscribers = getValidBuddies(senderJid.getBareJID());
 
-		items.addChild(item);
+			final Element item = publish.getChild("item");
+			final Element items = new Element("items", new String[]{"node"},
+											  new String[]{publish.getAttributeStaticStr("node")});
 
-		JID[] subscribers = getValidBuddies(senderJid.getBareJID());
-		sendNotifications(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
+			items.addChild(item);
 
-		packetWriter.write(packet.okResult((Element) null, 0));
-		sendNotifications(new JID[] { senderJid }, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
+			sendNotifications(subscribers, items, senderJid, null, publish.getAttributeStaticStr("node"), null);
+
+			packetWriter.write(packet.okResult((Element) null, 0));
+			sendNotifications(new JID[]{senderJid}, items, senderJid, null, publish.getAttributeStaticStr("node"),
+							  null);
+		} catch (tigase.pubsub.repository.RepositoryException e) {
+			if (log.isLoggable(Level.FINER)) {
+				log.finer("Connot find roster of user " + senderJid + ". Probably anonymous user.");
+			}
+		}
 	}
 
 	/**
@@ -579,16 +582,13 @@ public class PublishItemModule extends AbstractPubSubModule {
 		IItems nodeItems = this.getRepository().getNodeItems(serviceJid, nodeConfig.getNodeName());
 		String[] ids = nodeItems.getItemsIds();
 
-		if (ids != null && ids.length > 0) {
+			if (ids != null && ids.length > 0) {
 			String lastID = ids[ids.length - 1];
 			Element payload = nodeItems.getItem(lastID);
 
 			Element items = new Element("items");
 			items.addAttribute("node", nodeConfig.getNodeName());
-			Element item = new Element("item");
-			item.addAttribute("id", lastID);
-			items.addChild(item);
-			item.addChild(payload);
+			items.addChild(payload);
 
 			sendNotifications(new JID[] { destinationJID }, items, JID.jidInstance(serviceJid), nodeConfig,
 					nodeConfig.getNodeName(), null);
@@ -643,6 +643,11 @@ public class PublishItemModule extends AbstractPubSubModule {
 			tmp.add(JID.jidInstance(j));
 		}
 		boolean updateSubscriptions = false;
+
+		log.log( Level.FINEST,
+						 "Sending notifications[1] item: {0}, node: {1}, conf: {2}, aff: {3}, subs: {4}, getActiveSubscribers: {5} ",
+						 new Object[] { itemToSend, publisherNodeName, nodeConfig,
+														nodeAffiliations, nodesSubscriptions, tmp } );
 
 		if (nodeConfig.isPresenceExpired()) {
 			Iterator<JID> it = tmp.iterator();
@@ -737,6 +742,9 @@ public class PublishItemModule extends AbstractPubSubModule {
 			AbstractNodeConfig nodeConfig, final String publisherNodeName, final Map<String, String> headers) {
 		List<Element> body = null;
 
+		log.log(Level.FINEST, "Sending notifications[2] item: {0}, node: {1}, conf: {2}, subs: {3} ",
+													new Object[] {itemToSend, publisherNodeName, nodeConfig, Arrays.asList( subscribers )  });
+
 		if ((this.xslTransformer != null) && (nodeConfig != null)) {
 			try {
 				body = this.xslTransformer.transform(itemToSend, nodeConfig);
@@ -771,6 +779,15 @@ public class PublishItemModule extends AbstractPubSubModule {
 					new String[] { "http://jabber.org/protocol/pubsub#event" });
 
 			event.addChild(itemToSend);
+			String expireAttr = itemToSend.getAttributeStaticStr( new String[] {"items","item"}, "expire-at" );
+			if (expireAttr != null ) {
+				Element amp = new Element("amp");
+				amp.setXMLNS( AMP_XMLNS );
+				amp.addChild( new Element("rule",
+						new String[] {"condition", "action", "value"},
+						new String[] {"expire-at", "drop", expireAttr }));
+				message.addChild( amp );
+			}
 			message.addChild(event);
 			if ((headers != null) && (headers.size() > 0)) {
 				Element headElem = new Element("headers", new String[] { "xmlns" },

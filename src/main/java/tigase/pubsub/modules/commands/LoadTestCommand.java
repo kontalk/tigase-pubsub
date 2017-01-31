@@ -20,7 +20,11 @@ import tigase.xml.Element;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 
+import java.util.logging.Logger;
+
 public class LoadTestCommand implements AdHocCommand {
+
+	protected final Logger log = Logger.getLogger(this.getClass().getName());
 
 	private final AbstractMessageReceiver component;
 
@@ -127,10 +131,18 @@ public class LoadTestCommand implements AdHocCommand {
 	}
 
 	private void startLoadTest(BareJID serviceJid, String nodeName, BareJID publisher, Long time, Long frequency,
-			Integer length, boolean useBlockingMethod) throws RepositoryException, UserNotFoundException, TigaseDBException {
+							   Integer length, boolean useBlockingMethod) throws RepositoryException, UserNotFoundException, TigaseDBException {
 
-		(new Thread(new LoadTestGenerator(component, serviceJid, nodeName, publisher, time, frequency, length,
-				useBlockingMethod))).start();
+		final LoadTestGenerator r = new LoadTestGenerator(component, serviceJid, nodeName, publisher, time, frequency, length,
+				useBlockingMethod) {
+			@Override
+			protected void onTestFinish() {
+				LoadTestCommand.this.log.info("Test finished. Published " + getCounter() + " items in "
+						+ ((getTestEndTime() - getTestStartTime()) / 1000) + " seconds.");
+			}
+		};
+		log.info("Staring load test.");
+		(new Thread(r)).start();
 
 	}
 }

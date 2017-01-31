@@ -107,4 +107,9 @@ public class PresenceNodeSubscriptions implements ISubscriptions {
 		return subscriptions.serialize(fragment);
 	}
 
+	@Override
+	public String toString() {
+		return "PresenceNodeSubscriptions{" + "extension=" + extension + ", nodeName=" + nodeName + ", serviceJID=" + serviceJID + ", subscriptions=" + subscriptions + '}';
+	}
+
 }

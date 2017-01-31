@@ -24,79 +24,37 @@ package tigase.pubsub;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.script.Bindings;
-
 import tigase.adhoc.AdHocScriptCommandManager;
 import tigase.component2.AbstractComponent;
 import tigase.component2.PacketWriter;
 import tigase.conf.Configurable;
 import tigase.conf.ConfigurationException;
-import tigase.db.DBInitException;
-import tigase.db.RepositoryFactory;
-import tigase.db.TigaseDBException;
-import tigase.db.UserNotFoundException;
-import tigase.db.UserRepository;
+import tigase.db.*;
+import tigase.disteventbus.EventBus;
+import tigase.disteventbus.EventBusFactory;
+import tigase.disteventbus.EventHandler;
 import tigase.osgi.ModulesManagerImpl;
-import tigase.pubsub.modules.AdHocConfigCommandModule;
-import tigase.pubsub.modules.CapsModule;
-import tigase.pubsub.modules.DefaultConfigModule;
-import tigase.pubsub.modules.DiscoverInfoModule;
-import tigase.pubsub.modules.DiscoverItemsModule;
-import tigase.pubsub.modules.JabberVersionModule;
-import tigase.pubsub.modules.ManageAffiliationsModule;
-import tigase.pubsub.modules.ManageSubscriptionModule;
-import tigase.pubsub.modules.NodeConfigModule;
-import tigase.pubsub.modules.NodeCreateModule;
-import tigase.pubsub.modules.NodeDeleteModule;
-import tigase.pubsub.modules.PendingSubscriptionModule;
-import tigase.pubsub.modules.PresenceCollectorModule;
-import tigase.pubsub.modules.PublishItemModule;
-import tigase.pubsub.modules.PurgeItemsModule;
-import tigase.pubsub.modules.RetractItemModule;
-import tigase.pubsub.modules.RetrieveAffiliationsModule;
-import tigase.pubsub.modules.RetrieveItemsModule;
-import tigase.pubsub.modules.RetrieveSubscriptionsModule;
-import tigase.pubsub.modules.SubscribeNodeModule;
-import tigase.pubsub.modules.UnsubscribeNodeModule;
-import tigase.pubsub.modules.XmppPingModule;
-import tigase.pubsub.modules.XsltTool;
-import tigase.pubsub.modules.commands.DefaultConfigCommand;
+import tigase.pubsub.modules.*;
+import tigase.pubsub.modules.commands.*;
 import tigase.pubsub.modules.commands.DefaultConfigCommand.DefaultNodeConfigurationChangedHandler;
-import tigase.pubsub.modules.commands.DeleteAllNodesCommand;
-import tigase.pubsub.modules.commands.LoadTestCommand;
-import tigase.pubsub.modules.commands.ReadAllNodesCommand;
-import tigase.pubsub.modules.commands.RebuildDatabaseCommand;
-import tigase.pubsub.modules.commands.RetrieveItemsCommand;
 import tigase.pubsub.modules.ext.presence.PresenceNodeSubscriptions;
 import tigase.pubsub.modules.ext.presence.PresenceNotifierModule;
-import tigase.pubsub.repository.IPubSubDAO;
-import tigase.pubsub.repository.IPubSubRepository;
-import tigase.pubsub.repository.ISubscriptions;
-import tigase.pubsub.repository.PubSubDAO;
-import tigase.pubsub.repository.PubSubDAOPool;
-import tigase.pubsub.repository.PubSubRepositoryWrapper;
-import tigase.pubsub.repository.RepositoryException;
+import tigase.pubsub.repository.*;
 import tigase.pubsub.repository.cached.CachedPubSubRepository;
 import tigase.server.Command;
 import tigase.server.DisableDisco;
 import tigase.server.Packet;
+import tigase.stats.StatisticHolder;
+import tigase.stats.StatisticsList;
 import tigase.xml.Element;
-import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
-import tigase.xmpp.JID;
-import tigase.xmpp.PacketErrorTypeException;
-import tigase.xmpp.StanzaType;
+import tigase.xmpp.*;
+
+import javax.script.Bindings;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class description
@@ -140,6 +98,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	private static final String COMPONENT = "component";
 	/** Field description */
 	public static final String DEFAULT_LEAF_NODE_CONFIG_KEY = "default-node-config";
+
+	public static final String DELAYED_ROOT_COLLECTION_LOADING_KEY = "delayed-root-collection-loading";
 
 	private static final String MAX_CACHE_SIZE = "pubsub-repository-cache-size";
 	private static final Pattern PARAMETRIZED_PROPERTY_PATTERN = Pattern.compile("(.+)\\[(.*)\\]|(.+)");
@@ -220,6 +180,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	private XsltTool xslTransformer;
 
+	private RemoveUserEventHandler removeUserEventHandler = new RemoveUserEventHandler();
+	
 	/**
 	 * Constructs ...
 	 *
@@ -373,6 +335,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			admins = new String[] { "admin@" + getDefHostName() };
 		}
 		props.put(ADMINS_KEY, admins);
+		props.put(DELAYED_ROOT_COLLECTION_LOADING_KEY, false);
 
 		return props;
 	}
@@ -382,6 +345,39 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		return "PubSub";
 	}
 
+	@Override
+	public void getStatistics(StatisticsList list) {
+		super.getStatistics(list);
+		
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).getStatistics(getName(), list);
+		}
+	}
+	
+	@Override
+	public void everyHour() {
+		super.everyHour();
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).everyHour();
+		}		
+	}
+	
+	@Override
+	public void everyMinute() {
+		super.everyMinute();
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).everyMinute();
+		}		
+	}
+	
+	@Override
+	public void everySecond() {
+		super.everySecond();
+		if (pubsubRepository instanceof StatisticHolder) {
+			((StatisticHolder) pubsubRepository).everySecond();
+		}
+	}
+	
 	@Override
 	public int hashCodeForPacket(Packet packet) {
 		int hash = packet.hashCode();
@@ -482,7 +478,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 	 * @throws UserNotFoundException
 	 */
 	public void initialize(String[] admins, PubSubDAO pubSubDAO, IPubSubRepository createPubSubRepository,
-			LeafNodeConfig defaultNodeConfig) throws UserNotFoundException, TigaseDBException, RepositoryException {
+			LeafNodeConfig defaultNodeConfig, boolean delayedRootCollectionLoading) throws UserNotFoundException, TigaseDBException, RepositoryException {
 		this.componentConfig.setAdmins(admins);
 
 		// this.componentConfig.setServiceName("tigase-pubsub");
@@ -493,6 +489,7 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 		}
 		this.directPubSubRepository = pubSubDAO;
 		this.pubsubRepository = createPubSubRepository(pubSubDAO);
+		this.pubsubRepository.setDelayedRootCollectionLoading(delayedRootCollectionLoading);
 		this.defaultNodeConfig = defaultNodeConfig;
 		this.defaultNodeConfig.read(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
 		this.defaultNodeConfig.write(userRepository, componentConfig, PubSubComponent.DEFAULT_LEAF_NODE_CONFIG_KEY);
@@ -584,17 +581,8 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 
 	@Override
 	public void processPacket(Packet packet) {
-		// if stanza is addressed to getName()@domain then we need to return
-		// SERVICE_UNAVAILABLE error
-		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart()) && packet.getType() != StanzaType.result) {
-			try {
-				Packet result = Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, true);
-				addOutPacket(result);
-			} catch (PacketErrorTypeException ex) {
-				log.log(Level.FINE, "Packet already of type=error, while preparing error response", ex);
-			}
+		if (!checkPubSubServiceJid(packet))
 			return;
-		}
 
 		super.processPacket(packet);
 	}
@@ -673,12 +661,80 @@ public class PubSubComponent extends AbstractComponent<PubSubConfig> implements 
 			// Object[]{cls_name, res_uri});
 			// }
 			PubSubDAO dao = createDAO(props);
-			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"));
+			boolean delayedRootCollectionLoading = (Boolean) props.get(DELAYED_ROOT_COLLECTION_LOADING_KEY);
+			initialize((String[]) props.get(ADMINS_KEY), dao, null, new LeafNodeConfig("default"), delayedRootCollectionLoading);
 		} catch (Exception e) {
 			log.severe("Can't initialize pubsub repository: " + e);
 			e.printStackTrace();
 		}
 	}
+
+	@Override
+	public void start() {
+		super.start();
+		EventBus eventBus = EventBusFactory.getInstance();
+		eventBus.addHandler("remove", "tigase:user", removeUserEventHandler);
+	}
+
+	@Override
+	public void stop() {
+		super.stop();
+		EventBus eventBus = EventBusFactory.getInstance();
+		eventBus.removeHandler("remove", "tigase:user", removeUserEventHandler);
+	}
+	
+	@Override
+	protected boolean processScriptCommand(Packet pc, Queue<Packet> results) {
+		if (!checkPubSubServiceJid(pc))
+			return true;
+		return super.processScriptCommand(pc, results);
+	}
+	
+	/**
+	 * Method checks if packet is sent to pubsub@xxx and if so then it returns error
+	 * as we no longer allow usage of pubsub@xxx address as pubsub service jid 
+	 * since we added support to use PEP and we have multiple domains support
+	 * with separated nodes.
+	 * 
+	 * @param packet
+	 * @return true - if packet service jid is ok and should be processed
+	 */
+	protected boolean checkPubSubServiceJid(Packet packet) {
+		// if stanza is addressed to getName()@domain then we need to return
+		// SERVICE_UNAVAILABLE error
+		if (packet.getStanzaTo() != null && getName().equals(packet.getStanzaTo().getLocalpart()) && packet.getType() != StanzaType.result) {
+			try {
+				Packet result = Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, true);
+				addOutPacket(result);
+			} catch (PacketErrorTypeException ex) {
+				log.log(Level.FINE, "Packet already of type=error, while preparing error response", ex);
+			}
+			return false;
+		}
+		return true;
+	}
+	
+	private class RemoveUserEventHandler implements EventHandler {
+
+		private final String[] JID_PATH = { "remove", "jid" };
+		
+		@Override
+		public void onEvent(String name, String xmlns, Element event) {
+			if (!("remove".equals(name) && "tigase:user".equals(xmlns)))
+				return;
+			
+			String jidStr = event.getChildCData(JID_PATH);
+			BareJID jid = BareJID.bareJIDInstanceNS(jidStr);
+			// handle removal of pep service etc..
+			try {
+				pubsubRepository.onUserRemoved(jid);
+			} catch (RepositoryException ex) {
+				log.log(Level.WARNING, "could not remove PubSub data for removed user " + jidStr, ex);
+			}
+		}
+		
+	}
+	
 }
 
 // ~ Formatted in Tigase Code Convention on 13/10/16

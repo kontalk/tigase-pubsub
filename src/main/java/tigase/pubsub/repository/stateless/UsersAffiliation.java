@@ -40,6 +40,6 @@ public class UsersAffiliation implements Cloneable {
 
 	@Override
 	public String toString() {
-		return "UsersAffiliation{" + "affiliation=" + affiliation + ", jid=" + jid + '}';
+		return "{" + jid + "/" + affiliation + '}';
 	}
 }

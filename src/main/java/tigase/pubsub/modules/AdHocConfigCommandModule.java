@@ -21,8 +21,10 @@
  */
 package tigase.pubsub.modules;
 
-import java.util.ArrayList;
-import java.util.List;
+import tigase.server.Packet;
+
+import tigase.xmpp.Authorization;
+import tigase.xmpp.JID;
 
 import tigase.adhoc.AdHocCommand;
 import tigase.adhoc.AdHocCommandException;
@@ -34,9 +36,10 @@ import tigase.criteria.ElementCriteria;
 import tigase.pubsub.AbstractPubSubModule;
 import tigase.pubsub.PubSubConfig;
 import tigase.pubsub.exceptions.PubSubException;
-import tigase.server.Packet;
 import tigase.xml.Element;
-import tigase.xmpp.JID;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AdHocConfigCommandModule extends AbstractPubSubModule {
 
@@ -87,17 +90,26 @@ public class AdHocConfigCommandModule extends AbstractPubSubModule {
 		JID stanzaFrom = packet.getStanzaFrom();
 		
 		if ( !scriptCommandManager.canCallCommand( stanzaFrom, node ) ){
-			return;
+			throw new PubSubException(Authorization.NOT_AUTHORIZED,
+					"You don't have enought privileges to execute the command");
 		}
 
 		if (commandsManager.hasCommand(node)) {
 			try {
-				packetWriter.write(this.commandsManager.process(packet));
+				final Packet result = this.commandsManager.process(packet);
+				result.setXMLNS( Packet.CLIENT_XMLNS );
+				packetWriter.write(result);
 			} catch (AdHocCommandException e) {
 				throw new PubSubException(e.getErrorCondition(), e.getMessage());
 			}
 		} else {
-			packetWriter.write(scriptCommandManager.process(packet));
+			final List<Packet> result = scriptCommandManager.process(packet);
+			if ( result != null && !result.isEmpty() ){
+				for ( Packet res : result ) {
+					res.setXMLNS( Packet.CLIENT_XMLNS );
+				}
+			}
+			packetWriter.write(result);
 		}
 	}
 
