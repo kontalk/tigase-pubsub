@@ -36,7 +36,10 @@ import tigase.xmpp.XMPPProcessorIfc;
 import tigase.xmpp.XMPPResourceConnection;
 
 import tigase.util.DNSResolverFactory;
+import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
+import tigase.xmpp.*;
+import tigase.xmpp.impl.PresenceAbstract;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -52,7 +55,7 @@ import java.util.logging.Logger;
  * 
  * @author andrzej
  */
-public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
+public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc, XMPPStopListenerIfc  {
 
 	private static final Logger log = Logger.getLogger(PepPlugin.class.getCanonicalName());
 	
@@ -277,5 +280,23 @@ public class PepPlugin extends XMPPProcessor implements XMPPProcessorIfc {
 			results.offer(result);
 		}
 	}
-	
+
+	@Override
+	public void stopped(XMPPResourceConnection session, Queue<Packet> results, Map<String, Object> settings) {
+
+		synchronized (session) {
+			try {
+				Packet packet = Presence.packetInstance(PresenceAbstract.PRESENCE_ELEMENT_NAME,
+				                                        session.getJID().toString(),
+				                                        session.getJID().copyWithoutResource().toString(),
+				                                        StanzaType.unavailable);
+				processPresence(packet, session, results);
+
+			} catch (NotAuthorizedException | TigaseStringprepException e) {
+				if (log.isLoggable(Level.FINER)) {
+					log.log(Level.FINER, "Problem forwarding unavailable presence to PubSub component");
+				}
+			}
+		}
+	}
 }
